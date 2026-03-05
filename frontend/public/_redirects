@@ -1,0 +1,5 @@
+/*
+  SPA routing for Render/Netlify/etc.
+  Redirects all requests to index.html so React Router can handle them.
+*/
+/*    /index.html   200
