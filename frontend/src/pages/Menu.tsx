@@ -175,21 +175,22 @@ const MenuContent = () => {
     };
 
     const onStatusUpdate = (data: { status: string; sessionId?: string; tableNumber?: number }) => {
-      if (data.tableNumber && String(data.tableNumber) !== tableId) return; // hard table guard
-      if (data.sessionId && data.sessionId !== sessionId) return; // hard session guard
+      if (data.tableNumber && String(data.tableNumber) !== tableId) return;
+      if (data.sessionId && data.sessionId !== sessionId) return;
       fetchOrder();
-      const msg: Record<string, string> = {
-        preparing: "Hold tight! Deliciousness is loading… ⏳🍔",
-        served: "Warning: Deliciousness has arrived! 😄",
-        completed: "Session ended. Thank you!",
-      };
 
       if (data.status === "preparing" || data.status === "served") {
         setPopupStatus(data.status);
         setShowTopPopup(true);
-        setTimeout(() => setShowTopPopup(false), 5000);
-      } else if (msg[data.status]) {
-        toast({ title: "Update", description: msg[data.status] });
+        // Extend duration for cinematic effect
+        setTimeout(() => setShowTopPopup(false), 7000);
+      } else {
+        const msg: Record<string, string> = {
+          completed: "Session ended. Thank you!",
+        };
+        if (msg[data.status]) {
+          toast({ title: "Update", description: msg[data.status] });
+        }
       }
 
       if (data.status === "completed") { localStorage.removeItem(cartKey); setCart([]); }
@@ -653,36 +654,64 @@ const MenuContent = () => {
             )}
           </AnimatePresence>
 
-          {/* Top Animated Popup */}
+          {/* Cinematic Top Status Notification */}
           <AnimatePresence>
             {showTopPopup && (
               <motion.div
-                initial={{ y: -100, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                exit={{ y: -100, opacity: 0 }}
-                transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                className="fixed top-4 left-4 right-4 z-[100] max-w-sm mx-auto"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/40 backdrop-blur-md"
               >
-                <div className="bg-black/80 backdrop-blur-xl border border-white/20 shadow-[0_0_40px_rgba(255,255,255,0.1)] rounded-2xl p-5 flex items-center gap-5 overflow-hidden relative">
-                  <div className="absolute inset-0 bg-white/5 animate-pulse pointer-events-none" />
-                  <motion.div
-                    animate={{ rotate: [0, -10, 10, -10, 0], scale: [1, 1.1, 1] }}
-                    transition={{ duration: 1.5, repeat: Infinity }}
-                    className="text-4xl filter drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]"
-                  >
-                    {popupStatus === "served" ? "🍽️" : "👨‍🍳"}
-                  </motion.div>
-                  <div className="relative z-10">
-                    <h4 className="font-display font-black text-xl text-white tracking-wide">
-                      {popupStatus === "served" ? "Delivered" : "In the Kitchen"}
-                    </h4>
-                    <p className="text-white/70 text-sm font-medium leading-snug">
+                <motion.div
+                  initial={{ scale: 0.8, y: 40, opacity: 0 }}
+                  animate={{ scale: 1, y: 0, opacity: 1 }}
+                  exit={{ scale: 1.1, opacity: 0 }}
+                  className="w-full max-w-lg relative"
+                >
+                  {/* Atmospheric Glow */}
+                  <div className={`absolute inset-0 blur-[120px] opacity-40 rounded-full animate-pulse-slow ${popupStatus === "served" ? "bg-yellow-500" : "bg-blue-500"
+                    }`} />
+
+                  <div className="glass-strong border-white/10 rounded-[3rem] p-10 text-center relative z-10 overflow-hidden">
+                    <div className="absolute inset-0 bg-white/5 group-hover:bg-white/10 transition-colors pointer-events-none" />
+
+                    <motion.div
+                      animate={{
+                        rotate: [0, -10, 10, -10, 0],
+                        scale: [1, 1.2, 1]
+                      }}
+                      transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                      className="text-7xl mb-8 flex justify-center filter drop-shadow-[0_0_20px_rgba(255,255,255,0.3)]"
+                    >
+                      {popupStatus === "served" ? "🎩" : "🔥"}
+                    </motion.div>
+
+                    <h3 className="font-display text-4xl font-black text-white text-glow-white mb-4 tracking-tight">
+                      {popupStatus === "served" ? "Bon Appétit!" : "Chef's in Motion"}
+                    </h3>
+
+                    <p className="text-white/60 text-lg font-medium leading-relaxed max-w-xs mx-auto mb-8">
                       {popupStatus === "served"
-                        ? "Your order has been served. Enjoy your meal!"
-                        : "Chef is busy crafting your deliciousness..."}
+                        ? "Your masterpieces have arrived. Indulge in perfection."
+                        : "Your selection is being crafted with precision and passion."}
                     </p>
+
+                    <div className="flex justify-center gap-2">
+                      {[1, 2, 3].map(i => (
+                        <motion.div
+                          key={i}
+                          animate={{
+                            scale: [1, 1.5, 1],
+                            opacity: [0.2, 0.5, 0.2]
+                          }}
+                          transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
+                          className={`w-2 h-2 rounded-full ${popupStatus === "served" ? "bg-yellow-500" : "bg-blue-500"}`}
+                        />
+                      ))}
+                    </div>
                   </div>
-                </div>
+                </motion.div>
               </motion.div>
             )}
           </AnimatePresence>
