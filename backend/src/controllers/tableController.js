@@ -66,7 +66,7 @@ exports.getTableQR = async (req, res) => {
   try {
     const { tableNumber } = req.params
     const frontendBaseUrl = "https://qr-restaurant-system-2.onrender.com"
-    const url = `${frontendBaseUrl}/table/${tableNumber}`
+    const url = `${frontendBaseUrl}/#/table/${tableNumber}`
     const qrDataUrl = await QRCode.toDataURL(url, {
       width: 300,
       margin: 2,
