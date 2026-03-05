@@ -23,8 +23,8 @@ import {
 import { Input } from "@/components/ui/input";
 
 // ─── Config ──────────────────────────────────────────────────────────────────
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5001/api";
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:5001";
+const API_BASE = import.meta.env.VITE_API_URL || "https://qr-restaurant-system-1.onrender.com/api";
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "https://qr-restaurant-system-1.onrender.com";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface MenuItem {

@@ -65,7 +65,7 @@ exports.getAllTables = async (req, res) => {
 exports.getTableQR = async (req, res) => {
   try {
     const { tableNumber } = req.params
-    const frontendBaseUrl = process.env.FRONTEND_URL || "http://localhost:5173"
+    const frontendBaseUrl = process.env.FRONTEND_URL || "http://localhost:8080"
     const url = `${frontendBaseUrl}/table/${tableNumber}`
     const qrDataUrl = await QRCode.toDataURL(url, {
       width: 300,

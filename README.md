@@ -28,8 +28,8 @@ npm run dev
 ```
 
 The application will typically be accessible at:
-- **Frontend:** [http://localhost:8080](http://localhost:8080)
-- **Backend API:** [http://localhost:5001](http://localhost:5001)
+- **Frontend:** [https://qr-restaurant-system-2.onrender.com](https://qr-restaurant-system-2.onrender.com)
+- **Backend API:** [https://qr-restaurant-system-1.onrender.com](https://qr-restaurant-system-1.onrender.com)
 
 ## 📁 Repository Structure
 

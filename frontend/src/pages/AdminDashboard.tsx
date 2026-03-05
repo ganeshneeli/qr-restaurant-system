@@ -42,7 +42,7 @@ import { useNavigate } from "react-router-dom";
 import api from "@/api/axios";
 import { useAuth } from "@/context/AuthContext";
 import { io as socketIO } from "socket.io-client";
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:5001";
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "https://qr-restaurant-system-1.onrender.com";
 import PageTransition from "@/components/PageTransition";
 import AnimatedCounter from "@/components/AnimatedCounter";
 import LoadingSkeleton from "@/components/LoadingSkeleton";

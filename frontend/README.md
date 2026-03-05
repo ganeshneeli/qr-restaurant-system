@@ -45,7 +45,7 @@ Welcome to the sleek, modern frontend for the Restaurant System! This applicatio
 
 ## 🔗 Connection to Backend
 
-The frontend communicates with the backend API. Ensure your backend is running on the port specified in `src/api/axios.ts` (default is usually `http://localhost:5001`).
+The frontend communicates with the backend API. Ensure your backend is running at `https://qr-restaurant-system-1.onrender.com`.
 
 ---
 *Created with a focus on visual excellence and productivity.*
