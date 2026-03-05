@@ -8,6 +8,8 @@ const { initSocket } = require("./src/config/socket")
 const server = http.createServer(app)
 initSocket(server)
 
-server.listen(process.env.PORT, () => {
-  console.log("Server running")
+const PORT = process.env.PORT || 5001
+
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`)
 })
