@@ -801,7 +801,7 @@ const AdminDashboard = () => {
                                   className="w-24 h-24"
                                 />
                               </div>
-                              <p className="text-xs text-muted-foreground mb-3 break-all">{qr.url}</p>
+                              <p className="text-xs font-bold text-primary mb-3">OG Restaurant / Table {qr.tableNumber}</p>
                               <Button
                                 size="sm"
                                 variant="outline"
