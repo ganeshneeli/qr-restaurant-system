@@ -477,11 +477,29 @@ const AdminDashboard = () => {
       <div className="min-h-screen bg-cinematic flex pb-20 md:pb-0">
         {/* Desktop Sidebar */}
         <aside className="hidden md:flex w-[260px] min-h-screen glass-strong border-r border-white/5 flex-col sticky top-0 z-40 h-screen overflow-y-auto">
-          <div className="p-6 border-b border-white/5">
-            <h1 className="font-display text-2xl font-bold text-glow-subtle">OG</h1>
-            <p className="text-xs text-muted-foreground mt-1">Admin Dashboard</p>
-          </div>
+          <div className="p-6 border-b border-white/5 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="font-display text-2xl font-bold text-glow-subtle">OG</h1>
+                <p className="text-xs text-muted-foreground mt-1">Admin Dashboard</p>
+              </div>
+            </div>
 
+            {/* Background Video */}
+            <div className="relative w-full aspect-video rounded-xl overflow-hidden border border-white/10 shadow-lg">
+              <video
+                className="w-full h-full object-cover"
+                autoPlay
+                muted
+                loop
+                playsInline
+              >
+                <source src="/assets/dashboard-video.mp4" type="video/mp4" />
+                Your browser does not support the video tag.
+              </video>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
+            </div>
+          </div>
           <nav className="flex-1 p-4 space-y-1">
             {sections.map((s) => (
               <button
@@ -554,6 +572,25 @@ const AdminDashboard = () => {
               >
                 <LogOut className="h-4 w-4" />
               </Button>
+            </div>
+
+            {/* Mobile Video Header */}
+            <div className="md:hidden mb-6 relative w-full aspect-[21/9] rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
+              <video
+                className="w-full h-full object-cover"
+                autoPlay
+                muted
+                loop
+                playsInline
+              >
+                <source src="/assets/dashboard-video.mp4" type="video/mp4" />
+                Your browser does not support the video tag.
+              </video>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
+              <div className="absolute bottom-3 left-4">
+                <p className="text-[10px] uppercase tracking-[0.2em] text-white/60 font-medium">Fine Dining</p>
+                <p className="text-sm font-bold text-white tracking-tight">OG Dashboard</p>
+              </div>
             </div>
 
             {loading ? (
@@ -1098,8 +1135,8 @@ const AdminDashboard = () => {
             )}
           </div>
         </main>
-      </div>
-    </PageTransition>
+      </div >
+    </PageTransition >
   );
 };
 
