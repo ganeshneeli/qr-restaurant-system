@@ -1,0 +1,1106 @@
+import { useEffect, useState, useCallback, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  LayoutDashboard,
+  UtensilsCrossed,
+  BarChart3,
+  LogOut,
+  Clock,
+  Table2,
+  QrCode,
+  Download,
+  CheckCircle2,
+  IndianRupee,
+  Printer,
+  Plus,
+  Settings2,
+  Eye,
+  EyeOff,
+  Search,
+  Pencil,
+  Trash2,
+} from "lucide-react";
+
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { useNavigate } from "react-router-dom";
+import api from "@/api/axios";
+import { useAuth } from "@/context/AuthContext";
+import { io as socketIO } from "socket.io-client";
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:5001";
+import PageTransition from "@/components/PageTransition";
+import AnimatedCounter from "@/components/AnimatedCounter";
+import LoadingSkeleton from "@/components/LoadingSkeleton";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { useToast } from "@/hooks/use-toast";
+
+interface OrderItem {
+  name?: string;
+  foodId?: string;
+  quantity: number;
+  price?: number;
+}
+
+interface Order {
+  _id: string;
+  tableNumber?: number;
+  table?: { number: number };
+  items: OrderItem[];
+  totalAmount?: number;
+  status: string;
+  paymentStatus?: string;
+  createdAt?: string;
+  billRequested?: boolean;
+  sessionId?: string;
+}
+
+interface TableData {
+  _id: string;
+  tableNumber?: number;
+  number?: number;
+  status: string;
+  activatedAt?: string;
+  startedAt?: string;
+}
+
+interface Summary {
+  totalRevenue?: number;
+  totalOrders?: number;
+}
+
+interface MenuItem {
+  _id: string;
+  name: string;
+  price: number;
+  category: string;
+  available: boolean;
+  image?: string;
+}
+
+interface QrData {
+  tableNumber: number;
+  qr: string;
+  url: string;
+}
+
+const statusColors: Record<string, string> = {
+  pending: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
+  preparing: "bg-blue-500/20 text-blue-400 border-blue-500/30",
+  served: "bg-green-500/20 text-green-400 border-green-500/30",
+  completed: "bg-white/10 text-white/50 border-white/10",
+};
+
+const sections = [
+  { id: "orders", label: "Live Orders", icon: UtensilsCrossed },
+  { id: "tables", label: "All Tables", icon: Table2 },
+  { id: "menu", label: "Menu", icon: Settings2 },
+  { id: "qrcodes", label: "QR Codes", icon: QrCode },
+  { id: "summary", label: "Daily Summary", icon: BarChart3 },
+];
+
+const AdminDashboard = () => {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [activeSection, setActiveSection] = useState("orders");
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [tables, setTables] = useState<TableData[]>([]);
+  const [summary, setSummary] = useState<Summary>({});
+  const [loading, setLoading] = useState(true);
+  const [qrCodes, setQrCodes] = useState<QrData[]>([]);
+  const [qrLoading, setQrLoading] = useState(false);
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [isAddingItem, setIsAddingItem] = useState(false);
+  const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
+  const [newItem, setNewItem] = useState({ name: "", price: "", category: "Other", image: "" });
+  const [newItemFile, setNewItemFile] = useState<File | null>(null);
+  const [editItemFile, setEditItemFile] = useState<File | null>(null);
+  const [menuSearchQuery, setMenuSearchQuery] = useState("");
+  const socketRef = useRef<any>(null);
+
+  const resolveImagePath = (imagePath?: string) => {
+    if (!imagePath) return "";
+    if (imagePath.startsWith("http")) return imagePath;
+    return `${SOCKET_URL}${imagePath}`;
+  };
+
+  const fetchData = useCallback(async () => {
+    try {
+      const [ordersRes, tablesRes, summaryRes] = await Promise.all([
+        api.get("/orders"),
+        api.get("/table/all"),
+        api.get("/orders/summary/today"),
+      ]);
+      setOrders(ordersRes.data?.orders || []);
+      setTables(tablesRes.data?.data || []);
+      setSummary(summaryRes.data || {});
+
+      const menuRes = await api.get("/menu");
+      setMenuItems(menuRes.data?.data || []);
+    } catch {
+      // silent
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Handle Socket Connection separately to keep it stable
+  useEffect(() => {
+    console.log("🔌 Admin: Initializing socket connection...");
+    const socket = socketIO(SOCKET_URL, { autoConnect: false });
+    socketRef.current = socket;
+
+    socket.connect();
+
+    socket.on("connect", () => {
+      console.log("✅ Admin Socket connected:", socket.id);
+      socket.emit("join-admin");
+    });
+
+    socket.on("connect_error", (err) => {
+      console.error("❌ Admin Socket connection error:", err);
+    });
+
+    return () => {
+      console.log("🔌 Admin: Disconnecting socket...");
+      socket.disconnect();
+      socketRef.current = null;
+    };
+  }, []); // Only on mount/unmount
+
+  // Handle Socket Listeners
+  useEffect(() => {
+    const handleNewOrder = (order: Order) => {
+      console.log("📦 Socket: newOrder received", order);
+      setOrders((prev) => {
+        const exists = prev.find((o) => o._id === order._id);
+        if (exists) return prev.map((o) => (o._id === order._id ? order : o));
+        return [order, ...prev];
+      });
+      toast({
+        title: "🍽️ New Order!",
+        description: `Table ${order.tableNumber || order.table?.number}`
+      });
+    };
+
+    const handleBillRequested = (data: { tableNumber: number }) => {
+      console.log("🧾 Socket: billRequested received", data);
+      toast({
+        title: "🧾 Bill Requested",
+        description: `Table ${data.tableNumber}`
+      });
+      fetchData();
+    };
+
+    const handleStatusUpdated = () => {
+      console.log("🔄 Socket: orderStatusUpdated received");
+      fetchData();
+    };
+
+    const handleOrderPaid = () => {
+      console.log("💰 Socket: orderPaid received");
+      fetchData();
+    };
+
+    const handleTableUpdated = () => {
+      console.log("🪑 Socket: tableUpdated received");
+      fetchData();
+    };
+
+    const socket = socketRef.current;
+    if (!socket) return;
+
+    socket.on("newOrder", handleNewOrder);
+    socket.on("billRequested", handleBillRequested);
+    socket.on("orderStatusUpdated", handleStatusUpdated);
+    socket.on("orderPaid", handleOrderPaid);
+    socket.on("tableUpdated", handleTableUpdated);
+
+    return () => {
+      socket.off("newOrder", handleNewOrder);
+      socket.off("billRequested", handleBillRequested);
+      socket.off("orderStatusUpdated", handleStatusUpdated);
+      socket.off("orderPaid", handleOrderPaid);
+      socket.off("tableUpdated", handleTableUpdated);
+    };
+  }, [fetchData, toast]);
+
+  // Initial Data Fetch
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const updateOrderStatus = async (orderId: string, status: string) => {
+    try {
+      await api.put(`/orders/${orderId}/status`, { status });
+      setOrders((prev) =>
+        status === "completed"
+          ? prev.filter((o) => o._id !== orderId)
+          : prev.map((o) => (o._id === orderId ? { ...o, status } : o))
+      );
+      if (status === "completed") fetchData();
+      toast({ title: "Updated", description: `Order marked as ${status}` });
+    } catch {
+      toast({ title: "Error", variant: "destructive" });
+    }
+  };
+
+  const markAsPaid = async (orderId: string) => {
+    try {
+      await api.put(`/orders/${orderId}/pay`);
+      setOrders((prev) => prev.filter((o) => o._id !== orderId));
+      fetchData(); // Refresh tables and summary
+      toast({ title: "✅ Payment Confirmed", description: "Order marked as paid & table freed" });
+    } catch {
+      toast({ title: "Error", variant: "destructive" });
+    }
+  };
+
+  const loadQrCodes = useCallback(async () => {
+    if (qrCodes.length > 0) return;
+    setQrLoading(true);
+    try {
+      const qrs: QrData[] = [];
+      for (let i = 1; i <= 10; i++) {
+        try {
+          const res = await api.get(`/table/${i}/qr`);
+          if (res.data?.success) qrs.push(res.data);
+        } catch { /* skip */ }
+      }
+      setQrCodes(qrs);
+    } finally {
+      setQrLoading(false);
+    }
+  }, [qrCodes.length]);
+
+  useEffect(() => {
+    if (activeSection === "qrcodes") loadQrCodes();
+  }, [activeSection, loadQrCodes]);
+
+  const downloadQr = (qr: QrData) => {
+    const a = document.createElement("a");
+    a.href = qr.qr;
+    a.download = `table-${qr.tableNumber}-qr.png`;
+    a.click();
+  };
+
+  const handleForceRelease = async (tableNumber: number) => {
+    if (!window.confirm(`Are you sure you want to manually release Table ${tableNumber}?`)) return;
+    try {
+      await api.post(`/table/${tableNumber}/release`);
+      fetchData();
+      toast({ title: "Success", description: `Table ${tableNumber} has been released.` });
+    } catch {
+      toast({ title: "Error", description: "Failed to release table", variant: "destructive" });
+    }
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate("/", { replace: true });
+  };
+
+  const handleAddItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const formData = new FormData();
+      formData.append("name", newItem.name);
+      formData.append("price", newItem.price);
+      formData.append("category", newItem.category);
+      formData.append("image", newItem.image);
+      if (newItemFile) {
+        formData.append("imageFile", newItemFile);
+      }
+
+      const res = await api.post("/menu", formData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+
+      if (res.data?.success) {
+        setMenuItems(prev => [...prev, res.data.data]);
+        setIsAddingItem(false);
+        setNewItem({ name: "", price: "", category: "Other", image: "" });
+        setNewItemFile(null);
+        toast({ title: "Success", description: "New item added to menu" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to add item", variant: "destructive" });
+    }
+  };
+
+  const toggleItemAvailability = async (itemId: string) => {
+    try {
+      const res = await api.put(`/menu/${itemId}/toggle`);
+      if (res.data?.success) {
+        setMenuItems(prev => prev.map(item =>
+          item._id === itemId ? { ...item, available: res.data.data.available } : item
+        ));
+        toast({
+          title: "Availability Updated",
+          description: `${res.data.data.name} is now ${res.data.data.available ? "Available" : "Unavailable"}`
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update availability",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUpdateItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingItem) return;
+    try {
+      const formData = new FormData();
+      formData.append("name", editingItem.name);
+      formData.append("price", String(editingItem.price));
+      formData.append("category", editingItem.category);
+      formData.append("image", editingItem.image || "");
+      if (editItemFile) {
+        formData.append("imageFile", editItemFile);
+      }
+
+      await api.put(`/menu/${editingItem._id}`, formData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+
+      toast({ title: "Success", description: "Item updated successfully" });
+      setEditingItem(null);
+      setEditItemFile(null);
+      fetchData();
+    } catch {
+      toast({ title: "Error", description: "Failed to update item", variant: "destructive" });
+    }
+  };
+
+  const handleDeleteItem = async (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this item?")) return;
+    try {
+      await api.delete(`/menu/${id}`);
+      toast({ title: "Success", description: "Item removed from menu" });
+      fetchData();
+    } catch {
+      toast({ title: "Error", description: "Failed to remove item", variant: "destructive" });
+    }
+  };
+
+  const handlePrint = (order: Order) => {
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+
+    const itemsHtml = order.items.map(item => `
+      <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+        <span>${item.name || item.foodId} x ${item.quantity}</span>
+        <span>₹${(item.price || 0) * item.quantity}</span>
+      </div>
+    `).join("");
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Bill - Table ${order.tableNumber || order.table?.number}</title>
+          <style>
+            body { font-family: 'Inter', sans-serif; padding: 20px; color: #000; }
+            .header { text-align: center; border-bottom: 2px dashed #000; padding-bottom: 15px; margin-bottom: 15px; }
+            .order-info { margin-bottom: 15px; font-size: 14px; }
+            .items { border-bottom: 2px dashed #000; padding-bottom: 15px; margin-bottom: 15px; }
+            .total { font-weight: bold; font-size: 20px; text-align: right; }
+            .footer { text-align: center; margin-top: 30px; font-size: 12px; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1 style="margin: 0;">OG RESTAURANT</h1>
+            <p style="margin: 5px 0;">Fine Dining Experience</p>
+          </div>
+          <div class="order-info">
+            <p><strong>Table:</strong> ${order.tableNumber || order.table?.number}</p>
+            <p><strong>Date:</strong> ${new Date(order.createdAt || Date.now()).toLocaleString()}</p>
+            <p><strong>Order ID:</strong> ${order._id.slice(-6).toUpperCase()}</p>
+          </div>
+          <div class="items">
+            ${itemsHtml}
+          </div>
+          <div class="total">
+            Total: ₹${order.totalAmount}
+          </div>
+          <div class="footer">
+            <p>Thank you for dining with us!</p>
+            <p>Visit again soon</p>
+          </div>
+          <script>
+            window.onload = () => {
+              window.print();
+              setTimeout(() => { window.close(); }, 500);
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
+  const getTimeSince = (date?: string) => {
+    if (!date) return "—";
+    const diff = Math.floor((Date.now() - new Date(date).getTime()) / 60000);
+    if (diff < 1) return "just now";
+    return `${diff}m ago`;
+  };
+
+  const filteredMenuItems = menuItems.filter(i =>
+    i.name.toLowerCase().includes(menuSearchQuery.toLowerCase()) ||
+    i.category.toLowerCase().includes(menuSearchQuery.toLowerCase())
+  );
+
+  return (
+    <PageTransition>
+      <div className="min-h-screen bg-cinematic flex pb-20 md:pb-0">
+        {/* Desktop Sidebar */}
+        <aside className="hidden md:flex w-[260px] min-h-screen glass-strong border-r border-white/5 flex-col sticky top-0 z-40 h-screen overflow-y-auto">
+          <div className="p-6 border-b border-white/5">
+            <h1 className="font-display text-2xl font-bold text-glow-subtle">OG</h1>
+            <p className="text-xs text-muted-foreground mt-1">Admin Dashboard</p>
+          </div>
+
+          <nav className="flex-1 p-4 space-y-1">
+            {sections.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => setActiveSection(s.id)}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 text-sm font-medium ${activeSection === s.id
+                  ? "bg-primary/20 text-primary-foreground border border-primary/30 neon-glow"
+                  : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
+                  }`}
+              >
+                <s.icon className="h-4 w-4" />
+                {s.label}
+              </button>
+            ))}
+          </nav>
+
+          <div className="p-4 border-t border-white/5">
+            <Button
+              onClick={handleLogout}
+              variant="ghost"
+              className="w-full justify-start text-muted-foreground hover:text-destructive"
+            >
+              <LogOut className="h-4 w-4 mr-2" /> Logout
+            </Button>
+          </div>
+        </aside>
+
+        {/* Mobile Bottom Tab Bar */}
+        <nav className="md:hidden fixed bottom-1 inset-x-2 z-50 glass-strong border border-white/10 rounded-2xl flex items-center justify-around px-2 py-2 bg-background/95 backdrop-blur-xl shadow-2xl safe-area-bottom">
+          {sections.map((s) => (
+            <button
+              key={s.id}
+              onClick={() => setActiveSection(s.id)}
+              className={`flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-xl transition-all duration-300 ${activeSection === s.id
+                ? "text-primary"
+                : "text-muted-foreground hover:text-foreground"
+                }`}
+            >
+              <div className={`p-1.5 rounded-full transition-all duration-300 ${activeSection === s.id ? "bg-primary/20 neon-glow -translate-y-1" : ""}`}>
+                <s.icon className="h-5 w-5" />
+              </div>
+              <span className={`text-[10px] font-bold leading-none transition-all ${activeSection === s.id ? "text-primary-foreground scale-110" : "font-medium"}`}>
+                {s.label.split(" ").pop()}
+              </span>
+            </button>
+          ))}
+        </nav>
+
+        {/* Main Content */}
+        <main className="flex-1 p-4 md:p-8 overflow-y-auto w-full">
+          <div className="max-w-6xl mx-auto">
+            <div className="flex items-center justify-between mb-6 md:mb-8">
+              <div>
+                <h2 className="font-display text-2xl md:text-3xl font-bold text-glow-subtle flex items-center">
+                  <span className="md:hidden text-primary mr-2">OG</span>
+                  <span className="md:hidden text-white/20 mr-2">|</span>
+                  {sections.find((s) => s.id === activeSection)?.label}
+                </h2>
+                <p className="text-muted-foreground text-xs md:text-sm mt-1">
+                  {new Date().toLocaleDateString("en-IN", {
+                    weekday: "long", year: "numeric", month: "long", day: "numeric"
+                  })}
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleLogout}
+                className="md:hidden text-muted-foreground hover:text-destructive glass border-white/5"
+              >
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {loading ? (
+              <LoadingSkeleton />
+            ) : (
+              <>
+                {/* === LIVE ORDERS === */}
+                {activeSection === "orders" && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                    <AnimatePresence>
+                      {orders.map((order) => (
+                        <motion.div
+                          key={order._id}
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.9, y: -20 }}
+                          layout
+                        >
+                          <Card className="glass border-white/5 p-5 hover:neon-glow transition-all duration-300">
+                            {/* Card Header */}
+                            <div className="flex justify-between items-start mb-3">
+                              <div>
+                                <h3 className="font-display text-lg font-bold">
+                                  Table {order.tableNumber ?? "—"}
+                                </h3>
+                                <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                                  <Clock className="h-3 w-3" />
+                                  {getTimeSince(order.createdAt)}
+                                </p>
+                              </div>
+                              <div className="flex flex-col items-end gap-1">
+                                <Badge className={`${statusColors[order.status] || statusColors.pending} border text-xs`}>
+                                  {order.status}
+                                </Badge>
+                                {order.paymentStatus === "paid" ? (
+                                  <Badge className="bg-green-500/20 text-green-400 border-green-500/30 border text-xs">
+                                    Paid ✓
+                                  </Badge>
+                                ) : (
+                                  <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30 border text-xs">
+                                    Unpaid
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Items */}
+                            <div className="space-y-1.5 mb-3">
+                              {order.items?.map((item, i) => (
+                                <div key={i} className="flex justify-between text-sm">
+                                  <span className="text-muted-foreground">
+                                    {item.name || item.foodId} × {item.quantity}
+                                  </span>
+                                  {item.price && (
+                                    <span>₹{item.price * item.quantity}</span>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+
+                            {order.billRequested && (
+                              <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 border mb-3 w-full justify-center">
+                                🧾 Bill Requested
+                              </Badge>
+                            )}
+
+                            <Separator className="bg-white/5 mb-3" />
+
+                            {/* Total */}
+                            <div className="flex justify-between font-semibold mb-4">
+                              <span>Grand Total</span>
+                              <span className="text-glow-subtle flex items-center gap-0.5">
+                                <IndianRupee className="h-3.5 w-3.5" />
+                                {order.totalAmount ?? "—"}
+                              </span>
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="flex flex-col gap-2">
+                              <div className="flex gap-2">
+                                {order.status === "pending" && (
+                                  <Button
+                                    size="sm"
+                                    onClick={() => updateOrderStatus(order._id, "preparing")}
+                                    className="flex-1 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 text-blue-400"
+                                    variant="outline"
+                                  >
+                                    Preparing
+                                  </Button>
+                                )}
+                                {order.status === "preparing" && (
+                                  <Button
+                                    size="sm"
+                                    onClick={() => updateOrderStatus(order._id, "served")}
+                                    className="flex-1 bg-green-500/20 hover:bg-green-500/30 border border-green-500/30 text-green-400"
+                                    variant="outline"
+                                  >
+                                    Served
+                                  </Button>
+                                )}
+                              </div>
+
+                              {/* Mark as Paid */}
+                              {order.paymentStatus !== "paid" && order.status !== "pending" && (
+                                <Button
+                                  size="sm"
+                                  onClick={() => markAsPaid(order._id)}
+                                  className="w-full bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-400"
+                                  variant="outline"
+                                >
+                                  <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
+                                  Mark as Paid
+                                </Button>
+                              )}
+
+                              {/* Complete Order */}
+                              {order.paymentStatus === "paid" && order.status !== "completed" && (
+                                <Button
+                                  size="sm"
+                                  onClick={() => updateOrderStatus(order._id, "completed")}
+                                  className="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-muted-foreground"
+                                  variant="outline"
+                                >
+                                  Complete Order
+                                </Button>
+                              )}
+
+                              <Button
+                                size="sm"
+                                onClick={() => handlePrint(order)}
+                                className="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-muted-foreground"
+                                variant="outline"
+                              >
+                                <Printer className="h-3.5 w-3.5 mr-1.5" />
+                                Print Bill
+                              </Button>
+                            </div>
+                          </Card>
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+
+                    {orders.length === 0 && (
+                      <div className="col-span-full text-center py-20 text-muted-foreground">
+                        <UtensilsCrossed className="h-12 w-12 mx-auto mb-4 opacity-30" />
+                        <p className="font-display text-xl">No active orders</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* === ALL TABLES === */}
+                {activeSection === "tables" && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                    {tables.map((table, i) => {
+                      const tableNum = table.tableNumber ?? table.number;
+                      const isOccupied = table.status === "occupied";
+                      const activatedAt = table.activatedAt ?? table.startedAt;
+
+                      return (
+                        <motion.div
+                          key={table._id}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: i * 0.04 }}
+                        >
+                          <Card className={`glass border-white/5 p-5 text-center transition-all ${isOccupied ? "neon-glow" : ""}`}>
+                            <div className="relative w-12 h-12 mx-auto mb-3">
+                              <div
+                                className={`w-3 h-3 rounded-full absolute top-0 right-0 ${isOccupied ? "bg-amber-400 pulse-dot" : "bg-green-500"
+                                  }`}
+                              />
+                              <div
+                                className={`w-12 h-12 rounded-full flex items-center justify-center border ${isOccupied
+                                  ? "bg-amber-500/10 border-amber-500/30"
+                                  : "bg-green-500/10 border-green-500/30"
+                                  }`}
+                              >
+                                <Table2
+                                  className={`h-5 w-5 ${isOccupied ? "text-amber-400" : "text-green-400"}`}
+                                />
+                              </div>
+                            </div>
+                            <h3 className="font-display text-lg font-bold">Table {tableNum}</h3>
+                            <Badge
+                              className={`mt-1 text-xs border ${isOccupied
+                                ? "bg-amber-500/20 text-amber-400 border-amber-500/30"
+                                : "bg-green-500/20 text-green-400 border-green-500/30"
+                                }`}
+                            >
+                              {isOccupied ? "Occupied" : "Available"}
+                            </Badge>
+                            {isOccupied && activatedAt && (
+                              <p className="text-xs text-muted-foreground mt-2 flex items-center justify-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                {Math.floor((Date.now() - new Date(activatedAt).getTime()) / 60000)} min
+                              </p>
+                            )}
+                            {isOccupied && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleForceRelease(tableNum || 0)}
+                                className="w-full mt-3 h-8 text-[10px] uppercase tracking-wider text-muted-foreground hover:text-white hover:bg-white/5 border border-white/5"
+                              >
+                                Release Table
+                              </Button>
+                            )}
+                          </Card>
+                        </motion.div>
+                      );
+                    })}
+                    {tables.length === 0 && (
+                      <div className="col-span-full text-center py-20 text-muted-foreground">
+                        <Table2 className="h-12 w-12 mx-auto mb-4 opacity-30" />
+                        <p className="font-display text-xl">No tables found</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* === QR CODES === */}
+                {activeSection === "qrcodes" && (
+                  <div>
+                    <p className="text-muted-foreground text-sm mb-6">
+                      Print or display these QR codes at each table. Customers scan to begin ordering.
+                    </p>
+                    {qrLoading ? (
+                      <LoadingSkeleton />
+                    ) : (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                        {qrCodes.map((qr, i) => (
+                          <motion.div
+                            key={qr.tableNumber}
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: i * 0.05 }}
+                          >
+                            <Card className="glass border-white/5 p-4 text-center hover:neon-glow transition-all group">
+                              <h3 className="font-display font-bold mb-3 text-sm">Table {qr.tableNumber}</h3>
+                              <div className="bg-white rounded-lg p-2 mb-3 mx-auto w-fit">
+                                <img
+                                  src={qr.qr}
+                                  alt={`QR Table ${qr.tableNumber}`}
+                                  className="w-24 h-24"
+                                />
+                              </div>
+                              <p className="text-xs text-muted-foreground mb-3 break-all">{qr.url}</p>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => downloadQr(qr)}
+                                className="w-full glass border-white/10 hover:border-primary/30 hover:neon-glow text-xs"
+                              >
+                                <Download className="h-3 w-3 mr-1" />
+                                Download
+                              </Button>
+                            </Card>
+                          </motion.div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* === DAILY SUMMARY === */}
+                {activeSection === "summary" && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+                      <Card className="glass border-white/5 p-8">
+                        <p className="text-sm text-muted-foreground uppercase tracking-wider mb-2">
+                          Today's Revenue
+                        </p>
+                        <AnimatedCounter
+                          value={summary.totalRevenue || 0}
+                          prefix="₹"
+                          className="font-display text-4xl font-bold text-glow"
+                        />
+                      </Card>
+                    </motion.div>
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.1 }}
+                    >
+                      <Card className="glass border-white/5 p-8">
+                        <p className="text-sm text-muted-foreground uppercase tracking-wider mb-2">
+                          Total Orders Today
+                        </p>
+                        <AnimatedCounter
+                          value={summary.totalOrders || 0}
+                          className="font-display text-4xl font-bold text-glow"
+                        />
+                      </Card>
+                    </motion.div>
+                  </div>
+                )}
+
+                {/* === MENU MANAGEMENT === */}
+                {activeSection === "menu" && (
+                  <div className="space-y-6">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                      <p className="text-muted-foreground text-sm flex-1">
+                        Manage your restaurant's digital menu items and availability.
+                      </p>
+                      <div className="flex w-full sm:w-auto items-center gap-3">
+                        <div className="relative w-full sm:w-64">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            type="text"
+                            placeholder="Search menu..."
+                            value={menuSearchQuery}
+                            onChange={(e) => setMenuSearchQuery(e.target.value)}
+                            className="pl-9 glass border-white/10 focus:border-primary/50 transition-colors"
+                          />
+                        </div>
+                        <Dialog open={isAddingItem} onOpenChange={setIsAddingItem}>
+                          <DialogTrigger asChild>
+                            <Button className="shrink-0 bg-primary/20 text-primary-foreground border border-primary/30 neon-glow hover:bg-primary/30">
+                              <Plus className="h-4 w-4 sm:mr-2" /> <span className="hidden sm:inline">Add New Item</span>
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="glass-strong border-white/10 text-foreground">
+                            <DialogHeader>
+                              <DialogTitle className="font-display text-xl">Add New Menu Item</DialogTitle>
+                            </DialogHeader>
+                            <form onSubmit={handleAddItem} className="space-y-4 pt-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="name">Item Name</Label>
+                                <Input
+                                  id="name"
+                                  placeholder="e.g. Chicken Biryani"
+                                  className="glass-input"
+                                  value={newItem.name}
+                                  onChange={e => setNewItem({ ...newItem, name: e.target.value })}
+                                  required
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="image">Image URL</Label>
+                                <Input
+                                  id="image"
+                                  placeholder="https://images.unsplash.com/..."
+                                  className="glass-input"
+                                  value={newItem.image}
+                                  onChange={e => setNewItem({ ...newItem, image: e.target.value })}
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="imageFile">Or Upload Image</Label>
+                                <Input
+                                  id="imageFile"
+                                  type="file"
+                                  accept="image/*"
+                                  className="glass-input pt-2"
+                                  onChange={e => setNewItemFile(e.target.files ? e.target.files[0] : null)}
+                                />
+                              </div>
+                              <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                  <Label htmlFor="price">Price (₹)</Label>
+                                  <Input
+                                    id="price"
+                                    type="number"
+                                    placeholder="0.00"
+                                    className="glass-input"
+                                    value={newItem.price}
+                                    onChange={e => setNewItem({ ...newItem, price: e.target.value })}
+                                    required
+                                  />
+                                </div>
+                                <div className="space-y-2">
+                                  <Label htmlFor="category">Category</Label>
+                                  <Select
+                                    value={newItem.category}
+                                    onValueChange={v => setNewItem({ ...newItem, category: v })}
+                                  >
+                                    <SelectTrigger className="glass-input">
+                                      <SelectValue placeholder="Category" />
+                                    </SelectTrigger>
+                                    <SelectContent className="glass-strong border-white/10">
+                                      {["Soups", "Starters Veg", "Starters Non-Veg", "Rice & Biryani", "Rotis & Bread", "Tea & Beverages", "Curries", "Other"].map(cat => (
+                                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              </div>
+                              <Button type="submit" className="w-full mt-4">Create Item</Button>
+                            </form>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {filteredMenuItems.map((item, i) => (
+                        <motion.div
+                          key={item._id}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: i * 0.02 }}
+                        >
+                          <Card className="glass border-white/5 p-4 flex flex-col gap-4 group hover:border-primary/20 transition-all overflow-hidden relative">
+                            {item.image && (
+                              <div className="absolute inset-0 z-0 opacity-10 blur-sm group-hover:opacity-20 transition-opacity">
+                                <img src={resolveImagePath(item.image)} alt="" className="w-full h-full object-cover" />
+                              </div>
+                            )}
+                            <div className="flex justify-between items-start z-10">
+                              <div className="flex items-center gap-3">
+                                <div className="w-24 h-24 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center overflow-hidden shrink-0 shadow-lg">
+                                  {item.image ? (
+                                    <img src={resolveImagePath(item.image)} alt={item.name} className="w-full h-full object-cover" />
+                                  ) : (
+                                    <UtensilsCrossed className="h-8 w-8 text-primary/70" />
+                                  )}
+                                </div>
+                                <div>
+                                  <h4 className="font-semibold text-sm">{item.name}</h4>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs text-muted-foreground">{item.category}</span>
+                                    <span className="text-xs text-primary font-bold">₹{item.price}</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-muted-foreground hover:text-primary"
+                                  onClick={() => setEditingItem(item)}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                  onClick={() => handleDeleteItem(item._id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between z-10 pt-2 border-t border-white/5">
+                              <span className={`text-[10px] uppercase tracking-wider font-bold ${item.available ? "text-green-500" : "text-muted-foreground"}`}>
+                                {item.available ? "On Menu" : "Hidden"}
+                              </span>
+                              <Switch
+                                checked={item.available}
+                                onCheckedChange={() => toggleItemAvailability(item._id)}
+                              />
+                            </div>
+                          </Card>
+                        </motion.div>
+                      ))}
+                      {filteredMenuItems.length === 0 && (
+                        <div className="col-span-full text-center py-20 text-muted-foreground">
+                          <Search className="h-12 w-12 mx-auto mb-4 opacity-30" />
+                          <p className="font-display text-xl">No items found matching "{menuSearchQuery}"</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Edit Dialog */}
+                    <Dialog open={!!editingItem} onOpenChange={(open) => !open && setEditingItem(null)}>
+                      <DialogContent className="glass-strong border-white/10 text-foreground">
+                        <DialogHeader>
+                          <DialogTitle className="font-display text-xl">Edit Menu Item</DialogTitle>
+                        </DialogHeader>
+                        {editingItem && (
+                          <form onSubmit={handleUpdateItem} className="space-y-4 pt-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="edit-name">Item Name</Label>
+                              <Input
+                                id="edit-name"
+                                className="glass-input"
+                                value={editingItem.name}
+                                onChange={e => setEditingItem({ ...editingItem, name: e.target.value })}
+                                required
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="edit-image">Image URL</Label>
+                              <Input
+                                id="edit-image"
+                                className="glass-input"
+                                value={editingItem.image || ""}
+                                onChange={e => setEditingItem({ ...editingItem, image: e.target.value })}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="edit-imageFile">Or Upload Image</Label>
+                              <Input
+                                id="edit-imageFile"
+                                type="file"
+                                accept="image/*"
+                                className="glass-input pt-2"
+                                onChange={e => setEditItemFile(e.target.files ? e.target.files[0] : null)}
+                              />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="edit-price">Price (₹)</Label>
+                                <Input
+                                  id="edit-price"
+                                  type="number"
+                                  className="glass-input"
+                                  value={editingItem.price}
+                                  onChange={e => setEditingItem({ ...editingItem, price: Number(e.target.value) })}
+                                  required
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="edit-category">Category</Label>
+                                <Select
+                                  value={editingItem.category}
+                                  onValueChange={v => setEditingItem({ ...editingItem, category: v })}
+                                >
+                                  <SelectTrigger className="glass-input">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent className="glass-strong border-white/10">
+                                    {["Soups", "Starters Veg", "Starters Non-Veg", "Rice & Biryani", "Rotis & Bread", "Tea & Beverages", "Curries", "Other"].map(cat => (
+                                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </div>
+                            <Button type="submit" className="w-full mt-4">Save Changes</Button>
+                          </form>
+                        )}
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </main>
+      </div>
+    </PageTransition>
+  );
+};
+
+export default AdminDashboard;
