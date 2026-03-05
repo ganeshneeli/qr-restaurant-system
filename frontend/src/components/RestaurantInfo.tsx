@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { MapPin, Phone, Clock, Mail } from "lucide-react";
+import { MapPin, Phone, Clock, Mail, ExternalLink } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
 const RestaurantInfo = ({ className = "" }: { className?: string }) => {
@@ -10,57 +10,62 @@ const RestaurantInfo = ({ className = "" }: { className?: string }) => {
             viewport={{ once: true }}
             className={`w-full max-w-5xl mx-auto ${className}`}
         >
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Address Card */}
-                <Card className="glass border-white/10 p-4 group hover:neon-glow transition-all duration-500">
-                    <div className="flex items-start gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
-                            <MapPin className="h-4 w-4 text-primary" />
+                <Card className="glass-strong border-white/5 p-6 group hover:border-white/20 transition-all duration-700 bg-transparent">
+                    <div className="flex flex-col items-center text-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0 group-hover:bg-white group-hover:text-black transition-all duration-500">
+                            <MapPin className="h-5 w-5" />
                         </div>
-                        <div>
-                            <h4 className="text-[10px] font-bold text-primary/80 uppercase tracking-widest mb-1">Location</h4>
-                            <p className="text-xs text-foreground/90 leading-tight font-medium">
+                        <div className="space-y-2">
+                            <h4 className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em]">Location</h4>
+                            <p className="text-sm text-white/90 leading-relaxed font-bold">
                                 OG cafe & Restaurant<br />
-                                <span className="text-muted-foreground/80">Puttur & Tirupati bypass</span>
+                                <span className="text-white/50 font-medium">Puttur & Tirupati bypass</span>
                             </p>
-                        </div>
-                    </div>
-                </Card>
-
-                {/* Contact Card */}
-                <Card className="glass border-white/10 p-4 group hover:neon-glow transition-all duration-500">
-                    <div className="flex items-start gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-accent/10 border border-accent/20 flex items-center justify-center shrink-0 group-hover:bg-accent/20 transition-colors">
-                            <Phone className="h-4 w-4 text-accent-foreground" />
-                        </div>
-                        <div>
-                            <h4 className="text-[10px] font-bold text-accent-foreground/80 uppercase tracking-widest mb-1">Contact</h4>
-                            <div className="space-y-0.5">
-                                <a href="tel:+917981986524" className="block text-xs font-medium hover:text-primary transition-colors">+91 798198 6524</a>
-                                <a href="tel:+918686377266" className="block text-xs font-medium hover:text-primary transition-colors">+91 86863 77266</a>
+                            <div className="pt-2 flex justify-center">
+                                <div className="text-[10px] text-white/20 flex items-center gap-1 group-hover:text-white/40 transition-colors">
+                                    <ExternalLink className="h-3 w-3" />
+                                    Get Directions
+                                </div>
                             </div>
                         </div>
                     </div>
                 </Card>
 
-                {/* Hours Card */}
-                <Card className="glass border-white/10 p-4 group hover:neon-glow transition-all duration-500 border-primary/20 bg-primary/5">
-                    <div className="flex items-center gap-3 mb-2">
-                        <Clock className="h-4 w-4 text-primary" />
-                        <h4 className="text-[10px] font-bold text-primary uppercase tracking-widest">Business Hours</h4>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2 relative">
-                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1px] h-full bg-white/5" />
-
-                        <div className="text-center md:text-left">
-                            <span className="text-[9px] uppercase tracking-tighter text-muted-foreground font-bold block">Cafe</span>
-                            <p className="text-sm font-display font-bold text-glow-subtle whitespace-nowrap">24 / 7</p>
+                {/* Contact Card */}
+                <Card className="glass-strong border-white/5 p-6 group hover:border-white/20 transition-all duration-700 bg-transparent">
+                    <div className="flex flex-col items-center text-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0 group-hover:bg-white group-hover:text-black transition-all duration-500">
+                            <Phone className="h-5 w-5" />
                         </div>
+                        <div className="space-y-2">
+                            <h4 className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em]">Contact</h4>
+                            <div className="flex flex-col gap-1">
+                                <a href="tel:+917981986524" className="text-sm font-black text-white hover:text-glow-white transition-all">+91 798198 6524</a>
+                                <a href="tel:+918686377266" className="text-sm font-black text-white hover:text-glow-white transition-all">+91 86863 77266</a>
+                            </div>
+                            <p className="text-[10px] text-white/30 uppercase tracking-widest pt-2">Available for Bookings</p>
+                        </div>
+                    </div>
+                </Card>
 
-                        <div className="text-center md:text-left">
-                            <span className="text-[9px] uppercase tracking-tighter text-muted-foreground font-bold block">Rest.</span>
-                            <p className="text-sm font-display font-bold text-glow-subtle whitespace-nowrap">11am-11pm</p>
+                {/* Hours Card */}
+                <Card className="glass-strong border-white/5 p-6 group hover:border-white/20 transition-all duration-700 bg-transparent relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                        <Clock className="w-24 h-24 -mr-8 -mt-8" />
+                    </div>
+                    <div className="flex flex-col items-center text-center gap-4 relative z-10">
+                        <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0 group-hover:bg-white group-hover:text-black transition-all duration-500">
+                            <Clock className="h-5 w-5" />
+                        </div>
+                        <div className="space-y-2">
+                            <h4 className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em]">Business Hours</h4>
+                            <div className="bg-white/5 rounded-xl px-6 py-3 border border-white/5 group-hover:border-white/10 transition-colors">
+                                <span className="text-[9px] uppercase tracking-tighter text-white/30 font-bold block mb-1">Cafe & Rest.</span>
+                                <p className="text-lg font-display font-black text-glow-white">11am - 11pm</p>
+                            </div>
+                            <p className="text-[10px] text-white/20 uppercase tracking-widest pt-1 italic">Opening Daily</p>
                         </div>
                     </div>
                 </Card>

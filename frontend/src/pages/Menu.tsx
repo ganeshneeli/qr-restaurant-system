@@ -3,7 +3,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus, Minus, Receipt, ShoppingCart,
-  ChefHat, ClipboardList, X, Info, Search
+  ChefHat, ClipboardList, X, Info, Search,
+  Bell, Flame, Star, Sparkles, Utensils, Coffee, Ghost
 } from "lucide-react";
 import axios from "axios";
 import { io as socketIO } from "socket.io-client";
@@ -12,11 +13,18 @@ import { useAuth } from "@/context/AuthContext";
 import PageTransition from "@/components/PageTransition";
 import LoadingSkeleton from "@/components/LoadingSkeleton";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import RestaurantInfo from "@/components/RestaurantInfo";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger,
 } from "@/components/ui/sheet";
@@ -91,6 +99,8 @@ const MenuContent = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [showTopPopup, setShowTopPopup] = useState(false);
   const [popupStatus, setPopupStatus] = useState<string | null>(null);
+  const [selectedDish, setSelectedDish] = useState<MenuItem | null>(null);
+  const [showServiceHub, setShowServiceHub] = useState(false);
   const socketRef = useRef<Socket | null>(null);
 
   const resolveImagePath = (imagePath?: string) => {
@@ -273,12 +283,16 @@ const MenuContent = () => {
   });
   const getQty = (id: string) => cart.find(c => c.foodId === id)?.quantity ?? 0;
 
+  const CHEF_SPECIALS = useMemo(() => {
+    return menu.filter(item => item.available).slice(0, 4);
+  }, [menu]);
+
   if (!sessionToken) return null;
 
   // ─── JSX ──────────────────────────────────────────────────────────────────
   return (
     <PageTransition>
-      <div className="min-h-screen bg-[#050505] flex flex-col relative overflow-hidden pb-28">
+      <div className="min-h-screen bg-[#050505] flex flex-col relative overflow-hidden pb-32 selection:bg-white selection:text-black">
         {/* Background Video */}
         <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
           <video
@@ -290,10 +304,38 @@ const MenuContent = () => {
           >
             <source src="/assets/dashboard-video.mp4" type="video/mp4" />
           </video>
-          {/* Enhanced Overlay for readability */}
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-[1px]" />
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/40 to-black" />
+          <div className="absolute inset-0 bg-black/90 backdrop-blur-[2px]" />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-black" />
         </div>
+
+        {/* Floating Service Hub FAB */}
+        <div className="fixed top-24 right-4 z-[60]">
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={() => setShowServiceHub(true)}
+            className="w-14 h-14 rounded-full glass-strong border-white/20 flex flex-col items-center justify-center text-white shadow-[0_0_30px_rgba(255,255,255,0.1)] group relative overflow-hidden"
+          >
+            <div className="absolute inset-0 bg-white/5 group-hover:bg-white/10 transition-colors" />
+            <Bell className="h-5 w-5 mb-0.5" />
+            <span className="text-[8px] uppercase font-black tracking-tighter">Help</span>
+          </motion.button>
+        </div>
+
+        {/* Global Cinematic Status Glow */}
+        <AnimatePresence>
+          {popupStatus === "served" && showTopPopup && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] pointer-events-none"
+            >
+              <div className="absolute inset-0 bg-white/5 animate-pulse" />
+              <div className="absolute inset-0 ring-[50px] ring-white/10 ring-inset animate-pulse" />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Cinematic Particles/Glow - matching landing page */}
         <div className="fixed top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full bg-white/5 blur-[120px] pointer-events-none z-0 animate-pulse-slow" />
@@ -365,11 +407,62 @@ const MenuContent = () => {
         {/* Relative content wrapper to ensure it's above the fixed background */}
         <div className="relative z-10">
 
-          {/* Menu grid */}
+          {/* Menu Content */}
           <main className="max-w-6xl mx-auto px-4 py-8">
+
+            {/* 1. Hero Sections (Only shown for "All" or if specials exist) */}
+            {activeCategory === "All" && CHEF_SPECIALS.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-12"
+              >
+                <div className="flex items-center gap-2 mb-6">
+                  <Star className="h-5 w-5 text-glow-white text-white fill-white" />
+                  <h2 className="font-display text-2xl font-black tracking-tight uppercase">Chef's Selection</h2>
+                </div>
+
+                <Carousel opts={{ align: "start", loop: true }} className="w-full relative px-12">
+                  <CarouselContent className="-ml-4">
+                    {CHEF_SPECIALS.map((item, i) => (
+                      <CarouselItem key={item._id} className="pl-4 basis-[85%] sm:basis-1/2 lg:basis-1/3">
+                        <motion.div
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => setSelectedDish(item)}
+                          className="cursor-pointer"
+                        >
+                          <Card className="glass-strong border-white/5 overflow-hidden border-0 bg-transparent group aspect-[16/10]">
+                            <CardContent className="p-0 relative h-full">
+                              <img
+                                src={resolveImagePath(item.image)}
+                                alt={item.name}
+                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
+                              <div className="absolute bottom-4 left-4 right-4">
+                                <Badge className="bg-white text-black mb-2 rounded-full px-3 py-0 font-black text-[10px]">SIGNATURE</Badge>
+                                <h3 className="font-display text-xl font-bold text-white text-glow-white leading-none">{item.name}</h3>
+                                <p className="text-white/60 text-xs mt-1">₹{item.price}</p>
+                              </div>
+                              <div className="absolute top-4 right-4 bg-white/10 backdrop-blur-md rounded-full p-2 border border-white/20">
+                                <Sparkles className="h-4 w-4 text-white" />
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </motion.div>
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                  <CarouselPrevious className="left-0 bg-white/5 border-white/10 hover:bg-white hover:text-black hidden sm:flex" />
+                  <CarouselNext className="right-0 bg-white/5 border-white/10 hover:bg-white hover:text-black hidden sm:flex" />
+                </Carousel>
+              </motion.div>
+            )}
+
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
               <h2 className="font-display text-3xl md:text-4xl font-black tracking-tight text-glow-white text-white">
-                {activeCategory === "All" ? "Our Signature Menu" : activeCategory}
+                {activeCategory === "All" ? "The Full Catalog" : activeCategory}
               </h2>
               <div className="relative w-full sm:w-64">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -393,10 +486,14 @@ const MenuContent = () => {
                     return (
                       <motion.div key={item._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}>
                         <Card className={`glass border-white/5 p-5 transition-all duration-300 group ${item.available ? "hover:border-white/20 hover:shadow-[0_0_30px_rgba(255,255,255,0.05)]" : "opacity-60"}`}>
-                          <div className="flex flex-col gap-4 mb-4">
+                          <div className="flex flex-col gap-4 mb-4 cursor-pointer" onClick={() => setSelectedDish(item)}>
                             {item.image && (
-                              <div className="w-full h-72 sm:h-80 rounded-2xl overflow-hidden border border-white/10 shadow-2xl mb-4 group-hover:border-primary/30 transition-colors">
-                                <img src={resolveImagePath(item.image)} alt={item.name} className="w-full h-full object-cover hover:scale-110 transition-transform duration-700 ease-out" />
+                              <div className="w-full h-72 sm:h-80 rounded-2xl overflow-hidden border border-white/10 shadow-2xl mb-4 group-hover:border-white/20 transition-colors relative">
+                                <img src={resolveImagePath(item.image)} alt={item.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out" />
+                                <div className="absolute top-3 right-3 bg-black/50 backdrop-blur-md px-2 py-1 rounded-full border border-white/10 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <Info className="h-3 w-3 text-white" />
+                                  <span className="text-[10px] text-white font-bold">Details</span>
+                                </div>
                               </div>
                             )}
                             <div className="flex-1">
@@ -534,13 +631,24 @@ const MenuContent = () => {
           {/* Floating cart bar */}
           <AnimatePresence>
             {cart.length > 0 && !showCart && !showMyOrders && (
-              <motion.div initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 80, opacity: 0 }}
-                className="fixed bottom-4 inset-x-4 z-40 max-w-md mx-auto">
-                <Button onClick={() => setShowCart(true)}
-                  className="w-full h-14 bg-primary hover:bg-primary/80 font-semibold rounded-2xl neon-glow text-primary-foreground">
-                  <ShoppingCart className="h-5 w-5 mr-2" />
-                  {cart.reduce((s, c) => s + c.quantity, 0)} items · ₹{total}
-                </Button>
+              <motion.div
+                key="cart-bar"
+                initial={{ y: 80, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: 80, opacity: 0 }}
+                className="fixed bottom-4 inset-x-4 z-40 max-w-md mx-auto"
+              >
+                <motion.div
+                  key={cart.length} // Force re-animate on item count change
+                  animate={{ scale: [1, 1.05, 1], y: [0, -5, 0] }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <Button onClick={() => setShowCart(true)}
+                    className="w-full h-14 bg-white text-black hover:bg-white/90 font-black rounded-2xl shadow-[0_0_30px_rgba(255,255,255,0.2)]">
+                    <ShoppingCart className="h-5 w-5 mr-2" />
+                    {cart.reduce((s, c) => s + c.quantity, 0)} ITEMS · ₹{total}
+                  </Button>
+                </motion.div>
               </motion.div>
             )}
           </AnimatePresence>
@@ -575,6 +683,127 @@ const MenuContent = () => {
                     </p>
                   </div>
                 </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* ────── MODALS ────── */}
+
+          {/* 1. Dish Detail Story View */}
+          <AnimatePresence>
+            {selectedDish && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[100] flex flex-col bg-black/95 backdrop-blur-2xl overflow-y-auto"
+              >
+                <div className="relative w-full aspect-[4/5] sm:aspect-video max-h-[70vh]">
+                  <img
+                    src={resolveImagePath(selectedDish.image)}
+                    alt={selectedDish.name}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
+                  <motion.button
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => setSelectedDish(null)}
+                    className="absolute top-6 right-6 w-12 h-12 rounded-full glass border-white/20 flex items-center justify-center"
+                  >
+                    <X className="h-6 w-6" />
+                  </motion.button>
+                </div>
+
+                <div className="px-6 py-8 space-y-8 max-w-3xl mx-auto w-full flex-grow">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-white/10 text-white border-white/20">{selectedDish.category}</Badge>
+                      <div className="flex text-yellow-500"><Star className="h-3 w-3 fill-current" /><Star className="h-3 w-3 fill-current" /><Star className="h-3 w-3 fill-current" /></div>
+                    </div>
+                    <h2 className="font-display text-5xl font-black text-white text-glow-white">{selectedDish.name}</h2>
+                    <p className="text-3xl font-display font-black text-white/50">₹{selectedDish.price}</p>
+                  </div>
+
+                  <p className="text-white/60 text-lg leading-relaxed">
+                    Crafted with premium ingredients and our secret blend of spices. Each bite is a journey into the heart of authentic flavors. Properly seasoned and cooked to perfection by our master chefs.
+                  </p>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="glass border-white/10 p-4 rounded-2xl flex items-center gap-4">
+                      <Flame className="h-6 w-6 text-orange-500" />
+                      <div>
+                        <p className="text-[10px] uppercase font-bold text-white/30">Spice Level</p>
+                        <p className="text-sm font-bold">Medium Authentic</p>
+                      </div>
+                    </div>
+                    <div className="glass border-white/10 p-4 rounded-2xl flex items-center gap-4">
+                      <Utensils className="h-6 w-6 text-blue-500" />
+                      <div>
+                        <p className="text-[10px] uppercase font-bold text-white/30">Preparation</p>
+                        <p className="text-sm font-bold">Hand-crafted</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="sticky bottom-0 p-6 glass border-t border-white/10 mt-auto">
+                  <Button
+                    onClick={() => { addToCart(selectedDish); setSelectedDish(null); }}
+                    disabled={!selectedDish.available}
+                    className="w-full h-16 text-lg font-black bg-white text-black hover:bg-white/90 rounded-2xl shadow-[0_0_30px_rgba(255,255,255,0.2)]"
+                  >
+                    Add to Collection · ₹{selectedDish.price}
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* 2. Service Hub Modal */}
+          <AnimatePresence>
+            {showServiceHub && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-md"
+                onClick={() => setShowServiceHub(false)}
+              >
+                <motion.div
+                  initial={{ scale: 0.9, y: 20 }}
+                  animate={{ scale: 1, y: 0 }}
+                  exit={{ scale: 0.9, y: 20 }}
+                  className="w-full max-w-sm glass-strong border-white/10 rounded-[2.5rem] overflow-hidden p-8"
+                  onClick={e => e.stopPropagation()}
+                >
+                  <div className="flex justify-between items-center mb-10">
+                    <h3 className="font-display text-2xl font-black text-white">Guest Services</h3>
+                    <Button variant="ghost" size="icon" onClick={() => setShowServiceHub(false)}><X className="h-5 w-5" /></Button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    {[
+                      { icon: Coffee, label: "Request Water", action: "Water" },
+                      { icon: Utensils, label: "Call Server", action: "Server" },
+                      { icon: Receipt, label: "Get Bill", action: "Bill" },
+                      { icon: Info, label: "Something Else", action: "Help" }
+                    ].map((item, i) => (
+                      <motion.button
+                        key={i}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => {
+                          toast({ title: "Request Sent", description: `We'll bring ${item.action} to Table ${tableId} shortly.` });
+                          setShowServiceHub(false);
+                        }}
+                        className="flex flex-col items-center justify-center p-6 rounded-3xl bg-white/5 border border-white/10 hover:bg-white hover:text-black transition-all group"
+                      >
+                        <item.icon className="h-8 w-8 mb-3 opacity-50 group-hover:opacity-100" />
+                        <span className="text-[10px] uppercase font-black tracking-widest leading-none text-center">{item.label}</span>
+                      </motion.button>
+                    ))}
+                  </div>
+                </motion.div>
               </motion.div>
             )}
           </AnimatePresence>
