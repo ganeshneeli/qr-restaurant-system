@@ -79,8 +79,8 @@
     text-shadow: 0 0 20px hsl(var(--glow) / 0.6), 0 0 40px hsl(var(--glow) / 0.3);
   }
 
-  .text-glow-subtle {
-    text-shadow: 0 0 10px hsl(var(--glow) / 0.3);
+  .text-glow-white {
+    text-shadow: 0 0 20px rgba(255, 255, 255, 0.4), 0 0 40px rgba(255, 255, 255, 0.2);
   }
 
   .neon-glow {
