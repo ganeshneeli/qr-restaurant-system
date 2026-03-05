@@ -113,6 +113,7 @@ const sections = [
   { id: "tables", label: "All Tables", icon: Table2 },
   { id: "menu", label: "Menu", icon: Settings2 },
   { id: "qrcodes", label: "QR Codes", icon: QrCode },
+  { id: "history", label: "Order History", icon: Clock },
   { id: "summary", label: "Daily Summary", icon: BarChart3 },
 ];
 
@@ -134,6 +135,9 @@ const AdminDashboard = () => {
   const [newItemFile, setNewItemFile] = useState<File | null>(null);
   const [editItemFile, setEditItemFile] = useState<File | null>(null);
   const [menuSearchQuery, setMenuSearchQuery] = useState("");
+  const [historyOrders, setHistoryOrders] = useState<Order[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historySearchQuery, setHistorySearchQuery] = useState("");
   const socketRef = useRef<any>(null);
 
   const resolveImagePath = (imagePath?: string) => {
@@ -161,6 +165,22 @@ const AdminDashboard = () => {
       setLoading(false);
     }
   }, []);
+
+  const fetchHistory = useCallback(async () => {
+    setHistoryLoading(true);
+    try {
+      const res = await api.get("/orders?status=all");
+      setHistoryOrders(res.data?.orders || []);
+    } catch {
+      toast({ title: "Error", description: "Failed to load history", variant: "destructive" });
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    if (activeSection === "history") fetchHistory();
+  }, [activeSection, fetchHistory]);
 
   // Handle Socket Connection separately to keep it stable
   useEffect(() => {
@@ -471,6 +491,41 @@ const AdminDashboard = () => {
     i.name.toLowerCase().includes(menuSearchQuery.toLowerCase()) ||
     i.category.toLowerCase().includes(menuSearchQuery.toLowerCase())
   );
+
+  const filteredHistory = historyOrders.filter(o =>
+    String(o.tableNumber || o.table?.number).includes(historySearchQuery) ||
+    o._id.toLowerCase().includes(historySearchQuery.toLowerCase())
+  );
+
+  const exportHistoryToCSV = () => {
+    if (historyOrders.length === 0) return;
+
+    const headers = ["Order ID", "Date", "Table", "Items", "Total Amount (₹)", "Status", "Payment"];
+    const rows = historyOrders.map(o => [
+      o._id.slice(-6).toUpperCase(),
+      new Date(o.createdAt || "").toLocaleString(),
+      o.tableNumber || o.table?.number || "—",
+      o.items.map(i => `${i.name} (${i.quantity})`).join("; "),
+      o.totalAmount,
+      o.status,
+      o.paymentStatus || "unpaid"
+    ]);
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `order_history_${new Date().toISOString().split("T")[0]}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <PageTransition>
@@ -853,6 +908,112 @@ const AdminDashboard = () => {
                         ))}
                       </div>
                     )}
+                  </div>
+                )}                {/* === ORDER HISTORY === */}
+                {activeSection === "history" && (
+                  <div className="space-y-6">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                      <div className="space-y-1">
+                        <h2 className="text-2xl font-display font-bold text-glow">Order History</h2>
+                        <p className="text-muted-foreground text-sm">
+                          Track past orders and export historical data to Excel.
+                        </p>
+                      </div>
+                      <div className="flex w-full sm:w-auto items-center gap-3">
+                        <div className="relative w-full sm:w-64">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            type="text"
+                            placeholder="Search by ID or Table..."
+                            value={historySearchQuery}
+                            onChange={(e) => setHistorySearchQuery(e.target.value)}
+                            className="pl-9 glass border-white/10 focus:border-primary/50 transition-colors"
+                          />
+                        </div>
+                        <Button
+                          onClick={exportHistoryToCSV}
+                          disabled={historyOrders.length === 0}
+                          className="shrink-0 bg-primary/20 text-primary-foreground border border-primary/30 neon-glow hover:bg-primary/30"
+                        >
+                          <Download className="h-4 w-4 mr-2" />
+                          Download CSV
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="glass border-white/5 rounded-2xl overflow-hidden overflow-x-auto">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="border-b border-white/10 bg-white/5 uppercase tracking-wider text-[10px] font-bold text-muted-foreground">
+                            <th className="px-6 py-4">ID</th>
+                            <th className="px-6 py-4">Date & Time</th>
+                            <th className="px-6 py-4">Table</th>
+                            <th className="px-6 py-4">Items</th>
+                            <th className="px-6 py-4 text-right">Total</th>
+                            <th className="px-6 py-4">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/5">
+                          {historyLoading ? (
+                            <tr>
+                              <td colSpan={6} className="px-6 py-20 text-center text-muted-foreground animate-pulse">
+                                Loading historical data...
+                              </td>
+                            </tr>
+                          ) : filteredHistory.length === 0 ? (
+                            <tr>
+                              <td colSpan={6} className="px-6 py-20 text-center text-muted-foreground">
+                                No orders found.
+                              </td>
+                            </tr>
+                          ) : (
+                            filteredHistory.map((order) => (
+                              <tr key={order._id} className="hover:bg-white/5 transition-colors group">
+                                <td className="px-6 py-4 font-mono text-xs text-primary font-bold">
+                                  #{order._id.slice(-6).toUpperCase()}
+                                </td>
+                                <td className="px-6 py-4 text-xs text-muted-foreground">
+                                  {new Date(order.createdAt || "").toLocaleString(undefined, {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                </td>
+                                <td className="px-6 py-4">
+                                  <span className="bg-white/10 px-2 py-1 rounded-md text-xs font-bold">
+                                    Table {order.tableNumber || order.table?.number || "—"}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <div className="flex flex-wrap gap-1">
+                                    {order.items.slice(0, 3).map((item, idx) => (
+                                      <span key={idx} className="text-[10px] bg-white/5 border border-white/10 px-1.5 py-0.5 rounded text-muted-foreground">
+                                        {item.name} x{item.quantity}
+                                      </span>
+                                    ))}
+                                    {order.items.length > 3 && (
+                                      <span className="text-[10px] text-primary/70">+{order.items.length - 3} more</span>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4 text-right font-bold text-sm">
+                                  ₹{order.totalAmount}
+                                </td>
+                                <td className="px-6 py-4">
+                                  <span className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-tighter ${order.status === "completed" ? "bg-green-500/20 text-green-400" :
+                                      order.status === "processing" ? "bg-primary/20 text-primary" :
+                                        "bg-yellow-500/20 text-yellow-400"
+                                    }`}>
+                                    {order.status}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 )}
 

@@ -278,13 +278,31 @@ const MenuContent = () => {
   // ─── JSX ──────────────────────────────────────────────────────────────────
   return (
     <PageTransition>
-      <div className="min-h-screen bg-cinematic pb-28">
+      <div className="min-h-screen bg-[#050505] flex flex-col relative overflow-hidden pb-28">
+        {/* Background Video */}
+        <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+          <video
+            className="w-full h-full object-cover scale-105"
+            autoPlay
+            muted
+            loop
+            playsInline
+          >
+            <source src="/assets/dashboard-video.mp4" type="video/mp4" />
+          </video>
+          {/* Enhanced Overlay for readability */}
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-[1px]" />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/40 to-black" />
+        </div>
+
+        {/* Cinematic Particles/Glow - matching landing page */}
+        <div className="fixed top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full bg-white/5 blur-[120px] pointer-events-none z-0 animate-pulse-slow" />
 
         {/* Header */}
-        <header className="sticky top-0 z-50 glass border-b border-white/5">
+        <header className="sticky top-0 z-50 glass border-b border-white/5 backdrop-blur-xl">
           <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <h1 className="font-display text-2xl font-bold text-glow-subtle">OG</h1>
+              <h1 className="font-display text-2xl font-bold text-glow-white text-white">OG</h1>
               {tableId && (
                 <Badge className="bg-primary/20 text-primary border-primary/30 border text-xs font-semibold">
                   Table {tableId}
@@ -307,19 +325,21 @@ const MenuContent = () => {
               </Sheet>
 
               {myOrder && (
-                <Button variant="outline" size="sm" className="glass border-white/10"
+                <Button variant="outline" size="sm" className="glass border-white/10 hover:border-white/20 transition-all"
                   onClick={() => { setShowMyOrders(v => !v); setShowCart(false); }}>
-                  <ClipboardList className="h-4 w-4 mr-1.5" />My Order
-                  <span className="ml-1.5 bg-primary/30 text-xs px-1.5 py-0.5 rounded-full">{myOrder.items.length}</span>
+                  <ClipboardList className="h-4 w-4 mr-1.5 text-white/70" />
+                  <span className="text-white/90">My Order</span>
+                  <span className="ml-1.5 bg-white/20 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">{myOrder.items.length}</span>
                 </Button>
               )}
 
-              <Button variant="outline" size="sm" className="glass border-primary/30 relative"
+              <Button variant="outline" size="sm" className="glass border-white/20 relative hover:border-white/40 transition-all font-bold"
                 onClick={() => { setShowCart(v => !v); setShowMyOrders(false); }}>
-                <ShoppingCart className="h-4 w-4 mr-1.5" />Cart
+                <ShoppingCart className="h-4 w-4 mr-1.5 text-white" />
+                <span className="text-white">Cart</span>
                 {cart.length > 0 && (
                   <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }}
-                    className="absolute -top-2 -right-2 bg-primary text-xs w-5 h-5 rounded-full flex items-center justify-center">
+                    className="absolute -top-2 -right-2 bg-white text-black text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-black shadow-lg">
                     {cart.reduce((s, c) => s + c.quantity, 0)}
                   </motion.span>
                 )}
@@ -332,9 +352,9 @@ const MenuContent = () => {
             <div className="flex gap-2 min-w-max">
               {CATEGORIES.map(cat => (
                 <button key={cat} onClick={() => setActiveCategory(cat)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all border whitespace-nowrap ${activeCategory === cat
-                    ? "bg-primary/20 border-primary/40 text-primary-foreground"
-                    : "border-white/10 text-muted-foreground hover:text-foreground"}`}>
+                  className={`px-4 py-2 rounded-full text-xs font-bold transition-all border whitespace-nowrap ${activeCategory === cat
+                    ? "bg-white text-black border-white shadow-[0_0_15px_rgba(255,255,255,0.3)]"
+                    : "bg-white/5 border-white/10 text-white/50 hover:text-white hover:border-white/20"}`}>
                   {cat}
                 </button>
               ))}
@@ -342,220 +362,224 @@ const MenuContent = () => {
           </div>
         </header>
 
-        {/* Menu grid */}
-        <main className="max-w-6xl mx-auto px-4 py-8">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-            <h2 className="font-display text-3xl font-bold text-glow-subtle">
-              {activeCategory === "All" ? "Our Menu" : activeCategory}
-            </h2>
-            <div className="relative w-full sm:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="Search menu..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 glass border-white/10 focus:border-primary/50 transition-colors"
-              />
-            </div>
-          </div>
+        {/* Relative content wrapper to ensure it's above the fixed background */}
+        <div className="relative z-10">
 
-          {loading ? <LoadingSkeleton /> : (
-            <AnimatePresence mode="wait">
-              <motion.div key={activeCategory}
-                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredMenu.map((item, i) => {
-                  const qty = getQty(item._id);
-                  return (
-                    <motion.div key={item._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}>
-                      <Card className={`glass border-white/5 p-5 transition-all ${item.available ? "hover:neon-glow" : "opacity-60"}`}>
-                        <div className="flex flex-col gap-4 mb-4">
-                          {item.image && (
-                            <div className="w-full h-72 sm:h-80 rounded-2xl overflow-hidden border border-white/10 shadow-2xl mb-4 group-hover:border-primary/30 transition-colors">
-                              <img src={resolveImagePath(item.image)} alt={item.name} className="w-full h-full object-cover hover:scale-110 transition-transform duration-700 ease-out" />
-                            </div>
-                          )}
-                          <div className="flex-1">
-                            <div className="flex justify-between items-start">
-                              <div className="flex-1 mr-2">
-                                <h3 className="font-display text-xl font-bold tracking-tight">{item.name}</h3>
-                                {item.category && <p className="text-sm text-muted-foreground font-medium uppercase tracking-widest mt-1">{item.category}</p>}
-                              </div>
-                              <span className="font-display font-black text-2xl text-primary shrink-0">₹{item.price}</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {qty > 0 ? (
-                          <div className="flex items-center justify-between glass rounded-lg p-1">
-                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => updateQty(item._id, -1)}><Minus className="h-4 w-4" /></Button>
-                            <motion.span key={qty} initial={{ scale: 1.3 }} animate={{ scale: 1 }} className="font-bold">{qty}</motion.span>
-                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => updateQty(item._id, 1)}><Plus className="h-4 w-4" /></Button>
-                          </div>
-                        ) : (
-                          <Button onClick={() => item.available && addToCart(item)} disabled={!item.available}
-                            variant="outline" className="w-full bg-primary/10 border-primary/30 hover:bg-primary/20">
-                            <Plus className="h-4 w-4 mr-1" />{item.available ? "Add" : "Unavailable"}
-                          </Button>
-                        )}
-                      </Card>
-                    </motion.div>
-                  );
-                })}
-
-                {filteredMenu.length === 0 && (
-                  <div className="col-span-full text-center py-20 text-muted-foreground">
-                    <ChefHat className="h-12 w-12 mx-auto mb-4 opacity-30" />
-                    <p className="font-display text-xl">No items in this category</p>
-                  </div>
-                )}
-              </motion.div>
-            </AnimatePresence>
-          )}
-        </main>
-
-        {/* My Orders Panel */}
-        <AnimatePresence>
-          {showMyOrders && myOrder && (
-            <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 25 }}
-              className="fixed inset-x-0 bottom-0 z-50 glass-strong border-t border-white/10 rounded-t-2xl max-h-[70vh] overflow-y-auto">
-              <div className="max-w-2xl mx-auto p-6">
-                <div className="flex justify-between items-center mb-5">
-                  <div>
-                    <h3 className="font-display text-xl font-bold">My Order</h3>
-                    <Badge className={`${STATUS_COLORS[myOrder.status] || STATUS_COLORS.pending} border text-xs mt-1`}>
-                      {myOrder.status.toUpperCase()}
-                    </Badge>
-                  </div>
-                  <Button variant="ghost" size="sm" onClick={() => setShowMyOrders(false)}><X className="h-4 w-4" /></Button>
-                </div>
-
-                <div className="space-y-2 mb-4">
-                  {myOrder.items.map((item, i) => (
-                    <div key={i} className="flex justify-between text-sm py-2 border-b border-white/5">
-                      <div>
-                        <p className="font-medium">{item.name || item.foodId}</p>
-                        <p className="text-xs text-muted-foreground">₹{item.price} × {item.quantity}</p>
-                      </div>
-                      <span className="font-semibold">₹{(item.price || 0) * item.quantity}</span>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="flex justify-between font-semibold text-lg mb-5">
-                  <span>Total</span><span className="text-glow-subtle">₹{myOrder.totalAmount}</span>
-                </div>
-
-                {myOrder.paymentStatus === "paid" ? (
-                  <div className="text-center py-3 bg-green-500/10 border border-green-500/30 rounded-xl text-green-400 text-sm">✅ Payment Confirmed</div>
-                ) : myOrder.billRequested ? (
-                  <div className="text-center py-3 bg-yellow-500/10 border border-yellow-500/30 rounded-xl text-yellow-400 text-sm">🧾 Bill Requested — Staff will arrive shortly</div>
-                ) : (
-                  <Button onClick={requestBill} variant="outline" className="w-full h-12 glass border-primary/30 hover:neon-glow">
-                    <Receipt className="h-4 w-4 mr-2" />Request Bill
-                  </Button>
-                )}
+          {/* Menu grid */}
+          <main className="max-w-6xl mx-auto px-4 py-8">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+              <h2 className="font-display text-3xl md:text-4xl font-black tracking-tight text-glow-white text-white">
+                {activeCategory === "All" ? "Our Signature Menu" : activeCategory}
+              </h2>
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="Search menu..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 glass border-white/10 focus:border-primary/50 transition-colors"
+                />
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            </div>
 
-        {/* Cart Panel */}
-        <AnimatePresence>
-          {showCart && (
-            <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 25 }}
-              className="fixed inset-x-0 bottom-0 z-50 glass-strong border-t border-primary/20 rounded-t-2xl max-h-[65vh] overflow-y-auto">
-              <div className="max-w-2xl mx-auto p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="font-display text-xl font-bold">Your Cart</h3>
-                  <Button variant="ghost" size="sm" onClick={() => setShowCart(false)}><X className="h-4 w-4" /></Button>
-                </div>
+            {loading ? <LoadingSkeleton /> : (
+              <AnimatePresence mode="wait">
+                <motion.div key={activeCategory}
+                  initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                  className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filteredMenu.map((item, i) => {
+                    const qty = getQty(item._id);
+                    return (
+                      <motion.div key={item._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}>
+                        <Card className={`glass border-white/5 p-5 transition-all duration-300 group ${item.available ? "hover:border-white/20 hover:shadow-[0_0_30px_rgba(255,255,255,0.05)]" : "opacity-60"}`}>
+                          <div className="flex flex-col gap-4 mb-4">
+                            {item.image && (
+                              <div className="w-full h-72 sm:h-80 rounded-2xl overflow-hidden border border-white/10 shadow-2xl mb-4 group-hover:border-primary/30 transition-colors">
+                                <img src={resolveImagePath(item.image)} alt={item.name} className="w-full h-full object-cover hover:scale-110 transition-transform duration-700 ease-out" />
+                              </div>
+                            )}
+                            <div className="flex-1">
+                              <div className="flex justify-between items-start">
+                                <div className="flex-1 mr-2">
+                                  <h3 className="font-display text-xl font-bold tracking-tight text-white group-hover:text-glow-white transition-all">{item.name}</h3>
+                                  {item.category && <p className="text-xs text-white/40 font-medium uppercase tracking-[0.2em] mt-2">{item.category}</p>}
+                                </div>
+                                <span className="font-display font-black text-2xl text-white shrink-0 shadow-sm">₹{item.price}</span>
+                              </div>
+                            </div>
+                          </div>
 
-                {cart.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-8">Your cart is empty</p>
-                ) : (
-                  <>
-                    {cart.map(item => (
-                      <div key={item.foodId} className="flex justify-between items-center py-3 border-b border-white/5">
+                          {qty > 0 ? (
+                            <div className="flex items-center justify-between glass rounded-lg p-1">
+                              <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => updateQty(item._id, -1)}><Minus className="h-4 w-4" /></Button>
+                              <motion.span key={qty} initial={{ scale: 1.3 }} animate={{ scale: 1 }} className="font-bold">{qty}</motion.span>
+                              <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => updateQty(item._id, 1)}><Plus className="h-4 w-4" /></Button>
+                            </div>
+                          ) : (
+                            <Button onClick={() => item.available && addToCart(item)} disabled={!item.available}
+                              variant="outline" className="w-full bg-primary/10 border-primary/30 hover:bg-primary/20">
+                              <Plus className="h-4 w-4 mr-1" />{item.available ? "Add" : "Unavailable"}
+                            </Button>
+                          )}
+                        </Card>
+                      </motion.div>
+                    );
+                  })}
+
+                  {filteredMenu.length === 0 && (
+                    <div className="col-span-full text-center py-20 text-muted-foreground">
+                      <ChefHat className="h-12 w-12 mx-auto mb-4 opacity-30" />
+                      <p className="font-display text-xl">No items in this category</p>
+                    </div>
+                  )}
+                </motion.div>
+              </AnimatePresence>
+            )}
+          </main>
+
+          {/* My Orders Panel */}
+          <AnimatePresence>
+            {showMyOrders && myOrder && (
+              <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 25 }}
+                className="fixed inset-x-0 bottom-0 z-50 glass-strong border-t border-white/10 rounded-t-2xl max-h-[70vh] overflow-y-auto">
+                <div className="max-w-2xl mx-auto p-6">
+                  <div className="flex justify-between items-center mb-5">
+                    <div>
+                      <h3 className="font-display text-xl font-bold">My Order</h3>
+                      <Badge className={`${STATUS_COLORS[myOrder.status] || STATUS_COLORS.pending} border text-xs mt-1`}>
+                        {myOrder.status.toUpperCase()}
+                      </Badge>
+                    </div>
+                    <Button variant="ghost" size="sm" onClick={() => setShowMyOrders(false)}><X className="h-4 w-4" /></Button>
+                  </div>
+
+                  <div className="space-y-2 mb-4">
+                    {myOrder.items.map((item, i) => (
+                      <div key={i} className="flex justify-between text-sm py-2 border-b border-white/5">
                         <div>
-                          <p className="font-medium">{item.name}</p>
-                          <p className="text-sm text-muted-foreground">₹{item.price} × {item.quantity}</p>
+                          <p className="font-medium">{item.name || item.foodId}</p>
+                          <p className="text-xs text-muted-foreground">₹{item.price} × {item.quantity}</p>
                         </div>
-                        <div className="flex items-center gap-2 ml-4">
-                          <span className="font-bold">₹{item.price * item.quantity}</span>
-                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => updateQty(item.foodId, -1)}><Minus className="h-3 w-3" /></Button>
-                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => updateQty(item.foodId, 1)}><Plus className="h-3 w-3" /></Button>
-                        </div>
+                        <span className="font-semibold">₹{(item.price || 0) * item.quantity}</span>
                       </div>
                     ))}
+                  </div>
 
-                    <Separator className="my-4 bg-white/10" />
+                  <div className="flex justify-between font-semibold text-lg mb-5">
+                    <span>Total</span><span className="text-glow-subtle">₹{myOrder.totalAmount}</span>
+                  </div>
 
-                    <div className="flex justify-between items-center mb-6">
-                      <span className="font-display text-lg">Total</span>
-                      <span className="font-display text-2xl font-bold text-glow-subtle">₹{total}</span>
-                    </div>
-
-                    <Button onClick={placeOrder} disabled={ordering}
-                      className="w-full h-12 bg-primary hover:bg-primary/80 font-semibold hover:neon-glow">
-                      {ordering ? "Placing..." : "Place Order"}
+                  {myOrder.paymentStatus === "paid" ? (
+                    <div className="text-center py-3 bg-green-500/10 border border-green-500/30 rounded-xl text-green-400 text-sm">✅ Payment Confirmed</div>
+                  ) : myOrder.billRequested ? (
+                    <div className="text-center py-3 bg-yellow-500/10 border border-yellow-500/30 rounded-xl text-yellow-400 text-sm">🧾 Bill Requested — Staff will arrive shortly</div>
+                  ) : (
+                    <Button onClick={requestBill} variant="outline" className="w-full h-12 glass border-primary/30 hover:neon-glow">
+                      <Receipt className="h-4 w-4 mr-2" />Request Bill
                     </Button>
-                  </>
-                )}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Floating cart bar */}
-        <AnimatePresence>
-          {cart.length > 0 && !showCart && !showMyOrders && (
-            <motion.div initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 80, opacity: 0 }}
-              className="fixed bottom-4 inset-x-4 z-40 max-w-md mx-auto">
-              <Button onClick={() => setShowCart(true)}
-                className="w-full h-14 bg-primary hover:bg-primary/80 font-semibold rounded-2xl neon-glow text-primary-foreground">
-                <ShoppingCart className="h-5 w-5 mr-2" />
-                {cart.reduce((s, c) => s + c.quantity, 0)} items · ₹{total}
-              </Button>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Top Animated Popup */}
-        <AnimatePresence>
-          {showTopPopup && (
-            <motion.div
-              initial={{ y: -100, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: -100, opacity: 0 }}
-              transition={{ type: "spring", stiffness: 300, damping: 25 }}
-              className="fixed top-4 left-4 right-4 z-[100] max-w-sm mx-auto"
-            >
-              <div className="bg-background/95 backdrop-blur-md border border-primary/50 shadow-[0_0_30px_rgba(var(--primary),0.3)] rounded-2xl p-4 flex items-center gap-4 overflow-hidden relative">
-                <div className="absolute inset-0 bg-primary/10 animate-pulse pointer-events-none" />
-                <motion.div
-                  animate={{ rotate: [0, -15, 15, -15, 0], scale: [1, 1.2, 1] }}
-                  transition={{ duration: 1, repeat: Infinity }}
-                  className="text-4xl filter drop-shadow-[0_0_10px_rgba(var(--primary),0.8)]"
-                >
-                  {popupStatus === "served" ? "🍽️" : "🍔"}
-                </motion.div>
-                <div className="relative z-10">
-                  <h4 className="font-display font-bold text-lg text-primary tracking-wide">
-                    {popupStatus === "served" ? "Arrived!" : "Cooking..."}
-                  </h4>
-                  <p className="text-sm font-medium leading-snug">
-                    {popupStatus === "served"
-                      ? "Warning: Deliciousness has arrived! 😄"
-                      : "Hold tight! Deliciousness is loading... ⏳🍔"}
-                  </p>
+                  )}
                 </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
+          {/* Cart Panel */}
+          <AnimatePresence>
+            {showCart && (
+              <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 25 }}
+                className="fixed inset-x-0 bottom-0 z-50 glass-strong border-t border-primary/20 rounded-t-2xl max-h-[65vh] overflow-y-auto">
+                <div className="max-w-2xl mx-auto p-6">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="font-display text-xl font-bold">Your Cart</h3>
+                    <Button variant="ghost" size="sm" onClick={() => setShowCart(false)}><X className="h-4 w-4" /></Button>
+                  </div>
+
+                  {cart.length === 0 ? (
+                    <p className="text-muted-foreground text-center py-8">Your cart is empty</p>
+                  ) : (
+                    <>
+                      {cart.map(item => (
+                        <div key={item.foodId} className="flex justify-between items-center py-3 border-b border-white/5">
+                          <div>
+                            <p className="font-medium">{item.name}</p>
+                            <p className="text-sm text-muted-foreground">₹{item.price} × {item.quantity}</p>
+                          </div>
+                          <div className="flex items-center gap-2 ml-4">
+                            <span className="font-bold">₹{item.price * item.quantity}</span>
+                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => updateQty(item.foodId, -1)}><Minus className="h-3 w-3" /></Button>
+                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => updateQty(item.foodId, 1)}><Plus className="h-3 w-3" /></Button>
+                          </div>
+                        </div>
+                      ))}
+
+                      <Separator className="my-4 bg-white/10" />
+
+                      <div className="flex justify-between items-center mb-6">
+                        <span className="font-display text-lg">Total</span>
+                        <span className="font-display text-2xl font-bold text-glow-subtle">₹{total}</span>
+                      </div>
+
+                      <Button onClick={placeOrder} disabled={ordering}
+                        className="w-full h-12 bg-primary hover:bg-primary/80 font-semibold hover:neon-glow">
+                        {ordering ? "Placing..." : "Place Order"}
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Floating cart bar */}
+          <AnimatePresence>
+            {cart.length > 0 && !showCart && !showMyOrders && (
+              <motion.div initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 80, opacity: 0 }}
+                className="fixed bottom-4 inset-x-4 z-40 max-w-md mx-auto">
+                <Button onClick={() => setShowCart(true)}
+                  className="w-full h-14 bg-primary hover:bg-primary/80 font-semibold rounded-2xl neon-glow text-primary-foreground">
+                  <ShoppingCart className="h-5 w-5 mr-2" />
+                  {cart.reduce((s, c) => s + c.quantity, 0)} items · ₹{total}
+                </Button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Top Animated Popup */}
+          <AnimatePresence>
+            {showTopPopup && (
+              <motion.div
+                initial={{ y: -100, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: -100, opacity: 0 }}
+                transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                className="fixed top-4 left-4 right-4 z-[100] max-w-sm mx-auto"
+              >
+                <div className="bg-black/80 backdrop-blur-xl border border-white/20 shadow-[0_0_40px_rgba(255,255,255,0.1)] rounded-2xl p-5 flex items-center gap-5 overflow-hidden relative">
+                  <div className="absolute inset-0 bg-white/5 animate-pulse pointer-events-none" />
+                  <motion.div
+                    animate={{ rotate: [0, -10, 10, -10, 0], scale: [1, 1.1, 1] }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                    className="text-4xl filter drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]"
+                  >
+                    {popupStatus === "served" ? "🍽️" : "👨‍🍳"}
+                  </motion.div>
+                  <div className="relative z-10">
+                    <h4 className="font-display font-black text-xl text-white tracking-wide">
+                      {popupStatus === "served" ? "Delivered" : "In the Kitchen"}
+                    </h4>
+                    <p className="text-white/70 text-sm font-medium leading-snug">
+                      {popupStatus === "served"
+                        ? "Your order has been served. Enjoy your meal!"
+                        : "Chef is busy crafting your deliciousness..."}
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+        </div> {/* End of relative content wrapper */}
       </div>
     </PageTransition>
   );
