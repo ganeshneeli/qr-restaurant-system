@@ -347,7 +347,7 @@ const MenuContent = () => {
           >
             <div className="absolute inset-0 bg-white/5 group-hover:bg-white/10 transition-colors" />
             <Bell className="h-5 w-5 mb-0.5" />
-            <span className="text-[8px] uppercase font-black tracking-tighter">Help</span>
+            <span className="text-[8px] uppercase font-black tracking-tighter">Service</span>
           </motion.button>
         </div>
 
@@ -915,8 +915,7 @@ const MenuContent = () => {
                     {[
                       { icon: Coffee, label: "Request Water", action: "Water" },
                       { icon: Utensils, label: "Call Server", action: "Server" },
-                      { icon: Receipt, label: "Get Bill", action: "Bill" },
-                      { icon: Info, label: "Something Else", action: "Help" }
+                      { icon: Receipt, label: "Get Bill", action: "Bill" }
                     ].map((item, i) => (
                       <motion.button
                         key={i}
