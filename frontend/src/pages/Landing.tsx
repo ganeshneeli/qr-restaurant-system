@@ -292,10 +292,62 @@ const Landing = () => {
         </section>
 
         {/* Footer */}
-        <footer className="py-12 border-t border-white/5 text-center">
-          <p className="text-[10px] tracking-[0.5em] uppercase text-white/20">
-            © 2026 OG RESTAURANT SYSTEM · EXPERIENTIAL DINING
-          </p>
+        <footer className="py-12 border-t border-white/5 text-center flex flex-col items-center gap-6">
+
+          {/* Logo */}
+          <img
+            src="/fingrow-logo.png"
+            alt="Fingrow Consulting Services"
+            className="w-40 object-contain"
+          />
+
+          {/* Copyright */}
+          <div className="text-white/70 text-sm leading-relaxed">
+            <p>© 2026 Fingrow Consulting Services Pvt Ltd. All rights reserved.</p>
+            <p className="text-white/50">
+              QR-Based Smart Dine-In Ordering System developed by Fingrow Technology Team.
+            </p>
+          </div>
+
+          {/* Contact */}
+          <div className="flex flex-col gap-1 text-white/60 text-sm">
+            <p>
+              📞 <span className="font-medium">Call / WhatsApp:</span>{" "}
+              <a href="tel:+919187135171" className="hover:text-white">
+                +91 9187135171
+              </a>
+            </p>
+
+            <p>
+              📧 <span className="font-medium">Email Us:</span>{" "}
+              <a href="mailto:contact@fingrow.in" className="hover:text-white">
+                contact@fingrow.in
+              </a>{" "}
+              |{" "}
+              <a href="mailto:harish.m@fingrow.in" className="hover:text-white">
+                harish.m@fingrow.in
+              </a>
+            </p>
+          </div>
+
+          {/* Social Media */}
+          <div className="flex gap-6 text-sm text-white/60">
+            <a
+              href="https://www.linkedin.com/company/fingrowconsulting/posts/?feedView=all"
+              target="_blank"
+              className="hover:text-white"
+            >
+              🔗 LinkedIn
+            </a>
+
+            <a
+              href="https://www.instagram.com/fingrow_technologies?igsh=MWJheXlybjR6MjFhOA%3D%3D"
+              target="_blank"
+              className="hover:text-white"
+            >
+              📸 Instagram
+            </a>
+          </div>
         </footer>
       </div>
     </PageTransition>
