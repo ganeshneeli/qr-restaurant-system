@@ -21,6 +21,7 @@ import {
   Trash2,
   Flame,
   Star,
+  MessageSquare,
 } from "lucide-react";
 
 import {
@@ -111,6 +112,16 @@ interface QrData {
   url: string;
 }
 
+interface Feedback {
+  _id: string;
+  order_id: string;
+  table_number: string;
+  customer_rating: number;
+  customer_feedback_text: string;
+  status: string;
+  createdAt: string;
+}
+
 const statusColors: Record<string, string> = {
   pending: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
   preparing: "bg-blue-500/20 text-blue-400 border-blue-500/30",
@@ -125,6 +136,7 @@ const sections = [
   { id: "qrcodes", label: "QR Codes", icon: QrCode },
   { id: "history", label: "Order History", icon: Clock },
   { id: "summary", label: "Daily Summary", icon: BarChart3 },
+  { id: "reviews", label: "Customer Reviews", icon: MessageSquare },
 ];
 
 const AdminDashboard = () => {
@@ -151,6 +163,12 @@ const AdminDashboard = () => {
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const socketRef = useRef<any>(null);
+
+  // Feedback reviews state
+  const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
+  const [feedbacksLoading, setFeedbacksLoading] = useState(false);
+  const [feedbackStats, setFeedbackStats] = useState({ averageRating: 0, totalReviews: 0 });
+  const [feedbackFilter, setFeedbackFilter] = useState<number | null>(null);
 
   const resolveImagePath = (imagePath?: string) => {
     if (!imagePath) return "";
@@ -193,6 +211,8 @@ const AdminDashboard = () => {
   useEffect(() => {
     if (activeSection === "history") fetchHistory();
     if (activeSection === "summary") fetchAnalytics();
+    if (activeSection === "reviews") fetchFeedback();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeSection, fetchHistory]);
 
   const fetchAnalytics = async () => {
@@ -204,6 +224,23 @@ const AdminDashboard = () => {
       toast({ title: "Error", description: "Failed to load analytics", variant: "destructive" });
     } finally {
       setAnalyticsLoading(false);
+    }
+  };
+
+  const fetchFeedback = async (rating?: number | null) => {
+    setFeedbacksLoading(true);
+    try {
+      const params = rating ? `?rating=${rating}` : "";
+      const [listRes, statsRes] = await Promise.all([
+        api.get(`/feedback${params}`),
+        api.get("/feedback/stats"),
+      ]);
+      setFeedbacks(listRes.data?.data || []);
+      setFeedbackStats(statsRes.data?.data || { averageRating: 0, totalReviews: 0 });
+    } catch {
+      // silent
+    } finally {
+      setFeedbacksLoading(false);
     }
   };
 
@@ -1444,6 +1481,84 @@ const AdminDashboard = () => {
                         )}
                       </DialogContent>
                     </Dialog>
+                  </div>
+                )}
+                {activeSection === "reviews" && (
+                  <div>
+                    <h2 className="text-2xl font-black text-white mb-6">Customer Reviews</h2>
+
+                    {/* Stats Header */}
+                    <div className="grid grid-cols-2 gap-4 mb-6">
+                      <div className="glass-strong rounded-2xl p-5 text-center">
+                        <div className="text-3xl font-black text-yellow-400">
+                          {feedbackStats.averageRating > 0 ? feedbackStats.averageRating.toFixed(1) : "—"}
+                        </div>
+                        <div className="flex justify-center gap-0.5 mt-1">
+                          {[1, 2, 3, 4, 5].map(s => (
+                            <Star key={s} className={`w-4 h-4 ${s <= Math.round(feedbackStats.averageRating) ? "fill-yellow-400 text-yellow-400" : "text-white/20"}`} />
+                          ))}
+                        </div>
+                        <p className="text-white/50 text-xs mt-1">Average Rating</p>
+                      </div>
+                      <div className="glass-strong rounded-2xl p-5 text-center">
+                        <div className="text-3xl font-black text-white">{feedbackStats.totalReviews}</div>
+                        <p className="text-white/50 text-xs mt-2">Total Reviews</p>
+                      </div>
+                    </div>
+
+                    {/* Filter Buttons */}
+                    <div className="flex gap-2 flex-wrap mb-6">
+                      <button
+                        onClick={() => { setFeedbackFilter(null); fetchFeedback(null); }}
+                        className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${feedbackFilter === null ? "bg-white text-black" : "glass text-white/70 hover:text-white"
+                          }`}
+                      >
+                        All
+                      </button>
+                      {[5, 4, 3, 2, 1].map(star => (
+                        <button
+                          key={star}
+                          onClick={() => { setFeedbackFilter(star); fetchFeedback(star); }}
+                          className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all flex items-center gap-1 ${feedbackFilter === star ? "bg-yellow-500/30 text-yellow-300 border border-yellow-500/40" : "glass text-white/70 hover:text-white"
+                            }`}
+                        >
+                          {star} <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Review List */}
+                    {feedbacksLoading ? (
+                      <div className="space-y-4">{[1, 2, 3].map(i => <div key={i} className="h-28 glass rounded-2xl animate-pulse" />)}</div>
+                    ) : feedbacks.length === 0 ? (
+                      <div className="text-center py-16 text-white/40">
+                        <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                        <p>No reviews yet</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {feedbacks.map(fb => (
+                          <div key={fb._id} className="glass-strong rounded-2xl p-5 border border-white/5">
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <p className="font-bold text-white text-sm">Table {fb.table_number}</p>
+                                <div className="flex gap-0.5 mt-1">
+                                  {[1, 2, 3, 4, 5].map(s => (
+                                    <Star key={s} className={`w-4 h-4 ${s <= fb.customer_rating ? "fill-yellow-400 text-yellow-400" : "text-white/20"}`} />
+                                  ))}
+                                </div>
+                              </div>
+                              <span className="text-white/30 text-xs whitespace-nowrap">
+                                {new Date(fb.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                              </span>
+                            </div>
+                            {fb.customer_feedback_text && (
+                              <p className="text-white/70 text-sm mt-3 leading-relaxed">"{fb.customer_feedback_text}"</p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
               </>
