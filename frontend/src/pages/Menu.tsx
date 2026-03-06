@@ -103,7 +103,7 @@ const MenuContent = () => {
   const [showTopPopup, setShowTopPopup] = useState(false);
   const [popupStatus, setPopupStatus] = useState<string | null>(null);
   const [selectedDish, setSelectedDish] = useState<MenuItem | null>(null);
-  const [showServiceHub, setShowServiceHub] = useState(false);
+
   const socketRef = useRef<Socket | null>(null);
 
   const resolveImagePath = (imagePath?: string) => {
@@ -335,20 +335,6 @@ const MenuContent = () => {
           </video>
           <div className="absolute inset-0 bg-black/90 backdrop-blur-[2px]" />
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-black" />
-        </div>
-
-        {/* Floating Service Hub FAB */}
-        <div className="fixed top-24 right-4 z-[60]">
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={() => setShowServiceHub(true)}
-            className="w-14 h-14 rounded-full glass-strong border-white/20 flex flex-col items-center justify-center text-white shadow-[0_0_30px_rgba(255,255,255,0.1)] group relative overflow-hidden"
-          >
-            <div className="absolute inset-0 bg-white/5 group-hover:bg-white/10 transition-colors" />
-            <Bell className="h-5 w-5 mb-0.5" />
-            <span className="text-[8px] uppercase font-black tracking-tighter">Service</span>
-          </motion.button>
         </div>
 
         {/* Global Cinematic Status Glow */}
@@ -876,7 +862,7 @@ const MenuContent = () => {
                   </div>
                 </div>
 
-                <div className="sticky bottom-0 p-6 glass border-t border-white/10 mt-auto">
+                <div className="sticky bottom-0 p-6 glass border-t border-white/10 mt-auto flex flex-col gap-3">
                   <Button
                     onClick={() => { addToCart(selectedDish); setSelectedDish(null); }}
                     disabled={!selectedDish.available}
@@ -884,55 +870,14 @@ const MenuContent = () => {
                   >
                     Add to Collection · ₹{selectedDish.price}
                   </Button>
+                  <Button
+                    onClick={() => setSelectedDish(null)}
+                    variant="outline"
+                    className="w-full h-14 text-base font-bold bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/20 hover:text-red-400 rounded-2xl transition-all"
+                  >
+                    Go Back
+                  </Button>
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* 2. Service Hub Modal */}
-          <AnimatePresence>
-            {showServiceHub && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-md"
-                onClick={() => setShowServiceHub(false)}
-              >
-                <motion.div
-                  initial={{ scale: 0.9, y: 20 }}
-                  animate={{ scale: 1, y: 0 }}
-                  exit={{ scale: 0.9, y: 20 }}
-                  className="w-full max-w-sm glass-strong border-white/10 rounded-[2.5rem] overflow-hidden p-8"
-                  onClick={e => e.stopPropagation()}
-                >
-                  <div className="flex justify-between items-center mb-10">
-                    <h3 className="font-display text-2xl font-black text-white">Guest Services</h3>
-                    <Button variant="ghost" size="icon" onClick={() => setShowServiceHub(false)}><X className="h-5 w-5" /></Button>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    {[
-                      { icon: Coffee, label: "Request Water", action: "Water" },
-                      { icon: Utensils, label: "Call Server", action: "Server" },
-                      { icon: Receipt, label: "Get Bill", action: "Bill" }
-                    ].map((item, i) => (
-                      <motion.button
-                        key={i}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => {
-                          toast({ title: "Request Sent", description: `We'll bring ${item.action} to Table ${tableId} shortly.` });
-                          setShowServiceHub(false);
-                        }}
-                        className="flex flex-col items-center justify-center p-6 rounded-3xl bg-white/5 border border-white/10 hover:bg-white hover:text-black transition-all group"
-                      >
-                        <item.icon className="h-8 w-8 mb-3 opacity-50 group-hover:opacity-100" />
-                        <span className="text-[10px] uppercase font-black tracking-widest leading-none text-center">{item.label}</span>
-                      </motion.button>
-                    ))}
-                  </div>
-                </motion.div>
               </motion.div>
             )}
           </AnimatePresence>
