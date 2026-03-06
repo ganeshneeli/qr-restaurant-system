@@ -838,9 +838,9 @@ const MenuContent = () => {
                   <motion.button
                     whileTap={{ scale: 0.9 }}
                     onClick={() => setSelectedDish(null)}
-                    className="absolute top-6 right-6 w-12 h-12 rounded-full glass border-white/20 flex items-center justify-center"
+                    className="fixed top-6 right-4 sm:top-6 sm:right-6 z-[120] w-12 h-12 rounded-full glass-strong bg-black/40 border-white/20 flex items-center justify-center shadow-2xl"
                   >
-                    <X className="h-6 w-6" />
+                    <X className="h-6 w-6 text-white" />
                   </motion.button>
                 </div>
 
