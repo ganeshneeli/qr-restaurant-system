@@ -37,6 +37,7 @@ app.use("/api/auth", require("./routes/authRoutes"))
 app.use("/api/table", require("./routes/tableRoutes"))
 app.use("/api/orders", require("./routes/orderRoutes"))
 app.use("/api/menu", require("./routes/menuRoutes"))
+app.use("/api/feedback", require("./routes/feedbackRoutes"))
 
 app.use(require("./middleware/errorHandler"))
 

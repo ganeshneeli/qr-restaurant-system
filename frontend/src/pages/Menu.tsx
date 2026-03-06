@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus, Minus, Receipt, ShoppingCart,
   ChefHat, ClipboardList, X, Info, Search,
-  Bell, Flame, Star, Sparkles, Utensils, Coffee, Ghost
+  Bell, Flame, Star, Sparkles, Utensils, Coffee, Ghost, Check
 } from "lucide-react";
 import axios from "axios";
 import { io as socketIO } from "socket.io-client";
@@ -104,6 +104,13 @@ const MenuContent = () => {
   const [popupStatus, setPopupStatus] = useState<string | null>(null);
   const [selectedDish, setSelectedDish] = useState<MenuItem | null>(null);
 
+  // Feedback States
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [feedbackRating, setFeedbackRating] = useState(0);
+  const [feedbackText, setFeedbackText] = useState("");
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+  const [paidOrderId, setPaidOrderId] = useState<string | null>(null);
+
   const socketRef = useRef<Socket | null>(null);
 
   const resolveImagePath = (imagePath?: string) => {
@@ -199,18 +206,20 @@ const MenuContent = () => {
       if (data.status === "completed") { localStorage.removeItem(cartKey); setCart([]); }
     };
 
-    const onPaid = (data: { sessionId?: string; tableNumber?: number }) => {
+    const onPaid = (data: { sessionId?: string; tableNumber?: number; orderId?: string }) => {
       if (data.tableNumber && String(data.tableNumber) !== tableId) return; // hard table guard
       if (data.sessionId && data.sessionId !== sessionId) return;
 
-      toast({ title: "✅ Paid", description: "Payment confirmed! Session ending..." });
+      toast({ title: "✅ Paid", description: "Payment confirmed! Please leave feedback." });
       localStorage.removeItem(cartKey);
       setCart([]);
 
-      setTimeout(() => {
-        setSessionToken(null, tableId);
-        navigate("/", { replace: true });
-      }, 3000);
+      // Save order ID for feedback and show feedback modal
+      if (data.orderId) setPaidOrderId(data.orderId);
+      // Fallback: if backend doesn't send orderId in paid event, try to get from current order
+      else if (myOrder) setPaidOrderId(myOrder._id);
+
+      setShowFeedback(true);
     };
 
     const onMenuUpdate = () => {
@@ -314,6 +323,29 @@ const MenuContent = () => {
     if (item.isChefSpecial) badges.push({ text: "Chef Special", icon: "👨‍🍳", color: "text-purple-500 bg-purple-500/10 border-purple-500/20" });
 
     return badges;
+  };
+
+  const submitFeedback = async () => {
+    if (!feedbackRating || !paidOrderId) return;
+
+    try {
+      await axios.post(`${API_BASE}/feedback`, {
+        order_id: paidOrderId,
+        table_number: tableId,
+        customer_rating: feedbackRating,
+        customer_feedback_text: feedbackText
+      });
+
+      setFeedbackSubmitted(true);
+
+      setTimeout(() => {
+        setSessionToken(null, tableId);
+        navigate("/", { replace: true });
+      }, 3000);
+    } catch (error) {
+      console.error("Error submitting feedback:", error);
+      toast({ title: "Error", description: "Failed to submit feedback", variant: "destructive" });
+    }
   };
 
   if (!sessionToken) return null;
@@ -886,6 +918,73 @@ const MenuContent = () => {
                     Go Back
                   </Button>
                 </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* 2. Feedback Modal */}
+          <AnimatePresence>
+            {showFeedback && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md"
+              >
+                <motion.div
+                  initial={{ scale: 0.9, y: 20 }}
+                  animate={{ scale: 1, y: 0 }}
+                  exit={{ scale: 0.9, y: 20 }}
+                  className="w-full max-w-sm glass-strong border-white/10 rounded-[2.5rem] overflow-hidden p-8 text-center"
+                >
+                  {feedbackSubmitted ? (
+                    <div className="py-8 space-y-4">
+                      <div className="w-16 h-16 rounded-full bg-green-500/20 text-green-500 flex items-center justify-center mx-auto mb-6">
+                        <Check className="w-8 h-8" />
+                      </div>
+                      <h3 className="font-display text-2xl font-black text-white">Payment Confirmed</h3>
+                      <p className="text-white/70">Order marked as paid and table freed successfully. Thank you for your feedback!</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      <h3 className="font-display text-2xl font-black text-white">Thank you for dining with us!</h3>
+
+                      <div className="flex justify-center gap-2 py-4">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <motion.button
+                            key={star}
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            onClick={() => setFeedbackRating(star)}
+                            className="focus:outline-none"
+                          >
+                            <Star
+                              className={`w-10 h-10 ${star <= feedbackRating
+                                ? "fill-yellow-500 text-yellow-500"
+                                : "text-white/20"
+                                } transition-colors`}
+                            />
+                          </motion.button>
+                        ))}
+                      </div>
+
+                      <textarea
+                        placeholder="Tell us about your experience"
+                        value={feedbackText}
+                        onChange={(e) => setFeedbackText(e.target.value)}
+                        className="w-full h-24 p-4 rounded-xl glass-input bg-white/5 border border-white/10 text-white placeholder:text-white/30 resize-none focus:outline-none focus:border-white/30 transition-colors"
+                      />
+
+                      <Button
+                        onClick={submitFeedback}
+                        disabled={feedbackRating === 0}
+                        className="w-full h-14 bg-white text-black font-bold text-lg rounded-xl hover:bg-white/90 disabled:opacity-50"
+                      >
+                        Submit Feedback
+                      </Button>
+                    </div>
+                  )}
+                </motion.div>
               </motion.div>
             )}
           </AnimatePresence>
