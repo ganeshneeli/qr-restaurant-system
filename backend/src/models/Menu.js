@@ -5,7 +5,9 @@ const menuSchema = new mongoose.Schema({
   price: Number,
   category: { type: String, default: "Other" },
   image: { type: String, default: "" },
-  available: { type: Boolean, default: true }
-})
+  available: { type: Boolean, default: true },
+  order_count: { type: Number, default: 0 },
+  isChefSpecial: { type: Boolean, default: false }
+}, { timestamps: true })
 
 module.exports = mongoose.model("Menu", menuSchema)

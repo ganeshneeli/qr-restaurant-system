@@ -42,6 +42,9 @@ interface MenuItem {
   category: string;
   available: boolean;
   image?: string;
+  order_count?: number;
+  isChefSpecial?: boolean;
+  createdAt?: string;
 }
 interface CartItem { foodId: string; name: string; price: number; quantity: number; }
 interface OrderItem { name?: string; foodId?: string; quantity: number; price?: number; }
@@ -285,8 +288,33 @@ const MenuContent = () => {
   const getQty = (id: string) => cart.find(c => c.foodId === id)?.quantity ?? 0;
 
   const CHEF_SPECIALS = useMemo(() => {
-    return menu.filter(item => item.available).slice(0, 4);
+    return menu.filter(item => item.isChefSpecial && item.available);
   }, [menu]);
+
+  const TRENDING_ITEMS = useMemo(() => {
+    return [...menu]
+      .filter(item => item.available && (item.order_count ?? 0) > 0)
+      .sort((a, b) => (b.order_count ?? 0) - (a.order_count ?? 0))
+      .slice(0, 5);
+  }, [menu]);
+
+  const getBadge = (item: MenuItem) => {
+    const badges = [];
+    if (item.order_count && item.order_count > 50) badges.push({ text: "Most Ordered", icon: "🔥", color: "text-orange-500 bg-orange-500/10 border-orange-500/20" });
+    else if (item.order_count && item.order_count > 30) badges.push({ text: "Highly Reordered", icon: "⭐", color: "text-yellow-500 bg-yellow-500/10 border-yellow-500/20" });
+    else if (item.order_count && item.order_count > 15) badges.push({ text: "Popular Choice", icon: "👍", color: "text-blue-500 bg-blue-500/10 border-blue-500/20" });
+
+    if (item.createdAt) {
+      const createdDate = new Date(item.createdAt);
+      const now = new Date();
+      const diffDays = Math.ceil(Math.abs(now.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
+      if (diffDays <= 7) badges.push({ text: "New Item", icon: "🆕", color: "text-green-500 bg-green-500/10 border-green-500/20" });
+    }
+
+    if (item.isChefSpecial) badges.push({ text: "Chef Special", icon: "👨‍🍳", color: "text-purple-500 bg-purple-500/10 border-purple-500/20" });
+
+    return badges[0]; // Show only one most relevant badge for now to keep UI clean
+  };
 
   if (!sessionToken) return null;
 
@@ -411,7 +439,64 @@ const MenuContent = () => {
           {/* Menu Content */}
           <main className="max-w-6xl mx-auto px-4 py-8">
 
-            {/* 1. Hero Sections (Only shown for "All" or if specials exist) */}
+            {/* 1. Trending Items Section */}
+            {activeCategory === "All" && TRENDING_ITEMS.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-12"
+              >
+                <div className="flex items-center gap-2 mb-6">
+                  <Flame className="h-5 w-5 text-orange-500 fill-orange-500" />
+                  <h2 className="font-display text-2xl font-black tracking-tight uppercase">Trending Items</h2>
+                </div>
+
+                <div className="space-y-4">
+                  {TRENDING_ITEMS.map((item, idx) => {
+                    const badge = getBadge(item);
+                    return (
+                      <motion.div
+                        key={item._id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: idx * 0.1 }}
+                        onClick={() => setSelectedDish(item)}
+                        className="glass border-white/5 p-4 rounded-2xl flex items-center justify-between cursor-pointer hover:border-white/20 transition-all group"
+                      >
+                        <div className="flex items-center gap-4">
+                          <span className="font-display text-2xl font-black text-white/20 group-hover:text-white/40 transition-colors w-6">
+                            {idx + 1}
+                          </span>
+                          {item.image && (
+                            <img
+                              src={resolveImagePath(item.image)}
+                              alt={item.name}
+                              className="w-12 h-12 rounded-xl object-cover"
+                            />
+                          )}
+                          <div>
+                            <h3 className="font-bold text-white group-hover:text-glow-white transition-all">
+                              {item.name}
+                            </h3>
+                            {badge && (
+                              <div className="flex items-center gap-1 mt-0.5">
+                                <span className="text-xs">{badge.icon}</span>
+                                <span className={`text-[10px] uppercase font-black ${badge.color.split(' ')[0]}`}>
+                                  {badge.text}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <span className="font-bold text-white/50">₹{item.price}</span>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            )}
+
+            {/* 2. Hero Sections (Chef Specials) */}
             {activeCategory === "All" && CHEF_SPECIALS.length > 0 && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -444,6 +529,14 @@ const MenuContent = () => {
                               <div className="absolute bottom-4 left-4 right-4">
                                 <Badge className="bg-white text-black mb-2 rounded-full px-3 py-0 font-black text-[10px]">SIGNATURE</Badge>
                                 <h3 className="font-display text-xl font-bold text-white text-glow-white leading-none">{item.name}</h3>
+                                {getBadge(item) && (
+                                  <div className="flex items-center gap-1 mt-1 opacity-80">
+                                    <span className="text-[10px]">{getBadge(item)?.icon}</span>
+                                    <span className="text-[8px] uppercase font-black text-white/70">
+                                      {getBadge(item)?.text}
+                                    </span>
+                                  </div>
+                                )}
                                 <p className="text-white/60 text-xs mt-1">₹{item.price}</p>
                               </div>
                               <div className="absolute top-4 right-4 bg-white/10 backdrop-blur-md rounded-full p-2 border border-white/20">
@@ -501,7 +594,15 @@ const MenuContent = () => {
                               <div className="flex justify-between items-start">
                                 <div className="flex-1 mr-2">
                                   <h3 className="font-display text-xl font-bold tracking-tight text-white group-hover:text-glow-white transition-all">{item.name}</h3>
-                                  {item.category && <p className="text-xs text-white/40 font-medium uppercase tracking-[0.2em] mt-2">{item.category}</p>}
+                                  <div className="flex flex-wrap items-center gap-2 mt-2">
+                                    {item.category && <p className="text-[10px] text-white/40 font-black uppercase tracking-[0.2em]">{item.category}</p>}
+                                    {getBadge(item) && (
+                                      <div className={`px-2 py-0.5 rounded-full border ${getBadge(item)?.color} flex items-center gap-1 scale-90 origin-left`}>
+                                        <span className="text-[10px]">{getBadge(item)?.icon}</span>
+                                        <span className="text-[8px] uppercase font-black whitespace-nowrap">{getBadge(item)?.text}</span>
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
                                 <span className="font-display font-black text-2xl text-white shrink-0 shadow-sm">₹{item.price}</span>
                               </div>

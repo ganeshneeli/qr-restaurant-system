@@ -19,6 +19,8 @@ import {
   Search,
   Pencil,
   Trash2,
+  Flame,
+  Star,
 } from "lucide-react";
 
 import {
@@ -93,6 +95,14 @@ interface MenuItem {
   category: string;
   available: boolean;
   image?: string;
+  order_count?: number;
+  isChefSpecial?: boolean;
+}
+
+interface AnalyticsData {
+  mostOrdered: MenuItem[];
+  leastOrdered: MenuItem[];
+  dailyTrends: { _id: string; count: number; revenue: number }[];
 }
 
 interface QrData {
@@ -138,6 +148,8 @@ const AdminDashboard = () => {
   const [historyOrders, setHistoryOrders] = useState<Order[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historySearchQuery, setHistorySearchQuery] = useState("");
+  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const socketRef = useRef<any>(null);
 
   const resolveImagePath = (imagePath?: string) => {
@@ -180,7 +192,20 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     if (activeSection === "history") fetchHistory();
+    if (activeSection === "summary") fetchAnalytics();
   }, [activeSection, fetchHistory]);
+
+  const fetchAnalytics = async () => {
+    setAnalyticsLoading(true);
+    try {
+      const res = await api.get("/orders/analytics");
+      setAnalytics(res.data?.data || null);
+    } catch {
+      toast({ title: "Error", description: "Failed to load analytics", variant: "destructive" });
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  };
 
   // Handle Socket Connection separately to keep it stable
   useEffect(() => {
@@ -787,11 +812,124 @@ const AdminDashboard = () => {
                         </motion.div>
                       ))}
                     </AnimatePresence>
+                  </div>
+                )}
 
-                    {orders.length === 0 && (
-                      <div className="col-span-full text-center py-20 text-muted-foreground">
-                        <UtensilsCrossed className="h-12 w-12 mx-auto mb-4 opacity-30" />
-                        <p className="font-display text-xl">No active orders</p>
+                {/* === DAILY SUMMARY & ANALYTICS === */}
+                {activeSection === "summary" && (
+                  <div className="space-y-8">
+                    {/* Key Metrics */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Card className="glass border-white/5 p-6 flex items-center gap-6">
+                        <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-lg border border-primary/20">
+                          <BarChart3 className="h-7 w-7" />
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground font-medium uppercase tracking-wider">Total Orders Today</p>
+                          <div className="text-4xl font-black text-glow-subtle mt-1">
+                            <AnimatedCounter value={summary.totalOrders || 0} />
+                          </div>
+                        </div>
+                      </Card>
+                      <Card className="glass border-white/5 p-6 flex items-center gap-6">
+                        <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 shadow-lg border border-emerald-500/20">
+                          <IndianRupee className="h-7 w-7" />
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground font-medium uppercase tracking-wider">Total Revenue Today</p>
+                          <div className="text-4xl font-black text-glow-subtle mt-1 flex items-baseline gap-1">
+                            <span className="text-2xl font-bold opacity-50">₹</span>
+                            <AnimatedCounter value={summary.totalRevenue || 0} />
+                          </div>
+                        </div>
+                      </Card>
+                    </div>
+
+                    {analyticsLoading ? (
+                      <LoadingSkeleton />
+                    ) : analytics && (
+                      <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                        {/* Daily Trends Chart-like Table */}
+                        <Card className="glass border-white/5 p-6">
+                          <h3 className="font-display text-xl font-bold mb-6 flex items-center gap-2">
+                            <Clock className="h-5 w-5 text-primary" />
+                            Daily Order Trends (Last 7 Days)
+                          </h3>
+                          <div className="overflow-x-auto">
+                            <table className="w-full">
+                              <thead>
+                                <tr className="text-left border-b border-white/5">
+                                  <th className="pb-3 text-xs font-black uppercase tracking-widest text-muted-foreground">Date</th>
+                                  <th className="pb-3 text-xs font-black uppercase tracking-widest text-muted-foreground">Orders</th>
+                                  <th className="pb-3 text-xs font-black uppercase tracking-widest text-muted-foreground">Revenue</th>
+                                  <th className="pb-3 text-xs font-black uppercase tracking-widest text-muted-foreground text-right w-1/3">Activity</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {analytics.dailyTrends.map((trend) => (
+                                  <tr key={trend._id} className="border-b border-white/5 last:border-0 group">
+                                    <td className="py-4 font-medium">{new Date(trend._id).toLocaleDateString()}</td>
+                                    <td className="py-4 font-bold text-primary">{trend.count}</td>
+                                    <td className="py-4 font-bold text-emerald-400">₹{trend.revenue}</td>
+                                    <td className="py-4 text-right">
+                                      <div className="w-full bg-white/5 h-2 rounded-full overflow-hidden">
+                                        <motion.div
+                                          initial={{ width: 0 }}
+                                          animate={{ width: `${Math.min((trend.count / 50) * 100, 100)}%` }}
+                                          className="bg-primary h-full rounded-full"
+                                        />
+                                      </div>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </Card>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                          {/* Most Ordered */}
+                          <Card className="glass border-white/5 p-6">
+                            <h3 className="font-display text-xl font-bold mb-6 flex items-center gap-2 text-orange-400">
+                              <Flame className="h-5 w-5 fill-current" />
+                              Most Ordered
+                            </h3>
+                            <div className="space-y-4">
+                              {analytics.mostOrdered.map((item, i) => (
+                                <div key={item._id} className="flex items-center justify-between p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
+                                  <div className="flex items-center gap-3">
+                                    <span className="text-lg font-black text-white/20 w-4">{i + 1}</span>
+                                    <span className="font-medium">{item.name}</span>
+                                  </div>
+                                  <Badge className="bg-primary/20 text-primary border-primary/30">
+                                    {item.order_count} Orders
+                                  </Badge>
+                                </div>
+                              ))}
+                            </div>
+                          </Card>
+
+                          {/* Least Ordered */}
+                          <Card className="glass border-white/5 p-6">
+                            <h3 className="font-display text-xl font-bold mb-6 flex items-center gap-2 text-muted-foreground">
+                              <Search className="h-5 w-5" />
+                              Least Ordered
+                            </h3>
+                            <div className="space-y-4">
+                              {analytics.leastOrdered.map((item, i) => (
+                                <div key={item._id} className="flex items-center justify-between p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
+                                  <div className="flex items-center gap-3">
+                                    <span className="text-lg font-black text-white/10 w-4">{i + 1}</span>
+                                    <span className="font-medium opacity-70">{item.name}</span>
+                                  </div>
+                                  <Badge className="bg-white/10 text-white/50 border-white/20">
+                                    {item.order_count} Orders
+                                  </Badge>
+                                </div>
+                              ))}
+                            </div>
+                          </Card>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -1002,8 +1140,8 @@ const AdminDashboard = () => {
                                 </td>
                                 <td className="px-6 py-4">
                                   <span className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-tighter ${order.status === "completed" ? "bg-green-500/20 text-green-400" :
-                                      order.status === "processing" ? "bg-primary/20 text-primary" :
-                                        "bg-yellow-500/20 text-yellow-400"
+                                    order.status === "processing" ? "bg-primary/20 text-primary" :
+                                      "bg-yellow-500/20 text-yellow-400"
                                     }`}>
                                     {order.status}
                                   </span>
@@ -1183,6 +1321,22 @@ const AdminDashboard = () => {
                                 <Button
                                   variant="ghost"
                                   size="icon"
+                                  className={`h-8 w-8 ${item.isChefSpecial ? "text-purple-500" : "text-muted-foreground"} hover:text-purple-400`}
+                                  onClick={async () => {
+                                    try {
+                                      await api.put(`/menu/${item._id}`, { ...item, isChefSpecial: !item.isChefSpecial });
+                                      fetchData();
+                                      toast({ title: "Success", description: "Chef Special status updated" });
+                                    } catch {
+                                      toast({ title: "Error", variant: "destructive" });
+                                    }
+                                  }}
+                                >
+                                  <Star className={`h-4 w-4 ${item.isChefSpecial ? "fill-current" : ""}`} />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
                                   className="h-8 w-8 text-muted-foreground hover:text-primary"
                                   onClick={() => setEditingItem(item)}
                                 >
@@ -1296,9 +1450,10 @@ const AdminDashboard = () => {
             )}
           </div>
         </main>
-      </div >
-    </PageTransition >
+      </div>
+    </PageTransition>
   );
 };
 
 export default AdminDashboard;
+

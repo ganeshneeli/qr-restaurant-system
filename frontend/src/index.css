@@ -61,7 +61,12 @@
     font-family: 'Inter', sans-serif;
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     font-family: 'Playfair Display', serif;
   }
 }
@@ -111,8 +116,15 @@
   }
 
   @keyframes pulse-ring {
-    0% { transform: scale(1); opacity: 1; }
-    100% { transform: scale(2.5); opacity: 0; }
+    0% {
+      transform: scale(1);
+      opacity: 1;
+    }
+
+    100% {
+      transform: scale(2.5);
+      opacity: 0;
+    }
   }
 
   .skeleton-shimmer {
@@ -122,8 +134,13 @@
   }
 
   @keyframes shimmer {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
+    0% {
+      background-position: 200% 0;
+    }
+
+    100% {
+      background-position: -200% 0;
+    }
   }
 
   .ripple {
@@ -151,6 +168,7 @@
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;

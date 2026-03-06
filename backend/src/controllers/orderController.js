@@ -79,6 +79,9 @@ exports.createOrder = async (req, res) => {
         const existing = order.items.find(i => i.foodId?.toString() === newItem.foodId.toString())
         if (existing) existing.quantity += newItem.quantity
         else order.items.push(newItem)
+
+        // Increment order_count in Menu
+        await Menu.findByIdAndUpdate(newItem.foodId, { $inc: { order_count: newItem.quantity } })
       }
       order.totalAmount += total
       order.status = "pending"
@@ -86,6 +89,10 @@ exports.createOrder = async (req, res) => {
       await order.save()
     } else {
       order = await Order.create({ tableId, tableNumber, sessionId, items: validated, totalAmount: total })
+      // Increment order_count for each item
+      for (let item of validated) {
+        await Menu.findByIdAndUpdate(item.foodId, { $inc: { order_count: item.quantity } })
+      }
     }
 
     // Notify only admins about the new order
@@ -163,6 +170,42 @@ exports.markAsPaid = async (req, res) => {
     emitToAdmin("orderPaid", payload)
 
     res.json({ success: true, data: order })
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message })
+  }
+}
+
+// Admin: Get analytics
+exports.getAnalytics = async (req, res) => {
+  try {
+    const mostOrdered = await Menu.find({ order_count: { $gt: 0 } }).sort({ order_count: -1 }).limit(10)
+    const leastOrdered = await Menu.find({ order_count: { $gte: 0 } }).sort({ order_count: 1 }).limit(10)
+
+    // Daily trends (last 7 days)
+    const sevenDaysAgo = new Date()
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+    sevenDaysAgo.setHours(0, 0, 0, 0)
+
+    const trends = await Order.aggregate([
+      { $match: { createdAt: { $gte: sevenDaysAgo } } },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+          count: { $sum: 1 },
+          revenue: { $sum: "$totalAmount" }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ])
+
+    res.json({
+      success: true,
+      data: {
+        mostOrdered,
+        leastOrdered,
+        dailyTrends: trends
+      }
+    })
   } catch (error) {
     res.status(500).json({ success: false, message: error.message })
   }
