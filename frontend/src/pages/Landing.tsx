@@ -64,7 +64,7 @@ const Landing = () => {
               transition={{ duration: 1, ease: "circOut" }}
               className="mb-4"
             >
-              <h1 className="font-display text-[10rem] md:text-[14rem] font-black tracking-tighter text-glow-white leading-none">
+              <h1 className="font-display text-[10rem] md:text-[14rem] font-black tracking-tighter text-[#8B0000] drop-shadow-[0_0_25px_rgba(139,0,0,0.8)] leading-none">
                 OG
               </h1>
             </motion.div>
