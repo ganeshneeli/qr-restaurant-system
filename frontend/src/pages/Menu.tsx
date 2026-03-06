@@ -295,10 +295,10 @@ const MenuContent = () => {
     return [...menu]
       .filter(item => item.available && (item.order_count ?? 0) > 0)
       .sort((a, b) => (b.order_count ?? 0) - (a.order_count ?? 0))
-      .slice(0, 5);
+      .slice(0, 3);
   }, [menu]);
 
-  const getBadge = (item: MenuItem) => {
+  const getBadges = (item: MenuItem) => {
     const badges = [];
     if (item.order_count && item.order_count > 50) badges.push({ text: "Most Ordered", icon: "🔥", color: "text-orange-500 bg-orange-500/10 border-orange-500/20" });
     else if (item.order_count && item.order_count > 30) badges.push({ text: "Highly Reordered", icon: "⭐", color: "text-yellow-500 bg-yellow-500/10 border-yellow-500/20" });
@@ -313,7 +313,7 @@ const MenuContent = () => {
 
     if (item.isChefSpecial) badges.push({ text: "Chef Special", icon: "👨‍🍳", color: "text-purple-500 bg-purple-500/10 border-purple-500/20" });
 
-    return badges[0]; // Show only one most relevant badge for now to keep UI clean
+    return badges;
   };
 
   if (!sessionToken) return null;
@@ -439,7 +439,7 @@ const MenuContent = () => {
 
                 <div className="space-y-4">
                   {TRENDING_ITEMS.map((item, idx) => {
-                    const badge = getBadge(item);
+
                     return (
                       <motion.div
                         key={item._id}
@@ -464,12 +464,16 @@ const MenuContent = () => {
                             <h3 className="font-bold text-white group-hover:text-glow-white transition-all">
                               {item.name}
                             </h3>
-                            {badge && (
-                              <div className="flex items-center gap-1 mt-0.5">
-                                <span className="text-xs">{badge.icon}</span>
-                                <span className={`text-[10px] uppercase font-black ${badge.color.split(' ')[0]}`}>
-                                  {badge.text}
-                                </span>
+                            {getBadges(item).length > 0 && (
+                              <div className="flex flex-wrap items-center gap-2 mt-1">
+                                {getBadges(item).map((badge, bIdx) => (
+                                  <div key={bIdx} className="flex items-center gap-1">
+                                    <span className="text-xs">{badge.icon}</span>
+                                    <span className={`text-[10px] uppercase font-black ${badge.color.split(' ')[0]}`}>
+                                      {badge.text}
+                                    </span>
+                                  </div>
+                                ))}
                               </div>
                             )}
                           </div>
@@ -515,12 +519,16 @@ const MenuContent = () => {
                               <div className="absolute bottom-4 left-4 right-4">
                                 <Badge className="bg-white text-black mb-2 rounded-full px-3 py-0 font-black text-[10px]">SIGNATURE</Badge>
                                 <h3 className="font-display text-xl font-bold text-white text-glow-white leading-none">{item.name}</h3>
-                                {getBadge(item) && (
-                                  <div className="flex items-center gap-1 mt-1 opacity-80">
-                                    <span className="text-[10px]">{getBadge(item)?.icon}</span>
-                                    <span className="text-[8px] uppercase font-black text-white/70">
-                                      {getBadge(item)?.text}
-                                    </span>
+                                {getBadges(item).length > 0 && (
+                                  <div className="flex flex-wrap items-center gap-2 mt-1 opacity-80">
+                                    {getBadges(item).map((badge, bIdx) => (
+                                      <div key={bIdx} className="flex items-center gap-1">
+                                        <span className="text-[10px]">{badge.icon}</span>
+                                        <span className="text-[8px] uppercase font-black text-white/70">
+                                          {badge.text}
+                                        </span>
+                                      </div>
+                                    ))}
                                   </div>
                                 )}
                                 <p className="text-white/60 text-xs mt-1">₹{item.price}</p>
@@ -582,12 +590,12 @@ const MenuContent = () => {
                                   <h3 className="font-display text-xl font-bold tracking-tight text-white group-hover:text-glow-white transition-all">{item.name}</h3>
                                   <div className="flex flex-wrap items-center gap-2 mt-2">
                                     {item.category && <p className="text-[10px] text-white/40 font-black uppercase tracking-[0.2em]">{item.category}</p>}
-                                    {getBadge(item) && (
-                                      <div className={`px-2 py-0.5 rounded-full border ${getBadge(item)?.color} flex items-center gap-1 scale-90 origin-left`}>
-                                        <span className="text-[10px]">{getBadge(item)?.icon}</span>
-                                        <span className="text-[8px] uppercase font-black whitespace-nowrap">{getBadge(item)?.text}</span>
+                                    {getBadges(item).map((badge, bIdx) => (
+                                      <div key={bIdx} className={`px-2 py-0.5 rounded-full border ${badge.color} flex items-center gap-1 scale-90 origin-left`}>
+                                        <span className="text-[10px]">{badge.icon}</span>
+                                        <span className="text-[8px] uppercase font-black whitespace-nowrap">{badge.text}</span>
                                       </div>
-                                    )}
+                                    ))}
                                   </div>
                                 </div>
                                 <span className="font-display font-black text-2xl text-white shrink-0 shadow-sm">₹{item.price}</span>
