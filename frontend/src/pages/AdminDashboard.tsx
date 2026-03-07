@@ -629,9 +629,7 @@ const AdminDashboard = () => {
         sequentialId: index + 1,
         dailySerial: daySerial
       };
-    }).sort((a, b) =>
-      new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
-    );
+    });
   }, [historyOrders]);
 
   const filteredHistory = processedHistory.filter(o => {
