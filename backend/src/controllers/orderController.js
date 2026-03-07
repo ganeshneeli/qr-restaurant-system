@@ -232,3 +232,14 @@ exports.getAnalytics = async (req, res) => {
     res.status(500).json({ success: false, message: error.message })
   }
 }
+
+// Admin: Test Monthly Report (Manually trigger email)
+exports.testMonthlyReport = async (req, res) => {
+  try {
+    const { sendMonthlyReport } = require("../jobs/monthlyRevenue")
+    await sendMonthlyReport()
+    res.json({ success: true, message: "Monthly report email triggered successfully! Check your inbox and server logs." })
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message })
+  }
+}
