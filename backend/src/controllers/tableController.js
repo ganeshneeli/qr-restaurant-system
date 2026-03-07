@@ -132,7 +132,7 @@ exports.removeTable = async (req, res) => {
 
     try { getIO().to("admin").emit("tableUpdated"); } catch (e) { }
 
-    res.json({ success: true, message:  })
+    res.json({ success: true, message: "Table removed successfully" })
   } catch (error) {
     res.status(500).json({ success: false, message: error.message })
   }
