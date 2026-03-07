@@ -797,6 +797,16 @@ const AdminDashboard = () => {
                               ))}
                             </div>
 
+                            {order.specialNote && (
+                              <div className="mb-3 p-2 rounded-lg bg-primary/5 border border-primary/20 flex gap-2 items-start">
+                                <ChefHat className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+                                <div className="space-y-0.5">
+                                  <p className="text-[10px] font-black uppercase tracking-widest text-primary/70">Chef Note</p>
+                                  <p className="text-xs italic text-white/90">"{order.specialNote}"</p>
+                                </div>
+                              </div>
+                            )}
+
                             {order.billRequested && (
                               <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 border mb-3 w-full justify-center">
                                 🧾 Bill Requested

@@ -29,6 +29,7 @@ import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger,
 } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "https://qr-restaurant-system-1.onrender.com/api";
@@ -110,6 +111,7 @@ const MenuContent = () => {
   const [feedbackText, setFeedbackText] = useState("");
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
   const [paidOrderId, setPaidOrderId] = useState<string | null>(null);
+  const [specialNote, setSpecialNote] = useState("");
 
   const socketRef = useRef<Socket | null>(null);
 
@@ -264,9 +266,13 @@ const MenuContent = () => {
     if (!cart.length || !sessionToken) return;
     setOrdering(true);
     try {
-      await api.post("/orders", { items: cart.map(c => ({ foodId: c.foodId, quantity: c.quantity })) });
+      await api.post("/orders", {
+        items: cart.map(c => ({ foodId: c.foodId, quantity: c.quantity })),
+        specialNote: specialNote
+      });
       toast({ title: "Order Placed! 🎉", description: "Sent to kitchen." });
       clearCart();
+      setSpecialNote("");
       setShowCart(false);
       setTimeout(fetchOrder, 1500);
     } catch (err: unknown) {
@@ -743,6 +749,19 @@ const MenuContent = () => {
                       <div className="flex justify-between items-center mb-6">
                         <span className="font-display text-lg">Total</span>
                         <span className="font-display text-2xl font-bold text-glow-subtle">₹{total}</span>
+                      </div>
+
+                      <div className="space-y-2 mb-6">
+                        <Label htmlFor="specialNote" className="text-white/60 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
+                          <ChefHat className="h-3.5 w-3.5" /> Add Note for Chef
+                        </Label>
+                        <Input
+                          id="specialNote"
+                          placeholder="Less spicy, no onions, extra cheese..."
+                          className="glass border-white/10 focus:border-white/20 h-12"
+                          value={specialNote}
+                          onChange={(e) => setSpecialNote(e.target.value)}
+                        />
                       </div>
 
                       <Button onClick={placeOrder} disabled={ordering}

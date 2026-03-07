@@ -86,9 +86,19 @@ exports.createOrder = async (req, res) => {
       order.totalAmount += total
       order.status = "pending"
       order.billRequested = false
+      if (req.body.specialNote) {
+        order.specialNote = req.body.specialNote
+      }
       await order.save()
     } else {
-      order = await Order.create({ tableId, tableNumber, sessionId, items: validated, totalAmount: total })
+      order = await Order.create({
+        tableId,
+        tableNumber,
+        sessionId,
+        items: validated,
+        totalAmount: total,
+        specialNote: req.body.specialNote || ""
+      })
       // Increment order_count for each item
       for (let item of validated) {
         await Menu.findByIdAndUpdate(item.foodId, { $inc: { order_count: item.quantity } })

@@ -21,7 +21,8 @@ const orderSchema = new mongoose.Schema({
     enum: ["pending", "paid"],
     default: "pending"
   },
-  billRequested: { type: Boolean, default: false }
+  billRequested: { type: Boolean, default: false },
+  specialNote: { type: String, default: "" }
 }, { timestamps: true })
 
 module.exports = mongoose.model("Order", orderSchema)
