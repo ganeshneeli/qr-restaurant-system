@@ -24,7 +24,9 @@ import {
   MessageSquare,
   ChefHat,
   TrendingUp,
+  Minus,
 } from "lucide-react";
+
 
 import {
   Dialog,
@@ -195,6 +197,11 @@ const AdminDashboard = () => {
   const [feedbackPage, setFeedbackPage] = useState(1);
   const [feedbackPagination, setFeedbackPagination] = useState({ totalPages: 1, totalCount: 0 });
 
+  // Menu Pagination States
+  const [menuPage, setMenuPage] = useState(1);
+  const [menuPagination, setMenuPagination] = useState({ totalPages: 1, totalCount: 0 });
+  const [menuLoading, setMenuLoading] = useState(false);
+
   const resolveImagePath = (imagePath?: string) => {
     if (!imagePath) return "";
     if (imagePath.startsWith("http")) return imagePath;
@@ -211,15 +218,35 @@ const AdminDashboard = () => {
       setOrders(ordersRes.data?.orders || []);
       setTables(tablesRes.data?.data || []);
       setSummary(summaryRes.data || {});
-
-      const menuRes = await api.get("/menu");
-      setMenuItems(menuRes.data?.data || []);
     } catch {
       // silent
     } finally {
       setLoading(false);
     }
   }, []);
+
+  const fetchMenu = useCallback(async () => {
+    setMenuLoading(true);
+    try {
+      const res = await api.get("/menu", {
+        params: {
+          page: menuPage,
+          limit: 20, // More items for admin
+          search: menuSearchQuery
+        }
+      });
+      setMenuItems(res.data?.data || []);
+      setMenuPagination({
+        totalPages: res.data?.pagination?.totalPages || 1,
+        totalCount: res.data?.pagination?.totalCount || 0
+      });
+    } catch {
+      toast({ title: "Error", description: "Failed to load menu", variant: "destructive" });
+    } finally {
+      setMenuLoading(false);
+    }
+  }, [menuPage, menuSearchQuery, toast]);
+
 
   const fetchHistory = useCallback(async () => {
     setHistoryLoading(true);
@@ -237,8 +264,10 @@ const AdminDashboard = () => {
     if (activeSection === "history") fetchHistory();
     if (activeSection === "summary") fetchAnalytics();
     if (activeSection === "reviews") fetchFeedback(feedbackFilter, feedbackPage);
+    if (activeSection === "menu") fetchMenu();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeSection, fetchHistory, feedbackPage]);
+  }, [activeSection, fetchHistory, feedbackPage, menuPage, menuSearchQuery]);
+
 
   const fetchAnalytics = async () => {
     setAnalyticsLoading(true);
@@ -478,7 +507,7 @@ const AdminDashboard = () => {
       });
 
       if (res.data?.success) {
-        setMenuItems(prev => [...prev, res.data.data]);
+        fetchMenu();
         setIsAddingItem(false);
         setNewItem({ name: "", price: "", category: "Other", image: "" });
         setNewItemFile(null);
@@ -493,9 +522,7 @@ const AdminDashboard = () => {
     try {
       const res = await api.put(`/menu/${itemId}/toggle`);
       if (res.data?.success) {
-        setMenuItems(prev => prev.map(item =>
-          item._id === itemId ? { ...item, available: res.data.data.available } : item
-        ));
+        fetchMenu();
         toast({
           title: "Availability Updated",
           description: `${res.data.data.name} is now ${res.data.data.available ? "Available" : "Unavailable"}`
@@ -530,7 +557,7 @@ const AdminDashboard = () => {
       toast({ title: "Success", description: "Item updated successfully" });
       setEditingItem(null);
       setEditItemFile(null);
-      fetchData();
+      fetchMenu();
     } catch {
       toast({ title: "Error", description: "Failed to update item", variant: "destructive" });
     }
@@ -541,7 +568,8 @@ const AdminDashboard = () => {
     try {
       await api.delete(`/menu/${id}`);
       toast({ title: "Success", description: "Item removed from menu" });
-      fetchData();
+      fetchMenu();
+
     } catch {
       toast({ title: "Error", description: "Failed to remove item", variant: "destructive" });
     }
@@ -610,10 +638,7 @@ const AdminDashboard = () => {
     return `${diff}m ago`;
   };
 
-  const filteredMenuItems = menuItems.filter(i =>
-    i.name.toLowerCase().includes(menuSearchQuery.toLowerCase()) ||
-    i.category.toLowerCase().includes(menuSearchQuery.toLowerCase())
-  );
+
 
   const processedHistory = useMemo(() => {
     // Sort all history by date ascending to assign stable sequential IDs
@@ -1587,92 +1612,136 @@ const AdminDashboard = () => {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {filteredMenuItems.map((item, i) => (
-                        <motion.div
-                          key={item._id}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: i * 0.02 }}
-                        >
-                          <Card className="glass border-white/5 p-4 flex flex-col gap-4 group hover:border-primary/20 transition-all overflow-hidden relative">
-                            {item.image && (
-                              <div className="absolute inset-0 z-0 opacity-10 blur-sm group-hover:opacity-20 transition-opacity">
-                                <img src={resolveImagePath(item.image)} alt="" className="w-full h-full object-cover" />
-                              </div>
-                            )}
-                            <div className="flex justify-between items-start z-10">
-                              <div className="flex items-center gap-3">
-                                <div className="w-24 h-24 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center overflow-hidden shrink-0 shadow-lg">
-                                  {item.image ? (
-                                    <img src={resolveImagePath(item.image)} alt={item.name} className="w-full h-full object-cover" />
-                                  ) : (
-                                    <UtensilsCrossed className="h-8 w-8 text-primary/70" />
-                                  )}
+                      {menuLoading ? (
+                        <div className="col-span-full py-20">
+                          <LoadingSkeleton />
+                        </div>
+                      ) : menuItems.length === 0 ? (
+                        <div className="col-span-full text-center py-20 text-muted-foreground">
+                          <ChefHat className="h-12 w-12 mx-auto mb-4 opacity-30" />
+                          <p className="font-display text-xl">No items found {menuSearchQuery && `for "${menuSearchQuery}"`}</p>
+                        </div>
+                      ) : (
+                        menuItems.map((item, i) => (
+                          <motion.div
+                            key={item._id}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: i * 0.02 }}
+                          >
+                            <Card className="glass border-white/5 p-4 flex flex-col gap-4 group hover:border-primary/20 transition-all overflow-hidden relative">
+                              {item.image && (
+                                <div className="absolute inset-0 z-0 opacity-10 blur-sm group-hover:opacity-20 transition-opacity">
+                                  <img src={resolveImagePath(item.image)} alt="" className="w-full h-full object-cover" />
                                 </div>
-                                <div>
-                                  <h4 className="font-semibold text-sm">{item.name}</h4>
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-xs text-muted-foreground">{item.category}</span>
-                                    <span className="text-xs text-primary font-bold">₹{item.price}</span>
+                              )}
+                              <div className="flex justify-between items-start z-10">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-24 h-24 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center overflow-hidden shrink-0 shadow-lg">
+                                    {item.image ? (
+                                      <img src={resolveImagePath(item.image)} alt={item.name} className="w-full h-full object-cover" />
+                                    ) : (
+                                      <UtensilsCrossed className="h-8 w-8 text-primary/70" />
+                                    )}
+                                  </div>
+                                  <div>
+                                    <h4 className="font-semibold text-sm">{item.name}</h4>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-xs text-muted-foreground">{item.category}</span>
+                                      <span className="text-xs text-primary font-bold">₹{item.price}</span>
+                                    </div>
                                   </div>
                                 </div>
+
+                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className={`h-8 w-8 ${item.isChefSpecial ? "text-purple-500" : "text-muted-foreground"} hover:text-purple-400`}
+                                    onClick={async () => {
+                                      try {
+                                        await api.put(`/menu/${item._id}`, { ...item, isChefSpecial: !item.isChefSpecial });
+                                        fetchMenu();
+                                        toast({ title: "Success", description: "Chef Special status updated" });
+                                      } catch {
+                                        toast({ title: "Error", variant: "destructive" });
+                                      }
+                                    }}
+                                  >
+                                    <Star className={`h-4 w-4 ${item.isChefSpecial ? "fill-current" : ""}`} />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-muted-foreground hover:text-primary"
+                                    onClick={() => setEditingItem(item)}
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                    onClick={() => handleDeleteItem(item._id)}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
                               </div>
 
-                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className={`h-8 w-8 ${item.isChefSpecial ? "text-purple-500" : "text-muted-foreground"} hover:text-purple-400`}
-                                  onClick={async () => {
-                                    try {
-                                      await api.put(`/menu/${item._id}`, { ...item, isChefSpecial: !item.isChefSpecial });
-                                      fetchData();
-                                      toast({ title: "Success", description: "Chef Special status updated" });
-                                    } catch {
-                                      toast({ title: "Error", variant: "destructive" });
-                                    }
-                                  }}
-                                >
-                                  <Star className={`h-4 w-4 ${item.isChefSpecial ? "fill-current" : ""}`} />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-muted-foreground hover:text-primary"
-                                  onClick={() => setEditingItem(item)}
-                                >
-                                  <Pencil className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                                  onClick={() => handleDeleteItem(item._id)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
+                              <div className="flex items-center justify-between z-10">
+                                <div className="flex items-center gap-2">
+                                  <Switch
+                                    checked={item.available}
+                                    onCheckedChange={() => toggleItemAvailability(item._id)}
+                                  />
+                                  <span className="text-[10px] font-bold uppercase tracking-widest opacity-50">
+                                    {item.available ? "Available" : "Sold Out"}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-1 text-[10px] font-black text-muted-foreground">
+                                  <TrendingUp className="h-3 w-3" />
+                                  {item.order_count || 0} ORDERS
+                                </div>
                               </div>
-                            </div>
-
-                            <div className="flex items-center justify-between z-10 pt-2 border-t border-white/5">
-                              <span className={`text-[10px] uppercase tracking-wider font-bold ${item.available ? "text-green-500" : "text-muted-foreground"}`}>
-                                {item.available ? "On Menu" : "Hidden"}
-                              </span>
-                              <Switch
-                                checked={item.available}
-                                onCheckedChange={() => toggleItemAvailability(item._id)}
-                              />
-                            </div>
-                          </Card>
-                        </motion.div>
-                      ))}
-                      {filteredMenuItems.length === 0 && (
-                        <div className="col-span-full text-center py-20 text-muted-foreground">
-                          <Search className="h-12 w-12 mx-auto mb-4 opacity-30" />
-                          <p className="font-display text-xl">No items found matching "{menuSearchQuery}"</p>
-                        </div>
+                            </Card>
+                          </motion.div>
+                        ))
                       )}
                     </div>
+
+                    {/* Menu Pagination Controls */}
+                    {!menuLoading && menuPagination.totalPages > 1 && (
+                      <div className="flex justify-between items-center bg-white/5 p-4 rounded-2xl border border-white/5 mt-6">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          disabled={menuPage === 1}
+                          onClick={() => setMenuPage(p => p - 1)}
+                          className="text-xs uppercase font-bold tracking-widest gap-2 text-muted-foreground hover:text-white"
+                        >
+                          <Minus className="h-4 w-4" /> Previous
+                        </Button>
+                        <div className="flex flex-col items-center">
+                          <span className="text-xs text-muted-foreground capitalize">
+                            Page <span className="text-white font-bold">{menuPage}</span> of {menuPagination.totalPages}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground/50 font-black uppercase tracking-tighter mt-0.5">
+                            {menuPagination.totalCount} items found
+                          </span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          disabled={menuPage >= menuPagination.totalPages}
+                          onClick={() => setMenuPage(p => p + 1)}
+                          className="text-xs uppercase font-bold tracking-widest gap-2 text-muted-foreground hover:text-white"
+                        >
+                          Next <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+
 
                     {/* Edit Dialog */}
                     <Dialog open={!!editingItem} onOpenChange={(open) => !open && setEditingItem(null)}>

@@ -15,8 +15,8 @@ const invalidateMenuCache = () => {
 
 exports.getMenu = async (req, res) => {
   try {
-    const { category, page = 1, limit = 12 } = req.query;
-    const cacheKey = `menu_${category || "All"}_${page}_${limit}`;
+    const { category, search, page = 1, limit = 12 } = req.query;
+    const cacheKey = `menu_${category || "All"}_${search || "NoSearch"}_${page}_${limit}`;
 
     // Try to get from cache
     const cachedData = menuCache.get(cacheKey);
@@ -28,6 +28,13 @@ exports.getMenu = async (req, res) => {
     let query = {};
     if (category && category !== "All") {
       query.category = category;
+    }
+
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { category: { $regex: search, $options: "i" } }
+      ];
     }
 
     const skip = (Number(page) - 1) * Number(limit);
