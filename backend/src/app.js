@@ -6,6 +6,7 @@ const morgan = require("morgan")
 const rateLimit = require("express-rate-limit")
 const connectDB = require("./config/db")
 require("./jobs/sessionTimeout")
+require("./jobs/monthlyRevenue")
 
 connectDB()
 
