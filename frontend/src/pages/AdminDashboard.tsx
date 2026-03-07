@@ -356,14 +356,17 @@ const AdminDashboard = () => {
     }
   };
 
-  const loadQrCodes = useCallback(async () => {
-    if (qrCodes.length > 0) return;
+  const loadQrCodes = useCallback(async (forced = false) => {
+    if (!forced && qrCodes.length > 0 && qrCodes.length === tables.length) return;
     setQrLoading(true);
     try {
       const qrs: QrData[] = [];
-      for (let i = 1; i <= 10; i++) {
+      // Fetch QRs for all existing tables in the state
+      const tableNumbers = tables.map(t => t.tableNumber ?? t.number).filter(Boolean);
+
+      for (const tableNum of tableNumbers) {
         try {
-          const res = await api.get(`/table/${i}/qr`);
+          const res = await api.get(`/table/${tableNum}/qr`);
           if (res.data?.success) qrs.push(res.data);
         } catch { /* skip */ }
       }
@@ -371,7 +374,7 @@ const AdminDashboard = () => {
     } finally {
       setQrLoading(false);
     }
-  }, [qrCodes.length]);
+  }, [qrCodes.length, tables]);
 
   useEffect(() => {
     if (activeSection === "qrcodes") loadQrCodes();
@@ -392,6 +395,32 @@ const AdminDashboard = () => {
       toast({ title: "Success", description: `Table ${tableNumber} has been released.` });
     } catch {
       toast({ title: "Error", description: "Failed to release table", variant: "destructive" });
+    }
+  };
+
+  const handleAddTable = async () => {
+    try {
+      const res = await api.post("/table/add");
+      if (res.data?.success) {
+        fetchData();
+        toast({ title: "Success", description: `Table ${res.data.data.tableNumber} added!` });
+      }
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to add table", variant: "destructive" });
+    }
+  };
+
+  const handleRemoveTable = async (tableNumber: number) => {
+    if (!window.confirm(`Are you sure you want to remove Table ${tableNumber}?`)) return;
+    try {
+      const res = await api.delete(`/table/${tableNumber}`);
+      if (res.data?.success) {
+        fetchData();
+        toast({ title: "Success", description: `Table ${tableNumber} removed.` });
+      }
+    } catch (error: any) {
+      const msg = error.response?.data?.message || "Failed to remove table";
+      toast({ title: "Error", description: msg, variant: "destructive" });
     }
   };
 
@@ -974,71 +1003,95 @@ const AdminDashboard = () => {
 
                 {/* === ALL TABLES === */}
                 {activeSection === "tables" && (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                    {tables.map((table, i) => {
-                      const tableNum = table.tableNumber ?? table.number;
-                      const isOccupied = table.status === "occupied";
-                      const activatedAt = table.activatedAt ?? table.startedAt;
-
-                      return (
-                        <motion.div
-                          key={table._id}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: i * 0.04 }}
-                        >
-                          <Card className={`glass border-white/5 p-5 text-center transition-all ${isOccupied ? "neon-glow" : ""}`}>
-                            <div className="relative w-12 h-12 mx-auto mb-3">
-                              <div
-                                className={`w-3 h-3 rounded-full absolute top-0 right-0 ${isOccupied ? "bg-amber-400 pulse-dot" : "bg-green-500"
-                                  }`}
-                              />
-                              <div
-                                className={`w-12 h-12 rounded-full flex items-center justify-center border ${isOccupied
-                                  ? "bg-amber-500/10 border-amber-500/30"
-                                  : "bg-green-500/10 border-green-500/30"
-                                  }`}
-                              >
-                                <Table2
-                                  className={`h-5 w-5 ${isOccupied ? "text-amber-400" : "text-green-400"}`}
-                                />
-                              </div>
-                            </div>
-                            <h3 className="font-display text-lg font-bold">Table {tableNum}</h3>
-                            <Badge
-                              className={`mt-1 text-xs border ${isOccupied
-                                ? "bg-amber-500/20 text-amber-400 border-amber-500/30"
-                                : "bg-green-500/20 text-green-400 border-green-500/30"
-                                }`}
-                            >
-                              {isOccupied ? "Occupied" : "Available"}
-                            </Badge>
-                            {isOccupied && activatedAt && (
-                              <p className="text-xs text-muted-foreground mt-2 flex items-center justify-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                {Math.floor((Date.now() - new Date(activatedAt).getTime()) / 60000)} min
-                              </p>
-                            )}
-                            {isOccupied && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => handleForceRelease(tableNum || 0)}
-                                className="w-full mt-3 h-8 text-[10px] uppercase tracking-wider text-muted-foreground hover:text-white hover:bg-white/5 border border-white/5"
-                              >
-                                Release Table
-                              </Button>
-                            )}
-                          </Card>
-                        </motion.div>
-                      );
-                    })}
-                    {tables.length === 0 && (
-                      <div className="col-span-full text-center py-20 text-muted-foreground">
-                        <Table2 className="h-12 w-12 mx-auto mb-4 opacity-30" />
-                        <p className="font-display text-xl">No tables found</p>
+                  <div className="space-y-6">
+                    <div className="flex justify-between items-center bg-white/5 p-4 rounded-2xl border border-white/10">
+                      <div>
+                        <h3 className="font-display font-bold text-lg">Table Management</h3>
+                        <p className="text-xs text-muted-foreground">Add or remove dining tables</p>
                       </div>
-                    )}
+                      <Button
+                        onClick={handleAddTable}
+                        className="bg-primary/20 text-primary-foreground border border-primary/30 neon-glow hover:bg-primary/30"
+                      >
+                        <Plus className="h-4 w-4 mr-2" /> Add Table
+                      </Button>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                      {tables.map((table, i) => {
+                        const tableNum = table.tableNumber ?? table.number;
+                        const isOccupied = table.status === "occupied";
+                        const activatedAt = table.activatedAt ?? table.startedAt;
+
+                        return (
+                          <motion.div
+                            key={table._id}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: i * 0.04 }}
+                          >
+                            <Card className={`glass border-white/5 p-5 text-center transition-all relative group ${isOccupied ? "neon-glow" : ""}`}>
+                              {!isOccupied && (
+                                <button
+                                  onClick={() => handleRemoveTable(tableNum || 0)}
+                                  className="absolute top-2 right-2 p-1.5 rounded-full bg-destructive/10 text-destructive opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/20"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              )}
+
+                              <div className="relative w-12 h-12 mx-auto mb-3">
+                                <div
+                                  className={`w-3 h-3 rounded-full absolute top-0 right-0 ${isOccupied ? "bg-amber-400 pulse-dot" : "bg-green-500"
+                                    }`}
+                                />
+                                <div
+                                  className={`w-12 h-12 rounded-full flex items-center justify-center border ${isOccupied
+                                    ? "bg-amber-500/10 border-amber-500/30"
+                                    : "bg-green-500/10 border-green-500/30"
+                                    }`}
+                                >
+                                  <Table2
+                                    className={`h-5 w-5 ${isOccupied ? "text-amber-400" : "text-green-400"}`}
+                                  />
+                                </div>
+                              </div>
+                              <h3 className="font-display text-lg font-bold">Table {tableNum}</h3>
+                              <Badge
+                                className={`mt-1 text-xs border ${isOccupied
+                                  ? "bg-amber-500/20 text-amber-400 border-amber-500/30"
+                                  : "bg-green-500/20 text-green-400 border-green-500/30"
+                                  }`}
+                              >
+                                {isOccupied ? "Occupied" : "Available"}
+                              </Badge>
+                              {isOccupied && activatedAt && (
+                                <p className="text-xs text-muted-foreground mt-2 flex items-center justify-center gap-1">
+                                  <Clock className="h-3 w-3" />
+                                  {Math.floor((Date.now() - new Date(activatedAt).getTime()) / 60000)} min
+                                </p>
+                              )}
+                              {isOccupied && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => handleForceRelease(tableNum || 0)}
+                                  className="w-full mt-3 h-8 text-[10px] uppercase tracking-wider text-muted-foreground hover:text-white hover:bg-white/5 border border-white/5"
+                                >
+                                  Release Table
+                                </Button>
+                              )}
+                            </Card>
+                          </motion.div>
+                        );
+                      })}
+                      {tables.length === 0 && (
+                        <div className="col-span-full text-center py-20 text-muted-foreground">
+                          <Table2 className="h-12 w-12 mx-auto mb-4 opacity-30" />
+                          <p className="font-display text-xl">No tables found</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
 
