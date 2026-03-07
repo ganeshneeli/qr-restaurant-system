@@ -104,3 +104,36 @@ exports.forceReleaseTable = async (req, res) => {
     res.status(500).json({ success: false, message: error.message })
   }
 }
+exports.addTable = async (req, res) => {
+  try {
+    const lastTable = await Table.findOne().sort({ tableNumber: -1 })
+    const nextNumber = lastTable ? lastTable.tableNumber + 1 : 1
+    const newTable = await Table.create({ tableNumber: nextNumber })
+
+    try { getIO().to("admin").emit("tableUpdated"); } catch (e) { }
+
+    res.json({ success: true, data: newTable })
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message })
+  }
+}
+
+exports.removeTable = async (req, res) => {
+  try {
+    const { tableNumber } = req.params
+    const table = await Table.findOne({ tableNumber })
+    if (!table) return res.status(404).json({ success: false, message: "Table not found" })
+
+    if (table.status === "occupied") {
+      return res.status(400).json({ success: false, message: "Cannot remove an occupied table" })
+    }
+
+    await Table.deleteOne({ tableNumber })
+
+    try { getIO().to("admin").emit("tableUpdated"); } catch (e) { }
+
+    res.json({ success: true, message: `Table ${tableNumber} removed` })
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message })
+  }
+}
