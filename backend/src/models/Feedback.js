@@ -26,4 +26,8 @@ const feedbackSchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
+feedbackSchema.index({ customer_rating: 1 });
+feedbackSchema.index({ table_number: 1 });
+feedbackSchema.index({ createdAt: -1 });
+
 module.exports = mongoose.model('Feedback', feedbackSchema);

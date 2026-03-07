@@ -192,6 +192,8 @@ const AdminDashboard = () => {
   const [feedbacksLoading, setFeedbacksLoading] = useState(false);
   const [feedbackStats, setFeedbackStats] = useState({ averageRating: 0, totalReviews: 0 });
   const [feedbackFilter, setFeedbackFilter] = useState<number | null>(null);
+  const [feedbackPage, setFeedbackPage] = useState(1);
+  const [feedbackPagination, setFeedbackPagination] = useState({ totalPages: 1, totalCount: 0 });
 
   const resolveImagePath = (imagePath?: string) => {
     if (!imagePath) return "";
@@ -234,9 +236,9 @@ const AdminDashboard = () => {
   useEffect(() => {
     if (activeSection === "history") fetchHistory();
     if (activeSection === "summary") fetchAnalytics();
-    if (activeSection === "reviews") fetchFeedback();
+    if (activeSection === "reviews") fetchFeedback(feedbackFilter, feedbackPage);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeSection, fetchHistory]);
+  }, [activeSection, fetchHistory, feedbackPage]);
 
   const fetchAnalytics = async () => {
     setAnalyticsLoading(true);
@@ -250,15 +252,21 @@ const AdminDashboard = () => {
     }
   };
 
-  const fetchFeedback = async (rating?: number | null) => {
+  const fetchFeedback = async (rating?: number | null, page: number = 1) => {
     setFeedbacksLoading(true);
     try {
-      const params = rating ? `?rating=${rating}` : "";
+      let url = `/feedback?page=${page}&limit=10`;
+      if (rating) url += `&rating=${rating}`;
+
       const [listRes, statsRes] = await Promise.all([
-        api.get(`/feedback${params}`),
+        api.get(url),
         api.get("/feedback/stats"),
       ]);
       setFeedbacks(listRes.data?.data || []);
+      setFeedbackPagination({
+        totalPages: listRes.data?.pagination?.totalPages || 1,
+        totalCount: listRes.data?.pagination?.totalCount || 0
+      });
       setFeedbackStats(statsRes.data?.data || { averageRating: 0, totalReviews: 0 });
     } catch {
       // silent
@@ -266,6 +274,7 @@ const AdminDashboard = () => {
       setFeedbacksLoading(false);
     }
   };
+
 
   // Handle Socket Connection separately to keep it stable
   useEffect(() => {
@@ -1764,7 +1773,7 @@ const AdminDashboard = () => {
                     {/* Filter Buttons */}
                     <div className="flex gap-2 flex-wrap mb-6">
                       <button
-                        onClick={() => { setFeedbackFilter(null); fetchFeedback(null); }}
+                        onClick={() => { setFeedbackFilter(null); setFeedbackPage(1); fetchFeedback(null, 1); }}
                         className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${feedbackFilter === null ? "bg-white text-black" : "glass text-white/70 hover:text-white"
                           }`}
                       >
@@ -1773,7 +1782,7 @@ const AdminDashboard = () => {
                       {[5, 4, 3, 2, 1].map(star => (
                         <button
                           key={star}
-                          onClick={() => { setFeedbackFilter(star); fetchFeedback(star); }}
+                          onClick={() => { setFeedbackFilter(star); setFeedbackPage(1); fetchFeedback(star, 1); }}
                           className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all flex items-center gap-1 ${feedbackFilter === star ? "bg-yellow-500/30 text-yellow-300 border border-yellow-500/40" : "glass text-white/70 hover:text-white"
                             }`}
                         >
@@ -1792,28 +1801,56 @@ const AdminDashboard = () => {
                       </div>
                     ) : (
                       <div className="space-y-4">
-                        {feedbacks.map(fb => (
-                          <div key={fb._id} className="glass-strong rounded-2xl p-5 border border-white/5">
-                            <div className="flex items-start justify-between gap-3">
-                              <div>
-                                <p className="font-bold text-white text-sm">Table {fb.table_number}</p>
-                                <div className="flex gap-0.5 mt-1">
-                                  {[1, 2, 3, 4, 5].map(s => (
-                                    <Star key={s} className={`w-4 h-4 ${s <= fb.customer_rating ? "fill-yellow-400 text-yellow-400" : "text-white/20"}`} />
-                                  ))}
+                        <div className="grid grid-cols-1 gap-4">
+                          {feedbacks.map(fb => (
+                            <div key={fb._id} className="glass-strong rounded-2xl p-5 border border-white/5">
+                              <div className="flex items-start justify-between gap-3">
+                                <div>
+                                  <p className="font-bold text-white text-sm">Table {fb.table_number}</p>
+                                  <div className="flex gap-0.5 mt-1">
+                                    {[1, 2, 3, 4, 5].map(s => (
+                                      <Star key={s} className={`w-4 h-4 ${s <= fb.customer_rating ? "fill-yellow-400 text-yellow-400" : "text-white/20"}`} />
+                                    ))}
+                                  </div>
                                 </div>
+                                <span className="text-white/30 text-xs whitespace-nowrap">
+                                  {new Date(fb.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                                </span>
                               </div>
-                              <span className="text-white/30 text-xs whitespace-nowrap">
-                                {new Date(fb.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                              </span>
+                              {fb.customer_feedback_text && (
+                                <p className="text-white/70 text-sm mt-3 leading-relaxed">"{fb.customer_feedback_text}"</p>
+                              )}
                             </div>
-                            {fb.customer_feedback_text && (
-                              <p className="text-white/70 text-sm mt-3 leading-relaxed">"{fb.customer_feedback_text}"</p>
-                            )}
+                          ))}
+                        </div>
+
+                        {/* Pagination Controls */}
+                        {feedbackPagination.totalPages > 1 && (
+                          <div className="flex items-center justify-between pt-6">
+                            <Button
+                              variant="ghost"
+                              disabled={feedbackPage === 1}
+                              onClick={() => setFeedbackPage(p => p - 1)}
+                              className="text-white/50 hover:text-white glass"
+                            >
+                              Previous
+                            </Button>
+                            <span className="text-xs text-white/40 font-bold uppercase tracking-widest">
+                              Page {feedbackPage} of {feedbackPagination.totalPages}
+                            </span>
+                            <Button
+                              variant="ghost"
+                              disabled={feedbackPage === feedbackPagination.totalPages}
+                              onClick={() => setFeedbackPage(p => p + 1)}
+                              className="text-white/50 hover:text-white glass"
+                            >
+                              Next
+                            </Button>
                           </div>
-                        ))}
+                        )}
                       </div>
                     )}
+
                   </div>
                 )}
               </>

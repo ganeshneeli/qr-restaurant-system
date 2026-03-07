@@ -28,23 +28,39 @@ const submitFeedback = async (req, res) => {
 // GET /api/feedback
 const getFeedback = async (req, res) => {
     try {
-        const { rating } = req.query;
+        const { rating, page = 1, limit = 10 } = req.query;
         let query = {};
         if (rating) {
             query.customer_rating = Number(rating);
         }
 
-        // Most recent first
+        const skip = (Number(page) - 1) * Number(limit);
+
+        // Fetch paginated feedbacks
         const feedbacks = await Feedback.find(query)
             .populate('order_id', 'items totalAmount')
-            .sort({ createdAt: -1 });
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(Number(limit));
 
-        return res.status(200).json({ success: true, data: feedbacks });
+        const totalCount = await Feedback.countDocuments(query);
+
+        return res.status(200).json({
+            success: true,
+            data: feedbacks,
+            pagination: {
+                totalCount,
+                totalPages: Math.ceil(totalCount / Number(limit)),
+                currentPage: Number(page),
+                limit: Number(limit)
+            }
+        });
     } catch (error) {
         console.error('Fetch feedback error:', error);
         return res.status(500).json({ success: false, message: 'Server error fetching feedback' });
     }
 };
+
 
 // GET /api/feedback/stats
 const getFeedbackStats = async (req, res) => {

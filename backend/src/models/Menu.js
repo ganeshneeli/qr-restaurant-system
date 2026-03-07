@@ -10,4 +10,8 @@ const menuSchema = new mongoose.Schema({
   isChefSpecial: { type: Boolean, default: false }
 }, { timestamps: true })
 
+menuSchema.index({ category: 1 });
+menuSchema.index({ available: 1 });
+menuSchema.index({ createdAt: -1 });
+
 module.exports = mongoose.model("Menu", menuSchema)

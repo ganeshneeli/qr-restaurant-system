@@ -105,6 +105,10 @@ const MenuContent = () => {
   const [popupStatus, setPopupStatus] = useState<string | null>(null);
   const [selectedDish, setSelectedDish] = useState<MenuItem | null>(null);
 
+  // Pagination States
+  const [menuPage, setMenuPage] = useState(1);
+  const [menuPagination, setMenuPagination] = useState({ totalPages: 1, totalCount: 0 });
+
   // Feedback States
   const [showFeedback, setShowFeedback] = useState(false);
   const [feedbackRating, setFeedbackRating] = useState(0);
@@ -112,6 +116,7 @@ const MenuContent = () => {
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
   const [paidOrderId, setPaidOrderId] = useState<string | null>(null);
   const [specialNote, setSpecialNote] = useState("");
+
 
   const socketRef = useRef<Socket | null>(null);
 
@@ -149,11 +154,32 @@ const MenuContent = () => {
   }, [api, sessionToken]);
 
   // ── Fetch menu ────────────────────────────────────────────────────────────
+  const fetchMenu = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get(`${API_BASE}/menu`, {
+        params: {
+          category: activeCategory,
+          page: menuPage,
+          limit: 12
+        }
+      });
+      setMenu(res.data?.data || []);
+      setMenuPagination({
+        totalPages: res.data?.pagination?.totalPages || 1,
+        totalCount: res.data?.pagination?.totalCount || 0
+      });
+    } catch {
+      // silent
+    } finally {
+      setLoading(false);
+    }
+  }, [activeCategory, menuPage]);
+
   useEffect(() => {
-    axios.get(`${API_BASE}/menu`)
-      .then(r => { setMenu(r.data?.data || r.data?.menu || r.data || []); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, []);
+    fetchMenu();
+  }, [fetchMenu]);
+
 
   // ── Fetch order on mount + poll ────────────────────────────────────────────
   useEffect(() => {
@@ -446,7 +472,7 @@ const MenuContent = () => {
           <div className="max-w-6xl mx-auto px-4 pb-3 overflow-x-auto no-scrollbar">
             <div className="flex gap-2 min-w-max">
               {CATEGORIES.map(cat => (
-                <button key={cat} onClick={() => setActiveCategory(cat)}
+                <button key={cat} onClick={() => { setActiveCategory(cat); setMenuPage(1); }}
                   className={`px-4 py-2 rounded-full text-xs font-bold transition-all border whitespace-nowrap ${activeCategory === cat
                     ? "bg-white text-black border-white shadow-[0_0_15px_rgba(255,255,255,0.3)]"
                     : "bg-white/5 border-white/10 text-white/50 hover:text-white hover:border-white/20"}`}>
@@ -495,6 +521,7 @@ const MenuContent = () => {
                             <img
                               src={resolveImagePath(item.image)}
                               alt={item.name}
+                              loading="lazy"
                               className="w-12 h-12 rounded-xl object-cover"
                             />
                           )}
@@ -551,6 +578,7 @@ const MenuContent = () => {
                               <img
                                 src={resolveImagePath(item.image)}
                                 alt={item.name}
+                                loading="lazy"
                                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                               />
                               <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
@@ -615,7 +643,7 @@ const MenuContent = () => {
                           <div className="flex flex-col gap-4 mb-4 cursor-pointer" onClick={() => setSelectedDish(item)}>
                             {item.image && (
                               <div className="w-full h-72 sm:h-80 rounded-2xl overflow-hidden border border-white/10 shadow-2xl mb-4 group-hover:border-white/20 transition-colors relative">
-                                <img src={resolveImagePath(item.image)} alt={item.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out" />
+                                <img src={resolveImagePath(item.image)} alt={item.name} loading="lazy" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out" />
                                 <div className="absolute top-3 right-3 bg-black/50 backdrop-blur-md px-2 py-1 rounded-full border border-white/10 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                   <Info className="h-3 w-3 text-white" />
                                   <span className="text-[10px] text-white font-bold">Details</span>
@@ -665,6 +693,31 @@ const MenuContent = () => {
                     </div>
                   )}
                 </motion.div>
+
+                {/* Pagination Controls */}
+                {menuPagination.totalPages > 1 && (
+                  <div className="flex items-center justify-between mt-12 glass p-4 rounded-2xl border border-white/5">
+                    <Button
+                      variant="ghost"
+                      disabled={menuPage === 1}
+                      onClick={() => { setMenuPage(p => p - 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                      className="text-white/50 hover:text-white glass-strong"
+                    >
+                      <Minus className="h-4 w-4 mr-2" /> Previous
+                    </Button>
+                    <span className="text-xs text-white/40 font-black uppercase tracking-[0.2em]">
+                      Page {menuPage} of {menuPagination.totalPages}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      disabled={menuPage === menuPagination.totalPages}
+                      onClick={() => { setMenuPage(p => p + 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                      className="text-white/50 hover:text-white glass-strong"
+                    >
+                      Next <Plus className="h-4 w-4 ml-2" />
+                    </Button>
+                  </div>
+                )}
               </AnimatePresence>
             )}
           </main>

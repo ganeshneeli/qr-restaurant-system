@@ -130,6 +130,7 @@ const Landing = () => {
                           <img
                             src={dish.url}
                             alt={dish.name}
+                            loading="lazy"
                             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-80 group-hover:opacity-60 transition-opacity" />
@@ -173,6 +174,7 @@ const Landing = () => {
                 <img
                   src="https://cdn.gintaa.com/web/web_new/food_images/bengali.jpg"
                   alt="Authentic Flavors"
+                  loading="lazy"
                   className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-60" />
@@ -298,6 +300,7 @@ const Landing = () => {
           <img
             src="/fingrow-logo.png"
             alt="Fingrow Consulting Services"
+            loading="lazy"
             className="w-40 object-contain"
           />
 

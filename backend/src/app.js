@@ -4,7 +4,9 @@ const path = require("path")
 const cors = require("cors")
 const morgan = require("morgan")
 const rateLimit = require("express-rate-limit")
+const compression = require("compression")
 const connectDB = require("./config/db")
+
 require("./jobs/sessionTimeout")
 require("./jobs/monthlyRevenue")
 
@@ -12,11 +14,15 @@ connectDB()
 
 const app = express()
 
+const logger = require("./config/logger")
+
 app.use(helmet())
+app.use(compression())
 app.use((req, res, next) => {
-  console.log(`Incoming ${req.method} request to ${req.url} from origin: ${req.headers.origin}`)
+  logger.info(`${req.method} ${req.url} - ${req.ip}`)
   next()
 })
+
 app.use(cors({
   origin: (origin, callback) => {
     // For development, allow all origins to avoid CORS issues with localhost/127.0.0.1 mismatch
@@ -34,7 +40,16 @@ app.use(rateLimit({
 
 app.use("/images", express.static(path.join(__dirname, "../public/images")))
 
-app.use("/api/auth", require("./routes/authRoutes"))
+app.use("/api/health", require("./routes/healthRoutes"))
+const authLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 10, // Limit each IP to 10 login requests per windowMs
+  message: "Too many login attempts, please try again after an hour",
+  standardHeaders: true,
+  legacyHeaders: false,
+})
+
+app.use("/api/auth", authLimiter, require("./routes/authRoutes"))
 app.use("/api/table", require("./routes/tableRoutes"))
 app.use("/api/orders", require("./routes/orderRoutes"))
 app.use("/api/menu", require("./routes/menuRoutes"))
