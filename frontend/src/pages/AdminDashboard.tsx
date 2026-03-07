@@ -23,6 +23,7 @@ import {
   Star,
   MessageSquare,
   ChefHat,
+  TrendingUp,
 } from "lucide-react";
 
 import {
