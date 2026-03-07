@@ -16,7 +16,6 @@ const {
 router.get("/", adminAuth, getAllOrders)
 router.get("/analytics", adminAuth, getAnalytics)
 router.get("/summary/today", adminAuth, getDailySummary)
-router.get("/test-monthly-report", testMonthlyReport)
 
 router.get("/my", sessionAuth, getMyOrder)
 router.put("/request-bill", sessionAuth, requestBill)
