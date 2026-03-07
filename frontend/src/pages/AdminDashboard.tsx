@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard,
@@ -604,7 +604,37 @@ const AdminDashboard = () => {
     i.category.toLowerCase().includes(menuSearchQuery.toLowerCase())
   );
 
-  const filteredHistory = historyOrders.filter(o => {
+  const processedHistory = useMemo(() => {
+    // Sort all history by date ascending to assign stable sequential IDs
+    const sorted = [...historyOrders].sort((a, b) =>
+      new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()
+    );
+
+    let currentDayLabel = "";
+    let daySerial = 0;
+
+    return sorted.map((order, index) => {
+      const orderDate = new Date(order.createdAt || "");
+      const dayLabel = orderDate.toLocaleDateString();
+
+      if (dayLabel !== currentDayLabel) {
+        currentDayLabel = dayLabel;
+        daySerial = 1;
+      } else {
+        daySerial++;
+      }
+
+      return {
+        ...order,
+        sequentialId: index + 1,
+        dailySerial: daySerial
+      };
+    }).sort((a, b) =>
+      new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+    );
+  }, [historyOrders]);
+
+  const filteredHistory = processedHistory.filter(o => {
     // Search Filter
     const matchesSearch = String(o.tableNumber || o.table?.number).includes(historySearchQuery) ||
       o._id.toLowerCase().includes(historySearchQuery.toLowerCase());
@@ -639,19 +669,19 @@ const AdminDashboard = () => {
   });
 
   const exportHistoryToCSV = () => {
-    const dataToExport = historySearchQuery || dateFilter !== "all" ? filteredHistory : historyOrders;
+    const dataToExport = historySearchQuery || dateFilter !== "all" ? filteredHistory : processedHistory;
     if (dataToExport.length === 0) return;
 
-    const headers = ["Order ID", "Date", "Table", "Items", "Total Amount (₹)", "Status", "Payment", "Special Note"];
+    const headers = ["Serial No", "Order ID", "Date", "Table", "Items", "Total Amount (₹)", "Status", "Payment"];
     const rows = dataToExport.map(o => [
-      o._id.slice(-6).toUpperCase(),
+      o.dailySerial,
+      `#${String(o.sequentialId).padStart(4, '0')}`,
       new Date(o.createdAt || "").toLocaleString(),
       o.tableNumber || o.table?.number || "—",
       o.items.map(i => `${i.name || i.foodId} x${i.quantity}`).join("; "),
       o.totalAmount,
       o.status,
-      o.paymentStatus || "unpaid",
-      o.specialNote || ""
+      o.paymentStatus || "unpaid"
     ]);
 
     const csvContent = [
@@ -1330,12 +1360,11 @@ const AdminDashboard = () => {
                       <table className="w-full text-left border-collapse">
                         <thead>
                           <tr className="border-b border-white/10 bg-white/5 uppercase tracking-wider text-[10px] font-bold text-muted-foreground">
-                            <th className="px-6 py-4">#</th>
-                            <th className="px-6 py-4">ID</th>
+                            <th className="px-6 py-4">Serial</th>
+                            <th className="px-6 py-4">Order ID</th>
                             <th className="px-6 py-4">Date & Time</th>
                             <th className="px-6 py-4">Table</th>
                             <th className="px-6 py-4">Items</th>
-                            <th className="px-6 py-4">Special Note</th>
                             <th className="px-6 py-4 text-right">Total</th>
                             <th className="px-6 py-4">Status</th>
                           </tr>
@@ -1343,24 +1372,24 @@ const AdminDashboard = () => {
                         <tbody className="divide-y divide-white/5">
                           {historyLoading ? (
                             <tr>
-                              <td colSpan={6} className="px-6 py-20 text-center text-muted-foreground animate-pulse">
+                              <td colSpan={7} className="px-6 py-20 text-center text-muted-foreground animate-pulse">
                                 Loading historical data...
                               </td>
                             </tr>
                           ) : filteredHistory.length === 0 ? (
                             <tr>
-                              <td colSpan={6} className="px-6 py-20 text-center text-muted-foreground">
+                              <td colSpan={7} className="px-6 py-20 text-center text-muted-foreground">
                                 No orders found.
                               </td>
                             </tr>
                           ) : (
-                            filteredHistory.slice((historyPage - 1) * HISTORY_PAGE_SIZE, historyPage * HISTORY_PAGE_SIZE).map((order, idx) => (
+                            filteredHistory.slice((historyPage - 1) * HISTORY_PAGE_SIZE, historyPage * HISTORY_PAGE_SIZE).map((order) => (
                               <tr key={order._id} className="hover:bg-white/5 transition-colors group">
                                 <td className="px-6 py-4 font-bold text-muted-foreground text-xs">
-                                  {((historyPage - 1) * HISTORY_PAGE_SIZE) + idx + 1}
+                                  {order.dailySerial}
                                 </td>
                                 <td className="px-6 py-4 font-mono text-xs text-primary font-bold">
-                                  #{order._id.slice(-6).toUpperCase()}
+                                  #{String(order.sequentialId).padStart(4, '0')}
                                 </td>
                                 <td className="px-6 py-4 text-xs text-muted-foreground">
                                   {new Date(order.createdAt || "").toLocaleString(undefined, {
@@ -1387,17 +1416,8 @@ const AdminDashboard = () => {
                                     )}
                                   </div>
                                 </td>
-                                <td className="px-6 py-4">
-                                  {order.specialNote ? (
-                                    <span className="text-[10px] italic text-primary/70 block max-w-[150px] truncate" title={order.specialNote}>
-                                      "{order.specialNote}"
-                                    </span>
-                                  ) : (
-                                    <span className="text-[10px] text-muted-foreground">—</span>
-                                  )}
-                                </td>
                                 <td className="px-6 py-4 text-right font-bold text-sm">
-                                  ₹{order.totalAmount}
+                                  ₹{order.totalAmount.toLocaleString()}
                                 </td>
                                 <td className="px-6 py-4">
                                   <span className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-tighter ${order.status === "completed" ? "bg-green-500/20 text-green-400" :
