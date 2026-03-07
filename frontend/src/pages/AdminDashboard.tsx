@@ -22,6 +22,7 @@ import {
   Flame,
   Star,
   MessageSquare,
+  ChefHat,
 } from "lucide-react";
 
 import {
@@ -73,6 +74,7 @@ interface Order {
   createdAt?: string;
   billRequested?: boolean;
   sessionId?: string;
+  specialNote?: string;
 }
 
 interface TableData {
@@ -1187,6 +1189,7 @@ const AdminDashboard = () => {
                             <th className="px-6 py-4">Date & Time</th>
                             <th className="px-6 py-4">Table</th>
                             <th className="px-6 py-4">Items</th>
+                            <th className="px-6 py-4">Special Note</th>
                             <th className="px-6 py-4 text-right">Total</th>
                             <th className="px-6 py-4">Status</th>
                           </tr>
@@ -1234,6 +1237,15 @@ const AdminDashboard = () => {
                                       <span className="text-[10px] text-primary/70">+{order.items.length - 3} more</span>
                                     )}
                                   </div>
+                                </td>
+                                <td className="px-6 py-4">
+                                  {order.specialNote ? (
+                                    <span className="text-[10px] italic text-primary/70 block max-w-[150px] truncate" title={order.specialNote}>
+                                      "{order.specialNote}"
+                                    </span>
+                                  ) : (
+                                    <span className="text-[10px] text-muted-foreground">—</span>
+                                  )}
                                 </td>
                                 <td className="px-6 py-4 text-right font-bold text-sm">
                                   ₹{order.totalAmount}
@@ -1628,8 +1640,8 @@ const AdminDashboard = () => {
             )}
           </div>
         </main>
-      </div>
-    </PageTransition>
+      </div >
+    </PageTransition >
   );
 };
 
