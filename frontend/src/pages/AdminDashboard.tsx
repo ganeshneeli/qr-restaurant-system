@@ -99,6 +99,7 @@ interface TableData {
 interface Summary {
   totalRevenue?: number;
   totalOrders?: number;
+  totalMonthlyRevenue?: number;
 }
 
 interface MenuItem {
@@ -975,7 +976,7 @@ const AdminDashboard = () => {
                 {activeSection === "summary" && (
                   <div className="space-y-8">
                     {/* Key Metrics */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
                       <Card className="glass border-white/5 p-6 flex items-center gap-6">
                         <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-lg border border-primary/20">
                           <BarChart3 className="h-7 w-7" />
@@ -996,6 +997,18 @@ const AdminDashboard = () => {
                           <div className="text-4xl font-black text-glow-subtle mt-1 flex items-baseline gap-1">
                             <span className="text-2xl font-bold opacity-50">₹</span>
                             <AnimatedCounter value={summary.totalRevenue || 0} />
+                          </div>
+                        </div>
+                      </Card>
+                      <Card className="glass border-white/5 p-6 flex items-center gap-6">
+                        <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 shadow-lg border border-indigo-500/20">
+                          <TrendingUp className="h-7 w-7" />
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground font-medium uppercase tracking-wider">Monthly Revenue</p>
+                          <div className="text-4xl font-black text-glow-subtle mt-1 flex items-baseline gap-1">
+                            <span className="text-2xl font-bold opacity-50">₹</span>
+                            <AnimatedCounter value={summary.totalMonthlyRevenue || 0} />
                           </div>
                         </div>
                       </Card>

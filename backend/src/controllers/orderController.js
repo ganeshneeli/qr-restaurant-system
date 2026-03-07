@@ -28,14 +28,26 @@ exports.getAllOrders = async (req, res) => {
 // Admin: Dashboard summary
 exports.getDailySummary = async (req, res) => {
   try {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const orders = await Order.find({ createdAt: { $gte: today } })
-    const totalOrders = orders.length
-    const totalRevenue = orders
+    const now = new Date()
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+
+    const [todayOrders, monthOrders] = await Promise.all([
+      Order.find({ createdAt: { $gte: today } }),
+      Order.find({
+        createdAt: { $gte: startOfMonth },
+        status: "completed"
+      })
+    ])
+
+    const totalOrders = todayOrders.length
+    const totalRevenue = todayOrders
       .filter(o => o.status === "completed")
       .reduce((sum, o) => sum + (o.totalAmount || 0), 0)
-    res.json({ success: true, totalOrders, totalRevenue })
+
+    const totalMonthlyRevenue = monthOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0)
+
+    res.json({ success: true, totalOrders, totalRevenue, totalMonthlyRevenue })
   } catch (error) {
     res.status(500).json({ success: false, message: error.message })
   }
