@@ -141,6 +141,8 @@ const sections = [
   { id: "reviews", label: "Customer Reviews", icon: MessageSquare },
 ];
 
+const PAGE_SIZE = 5;
+
 const AdminDashboard = () => {
   const { logout } = useAuth();
   const navigate = useNavigate();
@@ -164,6 +166,8 @@ const AdminDashboard = () => {
   const [historySearchQuery, setHistorySearchQuery] = useState("");
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [mostOrderedPage, setMostOrderedPage] = useState(1);
+  const [leastOrderedPage, setLeastOrderedPage] = useState(1);
   const socketRef = useRef<any>(null);
 
   // Feedback reviews state
@@ -973,10 +977,10 @@ const AdminDashboard = () => {
                               Most Ordered
                             </h3>
                             <div className="space-y-4">
-                              {analytics.mostOrdered.map((item, i) => (
+                              {analytics.mostOrdered.slice((mostOrderedPage - 1) * PAGE_SIZE, mostOrderedPage * PAGE_SIZE).map((item, i) => (
                                 <div key={item._id} className="flex items-center justify-between p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
                                   <div className="flex items-center gap-3">
-                                    <span className="text-lg font-black text-white/20 w-4">{i + 1}</span>
+                                    <span className="text-lg font-black text-white/20 w-4">{((mostOrderedPage - 1) * PAGE_SIZE) + i + 1}</span>
                                     <span className="font-medium">{item.name}</span>
                                   </div>
                                   <Badge className="bg-primary/20 text-primary border-primary/30">
@@ -985,6 +989,31 @@ const AdminDashboard = () => {
                                 </div>
                               ))}
                             </div>
+                            {analytics.mostOrdered.length > PAGE_SIZE && (
+                              <div className="flex justify-between items-center mt-6 pt-4 border-t border-white/5">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  disabled={mostOrderedPage === 1}
+                                  onClick={() => setMostOrderedPage(p => p - 1)}
+                                  className="text-[10px] uppercase font-bold tracking-widest"
+                                >
+                                  Prev
+                                </Button>
+                                <span className="text-[10px] text-muted-foreground font-bold">
+                                  Page {mostOrderedPage} of {Math.ceil(analytics.mostOrdered.length / PAGE_SIZE)}
+                                </span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  disabled={mostOrderedPage >= Math.ceil(analytics.mostOrdered.length / PAGE_SIZE)}
+                                  onClick={() => setMostOrderedPage(p => p + 1)}
+                                  className="text-[10px] uppercase font-bold tracking-widest"
+                                >
+                                  Next
+                                </Button>
+                              </div>
+                            )}
                           </Card>
 
                           {/* Least Ordered */}
@@ -994,10 +1023,10 @@ const AdminDashboard = () => {
                               Least Ordered
                             </h3>
                             <div className="space-y-4">
-                              {analytics.leastOrdered.map((item, i) => (
+                              {analytics.leastOrdered.slice((leastOrderedPage - 1) * PAGE_SIZE, leastOrderedPage * PAGE_SIZE).map((item, i) => (
                                 <div key={item._id} className="flex items-center justify-between p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
                                   <div className="flex items-center gap-3">
-                                    <span className="text-lg font-black text-white/10 w-4">{i + 1}</span>
+                                    <span className="text-lg font-black text-white/10 w-4">{((leastOrderedPage - 1) * PAGE_SIZE) + i + 1}</span>
                                     <span className="font-medium opacity-70">{item.name}</span>
                                   </div>
                                   <Badge className="bg-white/10 text-white/50 border-white/20">
@@ -1006,6 +1035,31 @@ const AdminDashboard = () => {
                                 </div>
                               ))}
                             </div>
+                            {analytics.leastOrdered.length > PAGE_SIZE && (
+                              <div className="flex justify-between items-center mt-6 pt-4 border-t border-white/5">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  disabled={leastOrderedPage === 1}
+                                  onClick={() => setLeastOrderedPage(p => p - 1)}
+                                  className="text-[10px] uppercase font-bold tracking-widest"
+                                >
+                                  Prev
+                                </Button>
+                                <span className="text-[10px] text-muted-foreground font-bold">
+                                  Page {leastOrderedPage} of {Math.ceil(analytics.leastOrdered.length / PAGE_SIZE)}
+                                </span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  disabled={leastOrderedPage >= Math.ceil(analytics.leastOrdered.length / PAGE_SIZE)}
+                                  onClick={() => setLeastOrderedPage(p => p + 1)}
+                                  className="text-[10px] uppercase font-bold tracking-widest"
+                                >
+                                  Next
+                                </Button>
+                              </div>
+                            )}
                           </Card>
                         </div>
                       </div>
@@ -1267,38 +1321,6 @@ const AdminDashboard = () => {
                   </div>
                 )}
 
-                {/* === DAILY SUMMARY === */}
-                {activeSection === "summary" && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-                      <Card className="glass border-white/5 p-8">
-                        <p className="text-sm text-muted-foreground uppercase tracking-wider mb-2">
-                          Today's Revenue
-                        </p>
-                        <AnimatedCounter
-                          value={summary.totalRevenue || 0}
-                          prefix="₹"
-                          className="font-display text-4xl font-bold text-glow"
-                        />
-                      </Card>
-                    </motion.div>
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.1 }}
-                    >
-                      <Card className="glass border-white/5 p-8">
-                        <p className="text-sm text-muted-foreground uppercase tracking-wider mb-2">
-                          Total Orders Today
-                        </p>
-                        <AnimatedCounter
-                          value={summary.totalOrders || 0}
-                          className="font-display text-4xl font-bold text-glow"
-                        />
-                      </Card>
-                    </motion.div>
-                  </div>
-                )}
 
                 {/* === MENU MANAGEMENT === */}
                 {activeSection === "menu" && (
