@@ -46,6 +46,16 @@ import { useNavigate } from "react-router-dom";
 import api from "@/api/axios";
 import { useAuth } from "@/context/AuthContext";
 import { io as socketIO } from "socket.io-client";
+import {
+  format,
+  isToday,
+  isWithinInterval,
+  subDays,
+  startOfWeek,
+  startOfMonth,
+  endOfDay,
+  startOfDay
+} from "date-fns";
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "https://qr-restaurant-system-1.onrender.com";
 import PageTransition from "@/components/PageTransition";
 import AnimatedCounter from "@/components/AnimatedCounter";
@@ -142,6 +152,7 @@ const sections = [
 ];
 
 const PAGE_SIZE = 5;
+const HISTORY_PAGE_SIZE = 10;
 
 const AdminDashboard = () => {
   const { logout } = useAuth();
@@ -164,6 +175,10 @@ const AdminDashboard = () => {
   const [historyOrders, setHistoryOrders] = useState<Order[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historySearchQuery, setHistorySearchQuery] = useState("");
+  const [historyPage, setHistoryPage] = useState(1);
+  const [dateFilter, setDateFilter] = useState("all");
+  const [customStartDate, setCustomStartDate] = useState("");
+  const [customEndDate, setCustomEndDate] = useState("");
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [mostOrderedPage, setMostOrderedPage] = useState(1);
@@ -589,23 +604,54 @@ const AdminDashboard = () => {
     i.category.toLowerCase().includes(menuSearchQuery.toLowerCase())
   );
 
-  const filteredHistory = historyOrders.filter(o =>
-    String(o.tableNumber || o.table?.number).includes(historySearchQuery) ||
-    o._id.toLowerCase().includes(historySearchQuery.toLowerCase())
-  );
+  const filteredHistory = historyOrders.filter(o => {
+    // Search Filter
+    const matchesSearch = String(o.tableNumber || o.table?.number).includes(historySearchQuery) ||
+      o._id.toLowerCase().includes(historySearchQuery.toLowerCase());
+
+    if (!matchesSearch) return false;
+
+    // Date Filter
+    if (dateFilter === "all") return true;
+
+    const orderDate = new Date(o.createdAt || "");
+
+    if (dateFilter === "today") return isToday(orderDate);
+
+    if (dateFilter === "week") {
+      const start = startOfWeek(new Date(), { weekStartsOn: 1 });
+      return orderDate >= start;
+    }
+
+    if (dateFilter === "month") {
+      const start = startOfMonth(new Date());
+      return orderDate >= start;
+    }
+
+    if (dateFilter === "custom" && customStartDate && customEndDate) {
+      return isWithinInterval(orderDate, {
+        start: startOfDay(new Date(customStartDate)),
+        end: endOfDay(new Date(customEndDate))
+      });
+    }
+
+    return true;
+  });
 
   const exportHistoryToCSV = () => {
-    if (historyOrders.length === 0) return;
+    const dataToExport = historySearchQuery || dateFilter !== "all" ? filteredHistory : historyOrders;
+    if (dataToExport.length === 0) return;
 
-    const headers = ["Order ID", "Date", "Table", "Items", "Total Amount (₹)", "Status", "Payment"];
-    const rows = historyOrders.map(o => [
+    const headers = ["Order ID", "Date", "Table", "Items", "Total Amount (₹)", "Status", "Payment", "Special Note"];
+    const rows = dataToExport.map(o => [
       o._id.slice(-6).toUpperCase(),
       new Date(o.createdAt || "").toLocaleString(),
       o.tableNumber || o.table?.number || "—",
-      o.items.map(i => `${i.name} (${i.quantity})`).join("; "),
+      o.items.map(i => `${i.name || i.foodId} x${i.quantity}`).join("; "),
       o.totalAmount,
       o.status,
-      o.paymentStatus || "unpaid"
+      o.paymentStatus || "unpaid",
+      o.specialNote || ""
     ]);
 
     const csvContent = [
@@ -1213,24 +1259,69 @@ const AdminDashboard = () => {
                           Track past orders and export historical data to Excel.
                         </p>
                       </div>
-                      <div className="flex w-full sm:w-auto items-center gap-3">
+                      <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+                        <div className="flex bg-white/5 p-1 rounded-lg border border-white/10">
+                          {["all", "today", "week", "month", "custom"].map((f) => (
+                            <Button
+                              key={f}
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setDateFilter(f);
+                                setHistoryPage(1);
+                              }}
+                              className={`text-[10px] uppercase font-bold tracking-widest px-3 h-8 ${dateFilter === f ? "bg-primary text-primary-foreground shadow-lg" : "text-muted-foreground hover:text-white"
+                                }`}
+                            >
+                              {f}
+                            </Button>
+                          ))}
+                        </div>
+
+                        {dateFilter === "custom" && (
+                          <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2">
+                            <Input
+                              type="date"
+                              value={customStartDate}
+                              onChange={(e) => {
+                                setCustomStartDate(e.target.value);
+                                setHistoryPage(1);
+                              }}
+                              className="h-8 w-32 text-[10px] glass border-white/10"
+                            />
+                            <span className="text-[10px] text-muted-foreground">to</span>
+                            <Input
+                              type="date"
+                              value={customEndDate}
+                              onChange={(e) => {
+                                setCustomEndDate(e.target.value);
+                                setHistoryPage(1);
+                              }}
+                              className="h-8 w-32 text-[10px] glass border-white/10"
+                            />
+                          </div>
+                        )}
+
                         <div className="relative w-full sm:w-64">
                           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                           <Input
                             type="text"
                             placeholder="Search by ID or Table..."
                             value={historySearchQuery}
-                            onChange={(e) => setHistorySearchQuery(e.target.value)}
-                            className="pl-9 glass border-white/10 focus:border-primary/50 transition-colors"
+                            onChange={(e) => {
+                              setHistorySearchQuery(e.target.value);
+                              setHistoryPage(1);
+                            }}
+                            className="pl-9 glass border-white/10 focus:border-primary/50 transition-colors h-10"
                           />
                         </div>
                         <Button
                           onClick={exportHistoryToCSV}
-                          disabled={historyOrders.length === 0}
-                          className="shrink-0 bg-primary/20 text-primary-foreground border border-primary/30 neon-glow hover:bg-primary/30"
+                          disabled={filteredHistory.length === 0}
+                          className="shrink-0 bg-primary/20 text-primary-foreground border border-primary/30 neon-glow hover:bg-primary/30 h-10 px-4"
                         >
                           <Download className="h-4 w-4 mr-2" />
-                          Download CSV
+                          {dateFilter === "all" && !historySearchQuery ? "Download Full Report" : "Download Filtered"}
                         </Button>
                       </div>
                     </div>
@@ -1239,6 +1330,7 @@ const AdminDashboard = () => {
                       <table className="w-full text-left border-collapse">
                         <thead>
                           <tr className="border-b border-white/10 bg-white/5 uppercase tracking-wider text-[10px] font-bold text-muted-foreground">
+                            <th className="px-6 py-4">#</th>
                             <th className="px-6 py-4">ID</th>
                             <th className="px-6 py-4">Date & Time</th>
                             <th className="px-6 py-4">Table</th>
@@ -1262,8 +1354,11 @@ const AdminDashboard = () => {
                               </td>
                             </tr>
                           ) : (
-                            filteredHistory.map((order) => (
+                            filteredHistory.slice((historyPage - 1) * HISTORY_PAGE_SIZE, historyPage * HISTORY_PAGE_SIZE).map((order, idx) => (
                               <tr key={order._id} className="hover:bg-white/5 transition-colors group">
+                                <td className="px-6 py-4 font-bold text-muted-foreground text-xs">
+                                  {((historyPage - 1) * HISTORY_PAGE_SIZE) + idx + 1}
+                                </td>
                                 <td className="px-6 py-4 font-mono text-xs text-primary font-bold">
                                   #{order._id.slice(-6).toUpperCase()}
                                 </td>
@@ -1317,6 +1412,37 @@ const AdminDashboard = () => {
                           )}
                         </tbody>
                       </table>
+
+                      {filteredHistory.length > HISTORY_PAGE_SIZE && (
+                        <div className="flex justify-between items-center bg-white/5 p-4 border-t border-white/10">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            disabled={historyPage === 1}
+                            onClick={() => setHistoryPage(p => p - 1)}
+                            className="text-xs uppercase font-bold tracking-widest gap-2"
+                          >
+                            Previous
+                          </Button>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground">
+                              Page <span className="text-white font-bold">{historyPage}</span> of <span className="text-white font-bold">{Math.ceil(filteredHistory.length / HISTORY_PAGE_SIZE)}</span>
+                            </span>
+                            <span className="text-[10px] text-muted-foreground opacity-50 px-2 py-0.5 rounded-full border border-white/10">
+                              {filteredHistory.length} total orders
+                            </span>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            disabled={historyPage >= Math.ceil(filteredHistory.length / HISTORY_PAGE_SIZE)}
+                            onClick={() => setHistoryPage(p => p + 1)}
+                            className="text-xs uppercase font-bold tracking-widest gap-2"
+                          >
+                            Next
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
