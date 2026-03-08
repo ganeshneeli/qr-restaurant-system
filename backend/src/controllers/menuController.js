@@ -1,15 +1,16 @@
 const Menu = require("../models/Menu")
 const { getIO } = require("../config/socket")
-const NodeCache = require("node-cache")
+const redisClient = require("../config/redis")
 
-// Cache for 1 hour, check for expiration every 2 minutes
-const menuCache = new NodeCache({ stdTTL: 3600, checkperiod: 120 });
-
-const invalidateMenuCache = () => {
-  const keys = menuCache.keys();
-  if (keys.length > 0) {
-    menuCache.del(keys);
-    console.log("Menu cache invalidated");
+const invalidateMenuCache = async () => {
+  try {
+    const keys = await redisClient.keys("menu_*");
+    if (keys.length > 0) {
+      await redisClient.del(keys);
+      console.log("Menu cache invalidated");
+    }
+  } catch (err) {
+    console.error("Failed to invalidate menu cache", err);
   }
 };
 
@@ -19,7 +20,8 @@ exports.getMenu = async (req, res) => {
     const cacheKey = `menu_${category || "All"}_${search || "NoSearch"}_${page}_${limit}`;
 
     // Try to get from cache
-    let responseData = menuCache.get(cacheKey);
+    const cachedData = await redisClient.get(cacheKey);
+    let responseData = cachedData ? JSON.parse(cachedData) : null;
 
     if (!responseData) {
       let query = {};
@@ -54,7 +56,7 @@ exports.getMenu = async (req, res) => {
       };
 
       // Store in cache (items and pagination only)
-      menuCache.set(cacheKey, responseData);
+      await redisClient.setEx(cacheKey, 3600, JSON.stringify(responseData));
     }
 
     // Always fetch active AND upcoming flash sales fresh (or with very short cache)

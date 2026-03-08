@@ -40,6 +40,10 @@ app.use(rateLimit({
 
 app.use("/images", express.static(path.join(__dirname, "../public/images")))
 
+const promBundle = require("express-prom-bundle");
+const metricsMiddleware = promBundle({ includeMethod: true, includePath: true });
+app.use(metricsMiddleware);
+
 app.use("/api/health", require("./routes/healthRoutes"))
 const authLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour

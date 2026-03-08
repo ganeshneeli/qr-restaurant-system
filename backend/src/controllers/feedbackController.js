@@ -1,4 +1,5 @@
 const Feedback = require('../models/Feedback');
+const redisClient = require('../config/redis');
 
 // POST /api/feedback
 const submitFeedback = async (req, res) => {
@@ -18,6 +19,16 @@ const submitFeedback = async (req, res) => {
 
         await newFeedback.save();
 
+        // Invalidate cache
+        try {
+            const keys = await redisClient.keys("feedback_*");
+            if (keys.length > 0) {
+                await redisClient.del(keys);
+            }
+        } catch (err) {
+            console.error("Failed to invalidate feedback cache", err);
+        }
+
         return res.status(201).json({ success: true, data: newFeedback });
     } catch (error) {
         console.error('Submit feedback error:', error);
@@ -29,6 +40,19 @@ const submitFeedback = async (req, res) => {
 const getFeedback = async (req, res) => {
     try {
         const { rating, page = 1, limit = 10 } = req.query;
+        const cacheKey = `feedback_${rating || 'All'}_${page}_${limit}`;
+
+        // 1. Check Redis Cache
+        const cachedData = await redisClient.get(cacheKey);
+
+        if (cachedData) {
+            return res.status(200).json({
+                success: true,
+                source: "redis",
+                data: JSON.parse(cachedData)
+            });
+        }
+
         let query = {};
         if (rating) {
             query.customer_rating = Number(rating);
@@ -45,7 +69,7 @@ const getFeedback = async (req, res) => {
 
         const totalCount = await Feedback.countDocuments(query);
 
-        return res.status(200).json({
+        const responseData = {
             success: true,
             data: feedbacks,
             pagination: {
@@ -54,7 +78,12 @@ const getFeedback = async (req, res) => {
                 currentPage: Number(page),
                 limit: Number(limit)
             }
-        });
+        };
+
+        // Cache result
+        await redisClient.setEx(cacheKey, 600, JSON.stringify(responseData));
+
+        return res.status(200).json(responseData);
     } catch (error) {
         console.error('Fetch feedback error:', error);
         return res.status(500).json({ success: false, message: 'Server error fetching feedback' });

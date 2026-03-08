@@ -1,12 +1,14 @@
 const socketIo = require("socket.io")
+const { createAdapter } = require("@socket.io/redis-adapter")
+const redisClient = require("./redis")
 
 let io
 
 exports.initSocket = (server) => {
   io = socketIo(server, {
-    cors: { origin: "*" }
+    cors: { origin: "*" },
+    adapter: createAdapter(redisClient, redisClient.duplicate())
   })
-
   io.on("connection", (socket) => {
     console.log(`[Socket] Connected: ${socket.id}`)
 
