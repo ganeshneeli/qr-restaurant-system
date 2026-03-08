@@ -324,7 +324,7 @@ const MenuContent = () => {
     };
 
     const onMenuUpdate = () => {
-      axios.get(`${API_BASE}/menu`).then(r => setMenu(r.data?.data || r.data?.menu || r.data || []));
+      fetchMenu();
     };
 
     socket.on("connect", onConnect);

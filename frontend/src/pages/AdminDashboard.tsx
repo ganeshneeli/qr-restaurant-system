@@ -599,14 +599,14 @@ const AdminDashboard = () => {
     if (!flashSaleItem) return;
 
     try {
-      const saleStartTime = `${flashSaleForm.startDate}T${flashSaleForm.startTime}:00`;
-      const saleEndTime = `${flashSaleForm.endDate}T${flashSaleForm.endTime}:00`;
+      const startObj = new Date(`${flashSaleForm.startDate}T${flashSaleForm.startTime}:00`);
+      const endObj = new Date(`${flashSaleForm.endDate}T${flashSaleForm.endTime}:00`);
 
       const res = await api.put(`/menu/${flashSaleItem._id}/flash-sale`, {
         isFlashSale: true,
         discountPrice: flashSaleForm.discountPrice,
-        saleStartTime,
-        saleEndTime
+        saleStartTime: startObj.toISOString(),
+        saleEndTime: endObj.toISOString()
       });
 
       if (res.data?.success) {
@@ -1721,14 +1721,23 @@ const AdminDashboard = () => {
                                     onClick={() => {
                                       setFlashSaleItem(item);
                                       const start = item.saleStartTime ? new Date(item.saleStartTime) : new Date();
-                                      const end = item.saleEndTime ? new Date(item.saleEndTime) : new Date(Date.now() + 3600000); // Default +1hr
+                                      const end = item.saleEndTime ? new Date(item.saleEndTime) : new Date(Date.now() + 3600000);
+
+                                      const toLocalISO = (d: Date) => {
+                                        const offset = d.getTimezoneOffset();
+                                        const local = new Date(d.getTime() - (offset * 60 * 1000));
+                                        return local.toISOString();
+                                      };
+
+                                      const startLocal = toLocalISO(start);
+                                      const endLocal = toLocalISO(end);
 
                                       setFlashSaleForm({
                                         discountPrice: item.discountPrice?.toString() || "",
-                                        startDate: start.toISOString().split('T')[0],
-                                        startTime: start.toTimeString().slice(0, 5),
-                                        endDate: end.toISOString().split('T')[0],
-                                        endTime: end.toTimeString().slice(0, 5)
+                                        startDate: startLocal.split('T')[0],
+                                        startTime: startLocal.split('T')[1].slice(0, 5),
+                                        endDate: endLocal.split('T')[0],
+                                        endTime: endLocal.split('T')[1].slice(0, 5)
                                       });
                                       setIsFlashSaleDialogOpen(true);
                                     }}
