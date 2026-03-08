@@ -7,8 +7,14 @@ const menuSchema = new mongoose.Schema({
   image: { type: String, default: "" },
   available: { type: Boolean, default: true },
   order_count: { type: Number, default: 0 },
-  isChefSpecial: { type: Boolean, default: false }
+  isChefSpecial: { type: Boolean, default: false },
+  // Flash Sale Fields
+  isFlashSale: { type: Boolean, default: false },
+  discountPrice: { type: Number },
+  saleStartTime: { type: Date },
+  saleEndTime: { type: Date }
 }, { timestamps: true })
+
 
 menuSchema.index({ category: 1 });
 menuSchema.index({ available: 1 });

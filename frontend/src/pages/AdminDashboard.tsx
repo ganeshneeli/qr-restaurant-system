@@ -25,7 +25,9 @@ import {
   ChefHat,
   TrendingUp,
   Minus,
+  Zap,
 } from "lucide-react";
+
 
 
 import {
@@ -114,7 +116,12 @@ interface MenuItem {
   image?: string;
   order_count?: number;
   isChefSpecial?: boolean;
+  isFlashSale?: boolean;
+  discountPrice?: number;
+  saleStartTime?: string;
+  saleEndTime?: string;
 }
+
 
 interface AnalyticsData {
   mostOrdered: MenuItem[];
@@ -185,6 +192,16 @@ const AdminDashboard = () => {
   const [customEndDate, setCustomEndDate] = useState("");
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
+
+  // Flash Sale States
+  const [flashSaleItem, setFlashSaleItem] = useState<MenuItem | null>(null);
+  const [isFlashSaleDialogOpen, setIsFlashSaleDialogOpen] = useState(false);
+  const [flashSaleForm, setFlashSaleForm] = useState({
+    discountPrice: "",
+    saleStartTime: "",
+    saleEndTime: ""
+  });
+
   const [mostOrderedPage, setMostOrderedPage] = useState(1);
   const [leastOrderedPage, setLeastOrderedPage] = useState(1);
   const socketRef = useRef<any>(null);
@@ -575,7 +592,43 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleFlashSaleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!flashSaleItem) return;
+
+    try {
+      const res = await api.put(`/menu/${flashSaleItem._id}/flash-sale`, {
+        isFlashSale: true,
+        ...flashSaleForm
+      });
+
+      if (res.data?.success) {
+        toast({ title: "Flash Sale Active! 🔥", description: `${flashSaleItem.name} discount applied.` });
+        setIsFlashSaleDialogOpen(false);
+        setFlashSaleItem(null);
+        fetchMenu();
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to update flash sale", variant: "destructive" });
+    }
+  };
+
+  const removeFlashSale = async (itemId: string) => {
+    try {
+      const res = await api.put(`/menu/${itemId}/flash-sale`, {
+        isFlashSale: false
+      });
+      if (res.data?.success) {
+        toast({ title: "Flash Sale Removed" });
+        fetchMenu();
+      }
+    } catch {
+      toast({ title: "Error", variant: "destructive" });
+    }
+  };
+
   const handlePrint = (order: Order) => {
+
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
 
@@ -1657,6 +1710,23 @@ const AdminDashboard = () => {
                                   <Button
                                     variant="ghost"
                                     size="icon"
+                                    className={`h-8 w-8 ${item.isFlashSale ? "text-amber-500" : "text-muted-foreground"} hover:text-amber-400`}
+                                    onClick={() => {
+                                      setFlashSaleItem(item);
+                                      setFlashSaleForm({
+                                        discountPrice: item.discountPrice?.toString() || "",
+                                        saleStartTime: item.saleStartTime ? new Date(item.saleStartTime).toISOString().slice(0, 16) : "",
+                                        saleEndTime: item.saleEndTime ? new Date(item.saleEndTime).toISOString().slice(0, 16) : ""
+                                      });
+                                      setIsFlashSaleDialogOpen(true);
+                                    }}
+                                  >
+                                    <Zap className={`h-4 w-4 ${item.isFlashSale ? "fill-current" : ""}`} />
+                                  </Button>
+
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
                                     className={`h-8 w-8 ${item.isChefSpecial ? "text-purple-500" : "text-muted-foreground"} hover:text-purple-400`}
                                     onClick={async () => {
                                       try {
@@ -1814,8 +1884,83 @@ const AdminDashboard = () => {
                         )}
                       </DialogContent>
                     </Dialog>
+
+                    {/* Flash Sale Dialog */}
+                    <Dialog open={isFlashSaleDialogOpen} onOpenChange={setIsFlashSaleDialogOpen}>
+                      <DialogContent className="glass-strong border-white/10 text-foreground">
+                        <DialogHeader>
+                          <DialogTitle className="font-display text-xl flex items-center gap-2">
+                            <Zap className="h-5 w-5 text-amber-500 fill-amber-500" />
+                            Manage Flash Sale
+                          </DialogTitle>
+                        </DialogHeader>
+                        {flashSaleItem && (
+                          <form onSubmit={handleFlashSaleSubmit} className="space-y-4 pt-4">
+                            <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 mb-4">
+                              <p className="text-sm font-bold text-amber-500 mb-1">{flashSaleItem.name}</p>
+                              <p className="text-xs text-muted-foreground">Original Price: ₹{flashSaleItem.price}</p>
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="discountPrice">Discount Price (₹)</Label>
+                              <Input
+                                id="discountPrice"
+                                type="number"
+                                className="glass-input"
+                                placeholder="Enter sale price"
+                                value={flashSaleForm.discountPrice}
+                                onChange={e => setFlashSaleForm({ ...flashSaleForm, discountPrice: e.target.value })}
+                                required
+                              />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="saleStartTime">Start Time</Label>
+                                <Input
+                                  id="saleStartTime"
+                                  type="datetime-local"
+                                  className="glass-input"
+                                  value={flashSaleForm.saleStartTime}
+                                  onChange={e => setFlashSaleForm({ ...flashSaleForm, saleStartTime: e.target.value })}
+                                  required
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="saleEndTime">End Time</Label>
+                                <Input
+                                  id="saleEndTime"
+                                  type="datetime-local"
+                                  className="glass-input"
+                                  value={flashSaleForm.saleEndTime}
+                                  onChange={e => setFlashSaleForm({ ...flashSaleForm, saleEndTime: e.target.value })}
+                                  required
+                                />
+                              </div>
+                            </div>
+
+                            <div className="flex gap-3 pt-4">
+                              {flashSaleItem.isFlashSale && (
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  onClick={() => removeFlashSale(flashSaleItem._id)}
+                                  className="flex-1 border-destructive/30 text-destructive hover:bg-destructive/10"
+                                >
+                                  End Sale
+                                </Button>
+                              )}
+                              <Button type="submit" className="flex-1 bg-amber-500 hover:bg-amber-600 text-white">
+                                {flashSaleItem.isFlashSale ? "Update Sale" : "Start Flash Sale"}
+                              </Button>
+                            </div>
+                          </form>
+                        )}
+                      </DialogContent>
+                    </Dialog>
                   </div>
                 )}
+
                 {activeSection === "reviews" && (
                   <div>
                     <h2 className="text-2xl font-black text-white mb-6">Customer Reviews</h2>
@@ -1926,8 +2071,9 @@ const AdminDashboard = () => {
             )}
           </div>
         </main>
-      </div >
-    </PageTransition >
+      </div>
+    </PageTransition>
+
   );
 };
 

@@ -76,12 +76,19 @@ exports.createOrder = async (req, res) => {
     const { sessionId, tableId, tableNumber } = req.session
     let total = 0
     let validated = []
-
     for (let item of req.body.items) {
       const menu = await Menu.findById(item.foodId)
       if (!menu || !menu.available) return res.status(400).json({ success: false })
-      total += menu.price * item.quantity
-      validated.push({ foodId: menu._id, name: menu.name, price: menu.price, quantity: item.quantity })
+
+      const now = new Date()
+      const isSaleActive = menu.isFlashSale &&
+        menu.saleStartTime <= now &&
+        menu.saleEndTime >= now &&
+        menu.discountPrice
+
+      const currentPrice = isSaleActive ? menu.discountPrice : menu.price
+      total += currentPrice * item.quantity
+      validated.push({ foodId: menu._id, name: menu.name, price: currentPrice, quantity: item.quantity })
     }
 
     let order = await Order.findOne({ sessionId, tableNumber, status: { $ne: "completed" } })

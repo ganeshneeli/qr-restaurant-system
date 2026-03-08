@@ -46,9 +46,22 @@ exports.getMenu = async (req, res) => {
 
     const totalCount = await Menu.countDocuments(query);
 
+    // Fetch active flash sales if on first page
+    let activeFlashSales = [];
+    if (Number(page) === 1) {
+      const now = new Date();
+      activeFlashSales = await Menu.find({
+        isFlashSale: true,
+        available: true,
+        saleStartTime: { $lte: now },
+        saleEndTime: { $gte: now }
+      });
+    }
+
     const responseData = {
       success: true,
       data: items,
+      flashSales: activeFlashSales,
       pagination: {
         totalCount,
         totalPages: Math.ceil(totalCount / Number(limit)),
@@ -65,6 +78,36 @@ exports.getMenu = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 }
+
+exports.updateFlashSale = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { isFlashSale, discountPrice, saleStartTime, saleEndTime } = req.body;
+
+    const item = await Menu.findByIdAndUpdate(
+      id,
+      {
+        isFlashSale,
+        discountPrice: isFlashSale ? Number(discountPrice) : undefined,
+        saleStartTime: isFlashSale ? new Date(saleStartTime) : undefined,
+        saleEndTime: isFlashSale ? new Date(saleEndTime) : undefined
+      },
+      { new: true }
+    );
+
+    if (!item) {
+      return res.status(404).json({ success: false, message: "Item not found" });
+    }
+
+    invalidateMenuCache();
+    getIO().emit("menuUpdate", { type: "flashSaleUpdate", item });
+
+    res.json({ success: true, data: item });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 
 exports.createMenu = async (req, res) => {
   try {

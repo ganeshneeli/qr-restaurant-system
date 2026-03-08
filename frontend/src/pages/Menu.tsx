@@ -46,7 +46,56 @@ interface MenuItem {
   order_count?: number;
   isChefSpecial?: boolean;
   createdAt?: string;
+
+  // Flash Sale Fields
+  isFlashSale?: boolean;
+  discountPrice?: number;
+  saleStartTime?: string;
+  saleEndTime?: string;
 }
+
+const CountdownTimer = ({ endTime, onEnd }: { endTime: string; onEnd?: () => void }) => {
+  const [timeLeft, setTimeLeft] = useState<string>("");
+
+  useEffect(() => {
+    const target = new Date(endTime).getTime();
+
+    const interval = setInterval(() => {
+      const now = new Date().getTime();
+      const distance = target - now;
+
+      if (distance < 0) {
+        clearInterval(interval);
+        setTimeLeft("EXPIRED");
+        if (onEnd) onEnd();
+        return;
+      }
+
+      const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+      const parts = [];
+      if (hours > 0) parts.push(`${hours}h`);
+      if (minutes > 0 || hours > 0) parts.push(`${minutes}m`);
+      parts.push(`${seconds}s`);
+
+      setTimeLeft(parts.join(" "));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [endTime, onEnd]);
+
+  if (timeLeft === "EXPIRED") return <span className="text-destructive font-black">EXPIRED</span>;
+
+  return (
+    <span className="font-mono font-black text-primary animate-pulse flex items-center gap-1">
+      <Flame className="w-3 h-3 fill-current" />
+      {timeLeft}
+    </span>
+  );
+};
+
 interface CartItem { foodId: string; name: string; price: number; quantity: number; }
 interface OrderItem { name?: string; foodId?: string; quantity: number; price?: number; }
 interface Order { _id: string; items: OrderItem[]; totalAmount: number; status: string; paymentStatus?: string; billRequested?: boolean; }
@@ -58,6 +107,7 @@ const STATUS_COLORS: Record<string, string> = {
   served: "bg-green-500/20  text-green-400  border-green-500/30",
   completed: "bg-white/10      text-white/50   border-white/10",
 };
+
 
 // ─── JWT helper ──────────────────────────────────────────────────────────────
 function jwtPayload(token: string): Record<string, unknown> | null {
@@ -108,8 +158,10 @@ const MenuContent = () => {
   // Pagination States
   const [menuPage, setMenuPage] = useState(1);
   const [menuPagination, setMenuPagination] = useState({ totalPages: 1, totalCount: 0 });
+  const [flashSales, setFlashSales] = useState<MenuItem[]>([]);
 
   // Feedback States
+
   const [showFeedback, setShowFeedback] = useState(false);
   const [feedbackRating, setFeedbackRating] = useState(0);
   const [feedbackText, setFeedbackText] = useState("");
@@ -165,6 +217,12 @@ const MenuContent = () => {
         }
       });
       setMenu(res.data?.data || []);
+
+      // Update flash sales if on first page
+      if (menuPage === 1 && res.data?.flashSales) {
+        setFlashSales(res.data.flashSales);
+      }
+
       setMenuPagination({
         totalPages: res.data?.pagination?.totalPages || 1,
         totalCount: res.data?.pagination?.totalCount || 0
@@ -175,6 +233,7 @@ const MenuContent = () => {
       setLoading(false);
     }
   }, [activeCategory, menuPage]);
+
 
   useEffect(() => {
     fetchMenu();
@@ -489,6 +548,88 @@ const MenuContent = () => {
           {/* Menu Content */}
           <main className="max-w-6xl mx-auto px-4 py-8">
 
+            {/* 0. Flash Sales Section */}
+            {activeCategory === "All" && flashSales.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="mb-12 relative overflow-hidden rounded-[2rem] border border-primary/20 bg-primary/5 p-6 md:p-8"
+              >
+                <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+                  <Flame className="w-64 h-64 text-primary fill-current -rotate-12" />
+                </div>
+
+                <div className="relative z-10">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Badge className="bg-primary text-primary-foreground font-black px-3 py-1 text-xs animate-bounce">
+                          🔥 FLASH DEAL
+                        </Badge>
+                        <span className="text-white/40 text-[10px] font-black uppercase tracking-[0.3em]">Limited Time Offer</span>
+                      </div>
+                      <h2 className="font-display text-4xl md:text-5xl font-black text-white text-glow-white tracking-tighter">
+                        Today's Special
+                      </h2>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {flashSales.map((item, idx) => (
+                      <motion.div
+                        key={item._id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: idx * 0.1 }}
+                        onClick={() => setSelectedDish(item)}
+                        className="group cursor-pointer glass border-white/10 p-4 rounded-2xl hover:border-primary/50 hover:shadow-[0_0_40px_rgba(var(--primary),0.2)] transition-all duration-500 relative"
+                      >
+                        <div className="flex gap-4">
+                          <div className="relative shrink-0 w-24 h-24 rounded-xl overflow-hidden border border-white/10">
+                            <img src={resolveImagePath(item.image)} alt={item.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                          </div>
+
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-bold text-lg text-white truncate group-hover:text-primary transition-colors">
+                              {item.name}
+                            </h3>
+                            <div className="flex items-baseline gap-2 mt-1">
+                              <span className="text-2xl font-black text-primary">₹{item.discountPrice}</span>
+                              <span className="text-sm text-white/30 line-through">₹{item.price}</span>
+                            </div>
+                            <div className="mt-2 flex items-center justify-between">
+                              {item.saleEndTime && (
+                                <div className="bg-white/5 border border-white/10 rounded-full px-2 py-0.5 scale-90 origin-left">
+                                  <CountdownTimer
+                                    endTime={item.saleEndTime}
+                                    onEnd={() => fetchMenu()}
+                                  />
+                                </div>
+                              )}
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 w-8 rounded-full bg-primary/20 text-primary border border-primary/30 hover:bg-primary hover:text-white"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  addToCart({ ...item, price: item.discountPrice || item.price });
+                                }}
+                              >
+                                <Plus className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                        {/* Animated background glow */}
+                        <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl -z-10 blur-xl" />
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
             {/* 1. Trending Items Section */}
             {activeCategory === "All" && TRENDING_ITEMS.length > 0 && (
               <motion.div
@@ -503,6 +644,7 @@ const MenuContent = () => {
 
                 <div className="space-y-4">
                   {TRENDING_ITEMS.map((item, idx) => {
+                    const isSale = item.isFlashSale && item.discountPrice;
 
                     return (
                       <motion.div
@@ -511,7 +653,7 @@ const MenuContent = () => {
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: idx * 0.1 }}
                         onClick={() => setSelectedDish(item)}
-                        className="glass border-white/5 p-4 rounded-2xl flex items-center justify-between cursor-pointer hover:border-white/20 transition-all group"
+                        className={`glass border-white/5 p-4 rounded-2xl flex items-center justify-between cursor-pointer hover:border-white/20 transition-all group ${isSale ? 'border-primary/20 shadow-[0_0_20px_rgba(var(--primary),0.05)]' : ''}`}
                       >
                         <div className="flex items-center gap-4">
                           <span className="font-display text-2xl font-black text-white/20 group-hover:text-white/40 transition-colors w-6">
@@ -526,9 +668,14 @@ const MenuContent = () => {
                             />
                           )}
                           <div>
-                            <h3 className="font-bold text-white group-hover:text-glow-white transition-all">
-                              {item.name}
-                            </h3>
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-bold text-white group-hover:text-glow-white transition-all">
+                                {item.name}
+                              </h3>
+                              {isSale && (
+                                <Badge className="bg-primary/20 text-primary border-primary/30 text-[8px] px-1 py-0 h-4">SALE</Badge>
+                              )}
+                            </div>
                             {getBadges(item).length > 0 && (
                               <div className="flex flex-wrap items-center gap-2 mt-1">
                                 {getBadges(item).map((badge, bIdx) => (
@@ -543,13 +690,17 @@ const MenuContent = () => {
                             )}
                           </div>
                         </div>
-                        <span className="font-bold text-white/50">₹{item.price}</span>
+                        <div className="flex flex-col items-end">
+                          <span className={`${isSale ? 'text-primary' : 'text-white/50'} font-bold`}>₹{isSale ? item.discountPrice : item.price}</span>
+                          {isSale && <span className="text-[10px] text-white/20 line-through">₹{item.price}</span>}
+                        </div>
                       </motion.div>
                     );
                   })}
                 </div>
               </motion.div>
             )}
+
 
             {/* 2. Hero Sections (Chef Specials) */}
             {activeCategory === "All" && CHEF_SPECIALS.length > 0 && (
@@ -597,8 +748,14 @@ const MenuContent = () => {
                                     ))}
                                   </div>
                                 )}
-                                <p className="text-white/60 text-xs mt-1">₹{item.price}</p>
+                                <div className="flex items-baseline gap-2 mt-1">
+                                  <p className="text-white text-lg font-black text-glow-white">₹{item.isFlashSale && item.discountPrice ? item.discountPrice : item.price}</p>
+                                  {item.isFlashSale && item.discountPrice && (
+                                    <p className="text-white/40 text-xs line-through">₹{item.price}</p>
+                                  )}
+                                </div>
                               </div>
+
                               <div className="absolute top-4 right-4 bg-white/10 backdrop-blur-md rounded-full p-2 border border-white/20">
                                 <Sparkles className="h-4 w-4 text-white" />
                               </div>
@@ -637,13 +794,21 @@ const MenuContent = () => {
                   className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {filteredMenu.map((item, i) => {
                     const qty = getQty(item._id);
+                    const isSale = item.isFlashSale && item.discountPrice;
+                    const displayPrice = isSale ? item.discountPrice : item.price;
+
                     return (
                       <motion.div key={item._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}>
-                        <Card className={`glass border-white/5 p-5 transition-all duration-300 group ${item.available ? "hover:border-white/20 hover:shadow-[0_0_30px_rgba(255,255,255,0.05)]" : "opacity-60"}`}>
+                        <Card className={`glass border-white/5 p-5 transition-all duration-300 group ${item.available ? "hover:border-white/20 hover:shadow-[0_0_30px_rgba(255,255,255,0.05)]" : "opacity-60"} ${isSale ? 'border-primary/20 bg-primary/5 shadow-[0_0_20px_rgba(var(--primary),0.05)]' : ''}`}>
                           <div className="flex flex-col gap-4 mb-4 cursor-pointer" onClick={() => setSelectedDish(item)}>
                             {item.image && (
                               <div className="w-full h-72 sm:h-80 rounded-2xl overflow-hidden border border-white/10 shadow-2xl mb-4 group-hover:border-white/20 transition-colors relative">
                                 <img src={resolveImagePath(item.image)} alt={item.name} loading="lazy" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out" />
+                                {isSale && (
+                                  <div className="absolute top-3 left-3 bg-primary text-primary-foreground text-[10px] font-black px-2 py-0.5 rounded-full animate-pulse shadow-lg">
+                                    🔥 FLASH DEAL
+                                  </div>
+                                )}
                                 <div className="absolute top-3 right-3 bg-black/50 backdrop-blur-md px-2 py-1 rounded-full border border-white/10 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                   <Info className="h-3 w-3 text-white" />
                                   <span className="text-[10px] text-white font-bold">Details</span>
@@ -664,7 +829,10 @@ const MenuContent = () => {
                                     ))}
                                   </div>
                                 </div>
-                                <span className="font-display font-black text-2xl text-white shrink-0 shadow-sm">₹{item.price}</span>
+                                <div className="flex flex-col items-end shrink-0">
+                                  <span className={`font-display font-black text-2xl ${isSale ? 'text-primary' : 'text-white'} shadow-sm`}>₹{displayPrice}</span>
+                                  {isSale && <span className="text-xs text-white/20 line-through">₹{item.price}</span>}
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -676,8 +844,8 @@ const MenuContent = () => {
                               <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => updateQty(item._id, 1)}><Plus className="h-4 w-4" /></Button>
                             </div>
                           ) : (
-                            <Button onClick={() => item.available && addToCart(item)} disabled={!item.available}
-                              variant="outline" className="w-full bg-primary/10 border-primary/30 hover:bg-primary/20">
+                            <Button onClick={() => item.available && addToCart({ ...item, price: displayPrice ?? item.price })} disabled={!item.available}
+                              variant="outline" className={`w-full ${isSale ? 'bg-primary/20 border-primary/40 hover:bg-primary/30 text-primary' : 'bg-primary/10 border-primary/30 hover:bg-primary/20'}`}>
                               <Plus className="h-4 w-4 mr-1" />{item.available ? "Add" : "Unavailable"}
                             </Button>
                           )}
@@ -685,6 +853,7 @@ const MenuContent = () => {
                       </motion.div>
                     );
                   })}
+
 
                   {filteredMenu.length === 0 && (
                     <div className="col-span-full text-center py-20 text-muted-foreground">
