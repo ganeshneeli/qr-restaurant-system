@@ -205,6 +205,14 @@ const MenuContent = () => {
     } catch { /* silent */ }
   }, [api, sessionToken]);
 
+  const isItemOnSale = useCallback((item: MenuItem) => {
+    if (!item.isFlashSale || !item.saleStartTime || !item.saleEndTime || !item.discountPrice) return false;
+    const now = new Date().getTime();
+    const start = new Date(item.saleStartTime).getTime();
+    const end = new Date(item.saleEndTime).getTime();
+    return now >= start && now <= end;
+  }, []);
+
   // ── Fetch menu ────────────────────────────────────────────────────────────
   const fetchMenu = useCallback(async () => {
     setLoading(true);
@@ -216,11 +224,17 @@ const MenuContent = () => {
           limit: 12
         }
       });
-      setMenu(res.data?.data || []);
+      const sanitizedMenu = (res.data?.data || []).map((item: MenuItem) => {
+        if (item.isFlashSale && !isItemOnSale(item)) {
+          return { ...item, isFlashSale: false, discountPrice: undefined };
+        }
+        return item;
+      });
+      setMenu(sanitizedMenu);
 
       // Update flash sales if on first page
       if (menuPage === 1 && res.data?.flashSales) {
-        setFlashSales(res.data.flashSales);
+        setFlashSales(res.data.flashSales.filter((item: MenuItem) => isItemOnSale(item)));
       }
 
       setMenuPagination({
@@ -612,6 +626,18 @@ const MenuContent = () => {
                               <span className="text-2xl font-black text-primary">₹{item.discountPrice}</span>
                               <span className="text-sm text-white/30 line-through">₹{item.price}</span>
                             </div>
+                            {/* Category Banner */}
+                            <div className="absolute top-4 left-4 z-10">
+                              {isItemOnSale(item) ? (
+                                <Badge className="bg-primary text-primary-foreground font-black px-2 py-0 h-5 border-none animate-pulse">
+                                  FLASH DEAL
+                                </Badge>
+                              ) : (
+                                <Badge className="glass-strong border-white/10 text-white/70 backdrop-blur-md">
+                                  {item.category}
+                                </Badge>
+                              )}
+                            </div>
                             <div className="mt-2 flex items-center justify-between">
                               {item.saleEndTime && (
                                 <div className="bg-white/5 border border-white/10 rounded-full px-2 py-0.5 scale-90 origin-left">
@@ -627,7 +653,8 @@ const MenuContent = () => {
                                 className="h-8 w-8 rounded-full bg-primary/20 text-primary border border-primary/30 hover:bg-primary hover:text-white"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  addToCart({ ...item, price: item.discountPrice || item.price });
+                                  const salePrice = isItemOnSale(item) ? item.discountPrice : item.price;
+                                  addToCart({ ...item, price: salePrice || item.price });
                                 }}
                               >
                                 <Plus className="w-4 h-4" />
@@ -658,7 +685,7 @@ const MenuContent = () => {
 
                 <div className="space-y-4">
                   {TRENDING_ITEMS.map((item, idx) => {
-                    const isSale = item.isFlashSale && item.discountPrice;
+                    const isSale = isItemOnSale(item);
 
                     return (
                       <motion.div
@@ -763,8 +790,8 @@ const MenuContent = () => {
                                   </div>
                                 )}
                                 <div className="flex items-baseline gap-2 mt-1">
-                                  <p className="text-white text-lg font-black text-glow-white">₹{item.isFlashSale && item.discountPrice ? item.discountPrice : item.price}</p>
-                                  {item.isFlashSale && item.discountPrice && (
+                                  <p className="text-white text-lg font-black text-glow-white">₹{isItemOnSale(item) ? item.discountPrice : item.price}</p>
+                                  {isItemOnSale(item) && (
                                     <p className="text-white/40 text-xs line-through">₹{item.price}</p>
                                   )}
                                 </div>
@@ -808,7 +835,7 @@ const MenuContent = () => {
                   className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {filteredMenu.map((item, i) => {
                     const qty = getQty(item._id);
-                    const isSale = item.isFlashSale && item.discountPrice;
+                    const isSale = isItemOnSale(item);
                     const displayPrice = isSale ? item.discountPrice : item.price;
 
                     return (

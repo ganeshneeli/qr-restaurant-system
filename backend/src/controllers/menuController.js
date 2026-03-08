@@ -19,61 +19,60 @@ exports.getMenu = async (req, res) => {
     const cacheKey = `menu_${category || "All"}_${search || "NoSearch"}_${page}_${limit}`;
 
     // Try to get from cache
-    const cachedData = menuCache.get(cacheKey);
-    if (cachedData) {
-      console.log(`Serving menu from cache: ${cacheKey}`);
-      return res.json(cachedData);
+    let responseData = menuCache.get(cacheKey);
+
+    if (!responseData) {
+      let query = {};
+      if (category && category !== "All") {
+        query.category = category;
+      }
+
+      if (search) {
+        query.$or = [
+          { name: { $regex: search, $options: "i" } },
+          { category: { $regex: search, $options: "i" } }
+        ];
+      }
+
+      const skip = (Number(page) - 1) * Number(limit);
+
+      const items = await Menu.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(Number(limit));
+
+      const totalCount = await Menu.countDocuments(query);
+
+      responseData = {
+        data: items,
+        pagination: {
+          totalCount,
+          totalPages: Math.ceil(totalCount / Number(limit)),
+          currentPage: Number(page),
+          limit: Number(limit)
+        }
+      };
+
+      // Store in cache (items and pagination only)
+      menuCache.set(cacheKey, responseData);
     }
 
-    let query = {};
-    if (category && category !== "All") {
-      query.category = category;
-    }
-
-    if (search) {
-      query.$or = [
-        { name: { $regex: search, $options: "i" } },
-        { category: { $regex: search, $options: "i" } }
-      ];
-    }
-
-    const skip = (Number(page) - 1) * Number(limit);
-
-    const items = await Menu.find(query)
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(Number(limit));
-
-    const totalCount = await Menu.countDocuments(query);
-
-    // Fetch active flash sales if on first page
-    let activeFlashSales = [];
-    if (Number(page) === 1) {
-      const now = new Date();
-      activeFlashSales = await Menu.find({
+    // Always fetch active flash sales fresh (or with very short cache)
+    const now = new Date();
+    const activeFlashSales = Number(page) === 1
+      ? await Menu.find({
         isFlashSale: true,
         available: true,
         saleStartTime: { $lte: now },
         saleEndTime: { $gte: now }
-      });
-    }
+      })
+      : [];
 
-    const responseData = {
+    res.json({
       success: true,
-      data: items,
-      flashSales: activeFlashSales,
-      pagination: {
-        totalCount,
-        totalPages: Math.ceil(totalCount / Number(limit)),
-        currentPage: Number(page),
-        limit: Number(limit)
-      }
-    };
-
-    // Store in cache
-    menuCache.set(cacheKey, responseData);
-
-    res.json(responseData);
+      ...responseData,
+      flashSales: activeFlashSales
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
