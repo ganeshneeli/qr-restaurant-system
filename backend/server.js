@@ -10,8 +10,9 @@ const { initSocket } = require("./src/config/socket")
 const PORT = process.env.PORT || 5001
 
 if (cluster.isPrimary) {
-  const numCPUs = os.cpus().length;
-  console.log(`Primary ${process.pid} is running`);
+  // Render sets WEB_CONCURRENCY based on available memory
+  const numCPUs = process.env.WEB_CONCURRENCY ? parseInt(process.env.WEB_CONCURRENCY, 10) : os.cpus().length;
+  console.log(`Primary ${process.pid} is running with ${numCPUs} workers`);
 
   // Fork workers.
   for (let i = 0; i < numCPUs; i++) {
