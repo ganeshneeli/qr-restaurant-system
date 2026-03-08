@@ -198,8 +198,10 @@ const AdminDashboard = () => {
   const [isFlashSaleDialogOpen, setIsFlashSaleDialogOpen] = useState(false);
   const [flashSaleForm, setFlashSaleForm] = useState({
     discountPrice: "",
-    saleStartTime: "",
-    saleEndTime: ""
+    startDate: "",
+    startTime: "",
+    endDate: "",
+    endTime: ""
   });
 
   const [mostOrderedPage, setMostOrderedPage] = useState(1);
@@ -597,9 +599,14 @@ const AdminDashboard = () => {
     if (!flashSaleItem) return;
 
     try {
+      const saleStartTime = `${flashSaleForm.startDate}T${flashSaleForm.startTime}:00`;
+      const saleEndTime = `${flashSaleForm.endDate}T${flashSaleForm.endTime}:00`;
+
       const res = await api.put(`/menu/${flashSaleItem._id}/flash-sale`, {
         isFlashSale: true,
-        ...flashSaleForm
+        discountPrice: flashSaleForm.discountPrice,
+        saleStartTime,
+        saleEndTime
       });
 
       if (res.data?.success) {
@@ -1713,10 +1720,15 @@ const AdminDashboard = () => {
                                     className={`h-8 w-8 ${item.isFlashSale ? "text-amber-500" : "text-muted-foreground"} hover:text-amber-400`}
                                     onClick={() => {
                                       setFlashSaleItem(item);
+                                      const start = item.saleStartTime ? new Date(item.saleStartTime) : new Date();
+                                      const end = item.saleEndTime ? new Date(item.saleEndTime) : new Date(Date.now() + 3600000); // Default +1hr
+
                                       setFlashSaleForm({
                                         discountPrice: item.discountPrice?.toString() || "",
-                                        saleStartTime: item.saleStartTime ? new Date(item.saleStartTime).toISOString().slice(0, 16) : "",
-                                        saleEndTime: item.saleEndTime ? new Date(item.saleEndTime).toISOString().slice(0, 16) : ""
+                                        startDate: start.toISOString().split('T')[0],
+                                        startTime: start.toTimeString().slice(0, 5),
+                                        endDate: end.toISOString().split('T')[0],
+                                        endTime: end.toTimeString().slice(0, 5)
                                       });
                                       setIsFlashSaleDialogOpen(true);
                                     }}
@@ -1914,26 +1926,47 @@ const AdminDashboard = () => {
                               />
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div className="space-y-2">
-                                <Label htmlFor="saleStartTime">Start Time</Label>
+                                <Label>Start Date</Label>
                                 <Input
-                                  id="saleStartTime"
-                                  type="datetime-local"
+                                  type="date"
                                   className="glass-input"
-                                  value={flashSaleForm.saleStartTime}
-                                  onChange={e => setFlashSaleForm({ ...flashSaleForm, saleStartTime: e.target.value })}
+                                  value={flashSaleForm.startDate}
+                                  onChange={e => setFlashSaleForm({ ...flashSaleForm, startDate: e.target.value })}
                                   required
                                 />
                               </div>
                               <div className="space-y-2">
-                                <Label htmlFor="saleEndTime">End Time</Label>
+                                <Label>Start Time</Label>
                                 <Input
-                                  id="saleEndTime"
-                                  type="datetime-local"
+                                  type="time"
                                   className="glass-input"
-                                  value={flashSaleForm.saleEndTime}
-                                  onChange={e => setFlashSaleForm({ ...flashSaleForm, saleEndTime: e.target.value })}
+                                  value={flashSaleForm.startTime}
+                                  onChange={e => setFlashSaleForm({ ...flashSaleForm, startTime: e.target.value })}
+                                  required
+                                />
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label>End Date</Label>
+                                <Input
+                                  type="date"
+                                  className="glass-input"
+                                  value={flashSaleForm.endDate}
+                                  onChange={e => setFlashSaleForm({ ...flashSaleForm, endDate: e.target.value })}
+                                  required
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label>End Time</Label>
+                                <Input
+                                  type="time"
+                                  className="glass-input"
+                                  value={flashSaleForm.endTime}
+                                  onChange={e => setFlashSaleForm({ ...flashSaleForm, endTime: e.target.value })}
                                   required
                                 />
                               </div>

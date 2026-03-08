@@ -234,6 +234,20 @@ const MenuContent = () => {
     }
   }, [activeCategory, menuPage]);
 
+  const handleSaleEnd = useCallback((itemId: string) => {
+    // 1. Remove from flashSales carousel instantly
+    setFlashSales(prev => prev.filter(item => item._id !== itemId));
+
+    // 2. Revert price locally in the main menu grid
+    setMenu(prev => prev.map(item =>
+      item._id === itemId
+        ? { ...item, isFlashSale: false, discountPrice: undefined }
+        : item
+    ));
+
+    // 3. Silent refresh from server to ensure synchronization
+    fetchMenu();
+  }, [fetchMenu]);
 
   useEffect(() => {
     fetchMenu();
@@ -603,7 +617,7 @@ const MenuContent = () => {
                                 <div className="bg-white/5 border border-white/10 rounded-full px-2 py-0.5 scale-90 origin-left">
                                   <CountdownTimer
                                     endTime={item.saleEndTime}
-                                    onEnd={() => fetchMenu()}
+                                    onEnd={() => handleSaleEnd(item._id)}
                                   />
                                 </div>
                               )}
