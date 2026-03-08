@@ -156,9 +156,11 @@ const MenuContent = () => {
   const [selectedDish, setSelectedDish] = useState<MenuItem | null>(null);
 
   // Pagination States
+  // Pagination & Flash Sale States
   const [menuPage, setMenuPage] = useState(1);
   const [menuPagination, setMenuPagination] = useState({ totalPages: 1, totalCount: 0 });
   const [flashSales, setFlashSales] = useState<MenuItem[]>([]);
+  const [upcomingSales, setUpcomingSales] = useState<MenuItem[]>([]);
 
   // Feedback States
 
@@ -234,7 +236,17 @@ const MenuContent = () => {
 
       // Update flash sales if on first page
       if (menuPage === 1 && res.data?.flashSales) {
-        setFlashSales(res.data.flashSales.filter((item: MenuItem) => isItemOnSale(item)));
+        const active = res.data.flashSales.filter((item: MenuItem) => isItemOnSale(item));
+
+        const now = new Date().getTime();
+        const upcoming = res.data.flashSales.filter((item: MenuItem) => {
+          if (!item.isFlashSale || !item.saleStartTime || !item.saleEndTime || !item.discountPrice) return false;
+          const start = new Date(item.saleStartTime).getTime();
+          return start > now; // Future sales
+        });
+
+        setFlashSales(active);
+        setUpcomingSales(upcoming);
       }
 
       setMenuPagination({
@@ -262,6 +274,32 @@ const MenuContent = () => {
     // 3. Silent refresh from server to ensure synchronization
     fetchMenu();
   }, [fetchMenu]);
+
+  // ── Auto-activate future sales ────────────────────────────────────────────
+  useEffect(() => {
+    if (upcomingSales.length === 0) return;
+
+    const now = new Date().getTime();
+
+    // Find the next closest sale start time
+    let closestStart = Infinity;
+    upcomingSales.forEach(sale => {
+      const start = new Date(sale.saleStartTime!).getTime();
+      if (start > now && start < closestStart) {
+        closestStart = start;
+      }
+    });
+
+    if (closestStart !== Infinity) {
+      const timeUntilStart = closestStart - now;
+      // Add a tiny 50ms buffer to ensure time check passes
+      const timerId = setTimeout(() => {
+        fetchMenu();
+      }, timeUntilStart + 50);
+
+      return () => clearTimeout(timerId);
+    }
+  }, [upcomingSales, fetchMenu]);
 
   useEffect(() => {
     fetchMenu();

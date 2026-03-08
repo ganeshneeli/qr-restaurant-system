@@ -57,14 +57,13 @@ exports.getMenu = async (req, res) => {
       menuCache.set(cacheKey, responseData);
     }
 
-    // Always fetch active flash sales fresh (or with very short cache)
+    // Always fetch active AND upcoming flash sales fresh (or with very short cache)
     const now = new Date();
     const activeFlashSales = Number(page) === 1
       ? await Menu.find({
         isFlashSale: true,
         available: true,
-        saleStartTime: { $lte: now },
-        saleEndTime: { $gte: now }
+        saleEndTime: { $gte: now } // We only verify it hasn't ended yet
       })
       : [];
 
