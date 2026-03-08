@@ -222,6 +222,7 @@ const MenuContent = () => {
       const res = await axios.get(`${API_BASE}/menu`, {
         params: {
           category: activeCategory,
+          search: searchQuery || undefined,
           page: menuPage,
           limit: 12
         }
@@ -258,7 +259,7 @@ const MenuContent = () => {
     } finally {
       setLoading(false);
     }
-  }, [activeCategory, menuPage]);
+  }, [activeCategory, menuPage, searchQuery]);
 
   const handleSaleEnd = useCallback((itemId: string) => {
     // 1. Remove from flashSales carousel instantly
@@ -448,8 +449,7 @@ const MenuContent = () => {
   const total = cart.reduce((s, c) => s + c.price * c.quantity, 0);
   const filteredMenu = menu.filter(i => {
     const matchesCategory = activeCategory === "All" || i.category === activeCategory;
-    const matchesSearch = i.name.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
+    return matchesCategory;
   });
   const getQty = (id: string) => cart.find(c => c.foodId === id)?.quantity ?? 0;
 
@@ -860,7 +860,7 @@ const MenuContent = () => {
                   type="text"
                   placeholder="Search menu..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => { setSearchQuery(e.target.value); setMenuPage(1); }}
                   className="pl-9 glass border-white/10 focus:border-primary/50 transition-colors"
                 />
               </div>

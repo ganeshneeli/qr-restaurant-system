@@ -25,12 +25,15 @@ if (cluster.isPrimary) {
   });
 } else {
   const server = http.createServer(app)
-  initSocket(server)
 
   server.keepAliveTimeout = 65000; // 65 seconds
   server.headersTimeout = 66000;
 
-  server.listen(PORT, () => {
-    console.log(`Worker ${process.pid} started and running on port ${PORT}`)
-  })
+  initSocket(server).then(() => {
+    server.listen(PORT, () => {
+      console.log(`Worker ${process.pid} started and running on port ${PORT}`)
+    })
+  }).catch(err => {
+    console.error("Socket init failed", err);
+  });
 }

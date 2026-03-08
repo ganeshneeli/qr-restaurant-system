@@ -4,10 +4,15 @@ const redisClient = require("./redis")
 
 let io
 
-exports.initSocket = (server) => {
+exports.initSocket = async (server) => {
+  const pubClient = redisClient.duplicate();
+  const subClient = redisClient.duplicate();
+
+  await Promise.all([pubClient.connect(), subClient.connect()]);
+
   io = socketIo(server, {
     cors: { origin: "*" },
-    adapter: createAdapter(redisClient, redisClient.duplicate())
+    adapter: createAdapter(pubClient, subClient)
   })
   io.on("connection", (socket) => {
     console.log(`[Socket] Connected: ${socket.id}`)
