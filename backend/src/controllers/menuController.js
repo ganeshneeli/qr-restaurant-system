@@ -19,12 +19,15 @@ const invalidateMenuCache = async () => {
 exports.getMenu = async (req, res) => {
   try {
     const { category, search, page = 1, limit = 12 } = req.query;
-    // Try to get from cache
+    const cacheKey = `menu_${category || "all"}_${search || "none"}_${page}_${limit}`;
     let responseData = null;
     try {
       if (redisClient.isReadyForCommands()) {
         const cachedData = await redisClient.get(cacheKey);
-        if (cachedData) responseData = JSON.parse(cachedData);
+        if (cachedData) {
+          responseData = JSON.parse(cachedData);
+          console.log(`Menu cache hit: ${cacheKey}`);
+        }
       }
     } catch (err) {
       console.warn("Redis GET failed for menu, falling back to DB:", err.message);
@@ -54,10 +57,10 @@ exports.getMenu = async (req, res) => {
       ]);
 
       responseData = {
-        data: items,
+        data: items || [],
         pagination: {
-          totalCount,
-          totalPages: Math.ceil(totalCount / Number(limit)),
+          totalCount: totalCount || 0,
+          totalPages: Math.ceil((totalCount || 0) / Number(limit)),
           currentPage: Number(page),
           limit: Number(limit)
         }
