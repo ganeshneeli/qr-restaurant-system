@@ -8,7 +8,7 @@ exports.login = async (req, res) => {
     console.log(`Login attempt for: ${email}`)
 
     console.time(`DB find for ${email}`)
-    const user = await User.findOne({ email })
+    const user = await User.findOne({ email }).lean()
     console.timeEnd(`DB find for ${email}`)
 
     if (!user) {
