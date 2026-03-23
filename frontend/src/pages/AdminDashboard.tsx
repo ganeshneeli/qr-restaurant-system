@@ -245,14 +245,24 @@ const AdminDashboard = () => {
     }
   }, []);
 
-  const fetchMenu = useCallback(async () => {
+  const fetchMenu = useCallback(async (force = false) => {
+    // If not forcing and we already have items, skip (unless search/page changed)
+    // Actually, since this is called in useEffect with dependencies, 
+    // we only need to skip if the activeSection just changed back to "menu"
+    if (!force && menuItems.length > 0 && activeSection === "menu") {
+      // Small optimization: if we already have data and are just switching tabs, skip
+      // But we need to be careful with page/search dependencies.
+      // A better way is to use a ref to track the last fetched params.
+    }
+
     setMenuLoading(true);
     try {
       const res = await api.get("/menu", {
         params: {
           page: menuPage,
-          limit: 20, // More items for admin
-          search: menuSearchQuery
+          limit: 20,
+          search: menuSearchQuery,
+          forceRefresh: force
         }
       });
       setMenuItems(res.data?.data || []);
@@ -265,7 +275,7 @@ const AdminDashboard = () => {
     } finally {
       setMenuLoading(false);
     }
-  }, [menuPage, menuSearchQuery, toast]);
+  }, [menuPage, menuSearchQuery, toast, menuItems.length, activeSection]);
 
 
   const fetchHistory = useCallback(async () => {
@@ -307,11 +317,21 @@ const AdminDashboard = () => {
     }
   }, [toast]);
 
+  // Use a ref to track the last fetched parameters to avoid redundant fetches on tab switch
+  const lastMenuFetchRef = useRef("");
+
   useEffect(() => {
     if (activeSection === "history") fetchHistory();
     if (activeSection === "summary") fetchAnalytics();
     if (activeSection === "reviews") fetchFeedback(feedbackFilter, feedbackPage);
-    if (activeSection === "menu") fetchMenu();
+    
+    if (activeSection === "menu") {
+      const currentParams = `${menuPage}_${menuSearchQuery}`;
+      if (lastMenuFetchRef.current !== currentParams || menuItems.length === 0) {
+        fetchMenu();
+        lastMenuFetchRef.current = currentParams;
+      }
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeSection, fetchHistory, fetchFeedback, feedbackPage, menuPage, menuSearchQuery]);
 
@@ -407,6 +427,17 @@ const AdminDashboard = () => {
       loadQrCodes(true); // Instantly sync QR codes when any table changes
     };
 
+    const handleMenuUpdate = () => {
+      console.log("🍴 Socket: menuUpdate received");
+      // If we are in the menu section, refresh it
+      if (activeSection === "menu") {
+        fetchMenu(true);
+      } else {
+        // Clear the ref so it refetches next time we enter the menu section
+        lastMenuFetchRef.current = "";
+      }
+    };
+
     const socket = socketRef.current;
     if (!socket) return;
 
@@ -415,6 +446,7 @@ const AdminDashboard = () => {
     socket.on("orderStatusUpdated", handleStatusUpdated);
     socket.on("orderPaid", handleOrderPaid);
     socket.on("tableUpdated", handleTableUpdated);
+    socket.on("menuUpdate", handleMenuUpdate);
 
     return () => {
       socket.off("newOrder", handleNewOrder);
@@ -422,8 +454,9 @@ const AdminDashboard = () => {
       socket.off("orderStatusUpdated", handleStatusUpdated);
       socket.off("orderPaid", handleOrderPaid);
       socket.off("tableUpdated", handleTableUpdated);
+      socket.off("menuUpdate", handleMenuUpdate);
     };
-  }, [fetchData, loadQrCodes, toast]);
+  }, [fetchData, loadQrCodes, toast, activeSection, fetchMenu]);
 
   // Initial Data Fetch
   useEffect(() => {
