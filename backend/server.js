@@ -44,11 +44,13 @@ if (cluster.isPrimary) {
   server.keepAliveTimeout = 65000; // 65 seconds
   server.headersTimeout = 66000;
 
-  initSocket(server).then(() => {
-    server.listen(PORT, () => {
-      console.log(`Worker ${process.pid} started and running on port ${PORT}`)
-    })
-  }).catch(err => {
-    console.error("Socket init failed", err);
+  // Start listening immediately (non-blocking) so Render detects the port
+  server.listen(PORT, () => {
+    console.log(`Worker ${process.pid} started and listening on port ${PORT}`);
+    
+    // Initialize Socket.IO / Redis in the background
+    initSocket(server).catch(err => {
+      console.error("[Socket] Background init failed:", err.message);
+    });
   });
 }

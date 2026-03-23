@@ -1,15 +1,20 @@
 const redis = require("redis");
 const logger = require("./logger");
 
+// Log warning if REDIS_URL is missing in production
+if (process.env.NODE_ENV === "production" && !process.env.REDIS_URL) {
+    logger.warn("REDIS_URL is not set. Falling back to localhost:6379");
+}
+
 const redisClient = redis.createClient({
     url: process.env.REDIS_URL || "redis://localhost:6379",
     socket: {
         reconnectStrategy: (retries) => {
-            if (retries > 10) {
-                logger.error("Redis reconnection failed after 10 attempts");
+            if (retries > 20) {
+                logger.error("Redis reconnection failed after 20 attempts");
                 return new Error("Redis reconnection failed");
             }
-            return Math.min(retries * 100, 3000);
+            return Math.min(retries * 200, 5000); // Backoff
         }
     }
 });
@@ -18,11 +23,17 @@ let isConnected = false;
 
 redisClient.on("error", (err) => {
     isConnected = false;
-    logger.error("Redis Client Error:", err.message);
+    // Log cleaner error messages
+    const message = err.message || "Unknown Redis error";
+    if (message.includes("ECONNREFUSED")) {
+        logger.error(`Redis Connection Refused. Is REDIS_URL correct?`);
+    } else {
+        logger.error("Redis Client Error:", message);
+    }
 });
 
 redisClient.on("connect", () => {
-    logger.info("Redis: Connecting to server...");
+    logger.info("Redis: Attempting connection...");
 });
 
 redisClient.on("ready", () => {
@@ -45,8 +56,8 @@ redisClient.on("end", () => {
         }
     } catch (err) {
         logger.error("Failed to connect to Redis initially:", err.message);
+        // Don't throw, let the app continue (Socket.IO will fallback)
     }
 })();
-
 
 module.exports = redisClient;
