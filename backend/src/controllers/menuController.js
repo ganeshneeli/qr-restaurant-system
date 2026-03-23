@@ -1,94 +1,56 @@
 const Menu = require("../models/Menu")
 const { getIO } = require("../config/socket")
-const redisClient = require("../config/redis")
 
-const invalidateMenuCache = async () => {
-  try {
-    if (redisClient.isReadyForCommands()) {
-      const keys = await redisClient.keys("menu_*");
-      if (keys.length > 0) {
-        await redisClient.del(keys);
-        console.log("Menu cache invalidated");
-      }
-    }
-  } catch (err) {
-    console.error("Failed to invalidate menu cache:", err.message);
-  }
-};
 
 exports.getMenu = async (req, res) => {
   try {
     const { category, search, page = 1, limit = 12 } = req.query;
-    const cacheKey = `menu_v2_${category || "all"}_${search || "none"}_${page}_${limit}`;
-    let responseData = null;
-    try {
-      if (redisClient.isReadyForCommands()) {
-        const cachedData = await redisClient.get(cacheKey);
-        if (cachedData) {
-          responseData = JSON.parse(cachedData);
-          console.log(`Menu cache hit: ${cacheKey}`);
-        }
-      }
-    } catch (err) {
-      console.warn("Redis GET failed for menu, falling back to DB:", err.message);
+
+    let query = {};
+    if (category && category !== "All") {
+      query.category = category;
     }
 
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { category: { $regex: search, $options: "i" } }
+      ];
+    }
+
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const items = await Menu.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(Number(limit));
+
+    const totalCount = await Menu.countDocuments(query);
+
+    const responseData = {
+      data: items,
+      pagination: {
+        totalCount,
+        totalPages: Math.ceil(totalCount / Number(limit)),
+        currentPage: Number(page),
+        limit: Number(limit)
+      }
+    };
+
+    // Always fetch active AND upcoming flash sales fresh
     const now = new Date();
-    
-    if (!responseData) {
-      let query = {};
-      if (category && category !== "All") {
-        query.category = category;
-      }
-
-      if (search) {
-        query.$or = [
-          { name: { $regex: search, $options: "i" } },
-          { category: { $regex: search, $options: "i" } }
-        ];
-      }
-
-      const skip = (Number(page) - 1) * Number(limit);
-
-      // Fetch menu and count in parallel
-      const [items, totalCount] = await Promise.all([
-        Menu.find(query).sort({ createdAt: -1 }).skip(skip).limit(Number(limit)).lean(),
-        Menu.countDocuments(query)
-      ]);
-
-      responseData = {
-        data: items || [],
-        pagination: {
-          totalCount: totalCount || 0,
-          totalPages: Math.ceil((totalCount || 0) / Number(limit)),
-          currentPage: Number(page),
-          limit: Number(limit)
-        }
-      };
-
-      // Store in cache
-      try {
-        if (redisClient.isReadyForCommands()) {
-          await redisClient.setEx(cacheKey, 3600, JSON.stringify(responseData));
-        }
-      } catch (err) {
-        console.warn("Redis SETEX failed for menu:", err.message);
-      }
-    }
-
-    // Always fetch active flash sales, potentially in parallel with other logic if needed
     const activeFlashSales = Number(page) === 1
       ? await Menu.find({
         isFlashSale: true,
         available: true,
-        saleEndTime: { $gte: now }
-      }).lean()
+        saleEndTime: { $gte: now } 
+      })
       : [];
 
     res.json({
       success: true,
-      ...(responseData || { data: [], pagination: { totalCount: 0, totalPages: 1, currentPage: 1, limit: 12 } }),
-      flashSales: activeFlashSales || []
+      ...responseData,
+      flashSales: activeFlashSales
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -137,7 +99,6 @@ exports.createMenu = async (req, res) => {
     const item = await Menu.create(data);
 
     // Invalidate cache
-    invalidateMenuCache();
 
     getIO().emit("menuUpdate", { type: "create", item });
     res.json({ success: true, data: item });
@@ -169,7 +130,6 @@ exports.updateMenu = async (req, res) => {
     const item = await Menu.findByIdAndUpdate(req.params.id, data, { new: true });
 
     // Invalidate cache
-    invalidateMenuCache();
 
     getIO().emit("menuUpdate", { type: "update", item });
     res.json({ success: true, data: item });

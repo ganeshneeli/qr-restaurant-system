@@ -1,5 +1,4 @@
 const Feedback = require('../models/Feedback');
-const redisClient = require('../config/redis');
 
 // POST /api/feedback
 const submitFeedback = async (req, res) => {
@@ -19,18 +18,6 @@ const submitFeedback = async (req, res) => {
 
         await newFeedback.save();
 
-        // Invalidate cache
-        try {
-            if (redisClient.isReadyForCommands()) {
-                const keys = await redisClient.keys("feedback_*");
-                if (keys.length > 0) {
-                    await redisClient.del(keys);
-                }
-            }
-        } catch (err) {
-            console.error("Failed to invalidate feedback cache:", err.message);
-        }
-
         return res.status(201).json({ success: true, data: newFeedback });
     } catch (error) {
         console.error('Submit feedback error:', error);
@@ -42,22 +29,6 @@ const submitFeedback = async (req, res) => {
 const getFeedback = async (req, res) => {
     try {
         const { rating, page = 1, limit = 10 } = req.query;
-        const cacheKey = `feedback_${rating || 'All'}_${page}_${limit}`;
-
-        // 1. Check Redis Cache
-        let cachedData = null;
-        try {
-            if (redisClient.isReadyForCommands()) {
-                cachedData = await redisClient.get(cacheKey);
-            }
-        } catch (err) {
-            console.warn("Redis GET failed, falling back to DB:", err.message);
-        }
-
-        if (cachedData) {
-            // Return the full cached response object directly (preserves data + pagination shape)
-            return res.status(200).json(JSON.parse(cachedData));
-        }
 
         let query = {};
         if (rating) {
@@ -66,16 +37,14 @@ const getFeedback = async (req, res) => {
 
         const skip = (Number(page) - 1) * Number(limit);
 
-        // Fetch paginated feedbacks and total count in parallel
-        const [feedbacks, totalCount] = await Promise.all([
-            Feedback.find(query)
-                .populate('order_id', 'items totalAmount')
-                .sort({ createdAt: -1 })
-                .skip(skip)
-                .limit(Number(limit))
-                .lean(),
-            Feedback.countDocuments(query)
-        ]);
+        // Fetch paginated feedbacks
+        const feedbacks = await Feedback.find(query)
+            .populate('order_id', 'items totalAmount')
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(Number(limit));
+
+        const totalCount = await Feedback.countDocuments(query);
 
         const responseData = {
             success: true,
@@ -87,15 +56,6 @@ const getFeedback = async (req, res) => {
                 limit: Number(limit)
             }
         };
-
-        // Cache result
-        try {
-            if (redisClient.isReadyForCommands()) {
-                await redisClient.setEx(cacheKey, 600, JSON.stringify(responseData));
-            }
-        } catch (err) {
-            console.warn("Redis SETEX failed:", err.message);
-        }
 
         return res.status(200).json(responseData);
     } catch (error) {
