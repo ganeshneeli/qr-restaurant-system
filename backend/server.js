@@ -1,18 +1,3 @@
-// Prevent crash on unhandled EIO errors from stdin/stdout in some environments (like Node v24 + nodemon)
-if (process.stdin.isTTY) {
-    process.stdin.pause();
-}
-
-process.stdin.on('error', (err) => {
-    if (err.code === 'EIO') return;
-    console.error('Stdin error:', err);
-});
-
-process.on('uncaughtException', (err) => {
-    if (err.code === 'EIO') return;
-    console.error('Uncaught Exception:', err.message);
-});
-
 require("dotenv").config()
 const http = require("http")
 const express = require("express")
@@ -44,13 +29,11 @@ if (cluster.isPrimary) {
   server.keepAliveTimeout = 65000; // 65 seconds
   server.headersTimeout = 66000;
 
-  // Start listening immediately (non-blocking) so Render detects the port
-  server.listen(PORT, () => {
-    console.log(`Worker ${process.pid} started and listening on port ${PORT}`);
-    
-    // Initialize Socket.IO / Redis in the background
-    initSocket(server).catch(err => {
-      console.error("[Socket] Background init failed:", err.message);
-    });
+  initSocket(server).then(() => {
+    server.listen(PORT, () => {
+      console.log(`Worker ${process.pid} started and running on port ${PORT}`)
+    })
+  }).catch(err => {
+    console.error("Socket init failed", err);
   });
 }

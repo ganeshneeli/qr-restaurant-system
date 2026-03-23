@@ -21,13 +21,9 @@ const submitFeedback = async (req, res) => {
 
         // Invalidate cache
         try {
-            const trackingKey = "feedback_cache_keys";
-            const keys = await redisClient.sMembers(trackingKey);
+            const keys = await redisClient.keys("feedback_*");
             if (keys.length > 0) {
-                await Promise.all([
-                    redisClient.del(keys),
-                    redisClient.del(trackingKey)
-                ]);
+                await redisClient.del(keys);
             }
         } catch (err) {
             console.error("Failed to invalidate feedback cache", err);
@@ -82,12 +78,7 @@ const getFeedback = async (req, res) => {
         };
 
         // Cache result
-        const trackingKey = "feedback_cache_keys";
-        await Promise.all([
-            redisClient.setEx(cacheKey, 600, JSON.stringify(responseData)),
-            redisClient.sAdd(trackingKey, cacheKey)
-        ]);
-        await redisClient.expire(trackingKey, 600);
+        await redisClient.setEx(cacheKey, 600, JSON.stringify(responseData));
 
         return res.status(200).json(responseData);
     } catch (error) {
