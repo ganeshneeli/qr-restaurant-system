@@ -1,3 +1,14 @@
+// Prevent crash on unhandled EIO errors from stdin/stdout or background Redis drops
+process.on('uncaughtException', (err) => {
+    if (err.code === 'EIO' || err.message?.includes("Socket closed unexpectedly")) return;
+    console.error('Uncaught Exception:', err.message);
+});
+
+process.on('unhandledRejection', (reason) => {
+    if (reason?.message?.includes("Socket closed unexpectedly")) return;
+    console.error('Unhandled Rejection:', reason);
+});
+
 require("dotenv").config()
 const http = require("http")
 const express = require("express")
@@ -29,11 +40,13 @@ if (cluster.isPrimary) {
   server.keepAliveTimeout = 65000; // 65 seconds
   server.headersTimeout = 66000;
 
-  initSocket(server).then(() => {
-    server.listen(PORT, () => {
-      console.log(`Worker ${process.pid} started and running on port ${PORT}`)
-    })
-  }).catch(err => {
-    console.error("Socket init failed", err);
+  // Start listening immediately so Render detects the port is open
+  server.listen(PORT, () => {
+    console.log(`Worker ${process.pid} started and listening on port ${PORT}`);
+    
+    // Initialize Socket.IO / Redis in the background
+    initSocket(server).catch(err => {
+      console.error("[Socket] Background init failed:", err.message);
+    });
   });
 }
