@@ -13,6 +13,7 @@ require("./jobs/monthlyRevenue")
 connectDB()
 
 const app = express()
+app.set("trust proxy", 1)
 
 const logger = require("./config/logger")
 
