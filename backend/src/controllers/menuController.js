@@ -6,7 +6,7 @@ exports.getMenu = async (req, res) => {
   try {
     const { category, search, page = 1, limit = 12 } = req.query;
 
-    let query = {};
+    let query = { available: true }; // Only show available items to customers
     if (category && category !== "All") {
       query.category = category;
     }
@@ -77,7 +77,6 @@ exports.updateFlashSale = async (req, res) => {
       return res.status(404).json({ success: false, message: "Item not found" });
     }
 
-    invalidateMenuCache();
     getIO().emit("menuUpdate", { type: "flashSaleUpdate", item });
 
     res.json({ success: true, data: item });
@@ -98,8 +97,6 @@ exports.createMenu = async (req, res) => {
 
     const item = await Menu.create(data);
 
-    // Invalidate cache
-
     getIO().emit("menuUpdate", { type: "create", item });
     res.json({ success: true, data: item });
   } catch (error) {
@@ -111,9 +108,6 @@ exports.toggleAvailability = async (req, res) => {
   const item = await Menu.findById(req.params.id)
   item.available = !item.available
   await item.save()
-
-  // Invalidate cache
-  invalidateMenuCache();
 
   getIO().emit("menuUpdate", { type: "toggle", item })
   res.json({ success: true, data: item })
@@ -129,8 +123,6 @@ exports.updateMenu = async (req, res) => {
 
     const item = await Menu.findByIdAndUpdate(req.params.id, data, { new: true });
 
-    // Invalidate cache
-
     getIO().emit("menuUpdate", { type: "update", item });
     res.json({ success: true, data: item });
   } catch (error) {
@@ -140,9 +132,6 @@ exports.updateMenu = async (req, res) => {
 
 exports.deleteMenu = async (req, res) => {
   await Menu.findByIdAndDelete(req.params.id)
-
-  // Invalidate cache
-  invalidateMenuCache();
 
   getIO().emit("menuUpdate", { type: "delete", id: req.params.id })
   res.json({ success: true, message: "Item deleted" })
