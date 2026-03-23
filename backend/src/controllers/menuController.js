@@ -4,10 +4,14 @@ const redisClient = require("../config/redis")
 
 const invalidateMenuCache = async () => {
   try {
-    const keys = await redisClient.keys("menu_*");
+    const trackingKey = "menu_cache_keys";
+    const keys = await redisClient.sMembers(trackingKey);
     if (keys.length > 0) {
-      await redisClient.del(keys);
-      console.log("Menu cache invalidated");
+      await Promise.all([
+        redisClient.del(keys),
+        redisClient.del(trackingKey)
+      ]);
+      console.log(`Menu cache invalidated (${keys.length} keys)`);
     }
   } catch (err) {
     console.error("Failed to invalidate menu cache", err);
@@ -56,7 +60,13 @@ exports.getMenu = async (req, res) => {
       };
 
       // Store in cache (items and pagination only)
-      await redisClient.setEx(cacheKey, 3600, JSON.stringify(responseData));
+      const trackingKey = "menu_cache_keys";
+      await Promise.all([
+        redisClient.setEx(cacheKey, 3600, JSON.stringify(responseData)),
+        redisClient.sAdd(trackingKey, cacheKey)
+      ]);
+      // Optional: set expiry on the tracking key too
+      await redisClient.expire(trackingKey, 3600);
     }
 
     // Always fetch active AND upcoming flash sales fresh (or with very short cache)

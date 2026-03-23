@@ -1,3 +1,18 @@
+// Prevent crash on unhandled EIO errors from stdin/stdout in some environments (like Node v24 + nodemon)
+if (process.stdin.isTTY) {
+    process.stdin.pause();
+}
+
+process.stdin.on('error', (err) => {
+    if (err.code === 'EIO') return;
+    console.error('Stdin error:', err);
+});
+
+process.on('uncaughtException', (err) => {
+    if (err.code === 'EIO') return;
+    console.error('Uncaught Exception:', err.message);
+});
+
 require("dotenv").config()
 const http = require("http")
 const express = require("express")
