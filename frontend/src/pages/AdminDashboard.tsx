@@ -291,11 +291,12 @@ const AdminDashboard = () => {
   }, [toast]);
 
 
-  const fetchFeedback = useCallback(async (rating?: number | null, page: number = 1) => {
+  const fetchFeedback = useCallback(async (rating?: number | null, page: number = 1, force = false) => {
     setFeedbacksLoading(true);
     try {
       let url = `/feedback?page=${page}&limit=10`;
       if (rating) url += `&rating=${rating}`;
+      if (force) url += `&forceRefresh=true`;
 
       const [listRes, statsRes] = await Promise.all([
         api.get(url),
@@ -317,13 +318,21 @@ const AdminDashboard = () => {
     }
   }, [toast]);
 
-  // Use a ref to track the last fetched parameters to avoid redundant fetches on tab switch
+  // Use refs to track the last fetched parameters to avoid redundant fetches on tab switch
   const lastMenuFetchRef = useRef("");
+  const lastFeedbackFetchRef = useRef("");
 
   useEffect(() => {
     if (activeSection === "history") fetchHistory();
     if (activeSection === "summary") fetchAnalytics();
-    if (activeSection === "reviews") fetchFeedback(feedbackFilter, feedbackPage);
+    
+    if (activeSection === "reviews") {
+      const currentParams = `${feedbackFilter || 'all'}_${feedbackPage}`;
+      if (lastFeedbackFetchRef.current !== currentParams || feedbacks.length === 0) {
+        fetchFeedback(feedbackFilter, feedbackPage);
+        lastFeedbackFetchRef.current = currentParams;
+      }
+    }
     
     if (activeSection === "menu") {
       const currentParams = `${menuPage}_${menuSearchQuery}`;
@@ -333,7 +342,7 @@ const AdminDashboard = () => {
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeSection, fetchHistory, fetchFeedback, feedbackPage, menuPage, menuSearchQuery]);
+  }, [activeSection, fetchHistory, feedbackPage, feedbackFilter, menuPage, menuSearchQuery]);
 
 
   const fetchAnalytics = async () => {

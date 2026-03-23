@@ -1,4 +1,16 @@
 const Feedback = require('../models/Feedback');
+const NodeCache = require('node-cache');
+
+// Cache for 30 minutes, check every 5 minutes
+const feedbackCache = new NodeCache({ stdTTL: 1800, checkperiod: 300 });
+
+const clearFeedbackCache = () => {
+    const keys = feedbackCache.keys();
+    if (keys.length > 0) {
+        feedbackCache.del(keys);
+        console.log('🧹 Feedback cache cleared');
+    }
+};
 
 // POST /api/feedback
 const submitFeedback = async (req, res) => {
@@ -17,6 +29,9 @@ const submitFeedback = async (req, res) => {
         });
 
         await newFeedback.save();
+        
+        // Invalidate cache when new feedback is submitted
+        clearFeedbackCache();
 
         return res.status(201).json({ success: true, data: newFeedback });
     } catch (error) {
@@ -28,7 +43,16 @@ const submitFeedback = async (req, res) => {
 // GET /api/feedback
 const getFeedback = async (req, res) => {
     try {
-        const { rating, page = 1, limit = 10 } = req.query;
+        const { rating, page = 1, limit = 10, forceRefresh } = req.query;
+        
+        const cacheKey = `feedback_${rating || 'all'}_${page}_${limit}`;
+        
+        if (!forceRefresh) {
+            const cachedData = feedbackCache.get(cacheKey);
+            if (cachedData) {
+                return res.status(200).json({ ...cachedData, cached: true });
+            }
+        }
 
         let query = {};
         if (rating) {
@@ -57,6 +81,9 @@ const getFeedback = async (req, res) => {
             }
         };
 
+        // Cache the response
+        feedbackCache.set(cacheKey, responseData);
+
         return res.status(200).json(responseData);
     } catch (error) {
         console.error('Fetch feedback error:', error);
@@ -68,6 +95,12 @@ const getFeedback = async (req, res) => {
 // GET /api/feedback/stats
 const getFeedbackStats = async (req, res) => {
     try {
+        const cacheKey = 'feedback_stats';
+        const cachedStats = feedbackCache.get(cacheKey);
+        if (cachedStats) {
+            return res.status(200).json({ success: true, data: cachedStats, cached: true });
+        }
+
         const aggregations = await Feedback.aggregate([
             {
                 $group: {
@@ -85,6 +118,8 @@ const getFeedbackStats = async (req, res) => {
                 totalReviews: aggregations[0].totalReviews
             };
         }
+
+        feedbackCache.set(cacheKey, stats);
 
         return res.status(200).json({ success: true, data: stats });
     } catch (error) {
