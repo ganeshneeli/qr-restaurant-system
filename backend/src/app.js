@@ -13,7 +13,6 @@ require("./jobs/monthlyRevenue")
 connectDB()
 
 const app = express()
-app.set("trust proxy", 1)
 
 const logger = require("./config/logger")
 
@@ -26,11 +25,11 @@ app.use((req, res, next) => {
 
 app.use(cors({
   origin: (origin, callback) => {
-    const allowed = process.env.FRONTEND_URL || "http://localhost:5173"
-    if (!origin || origin === allowed || process.env.NODE_ENV !== "production") {
-      callback(null, true)
+    const allowedOrigins = (process.env.FRONTEND_URL || "http://localhost:5173").split(",");
+    if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV !== "production") {
+      callback(null, true);
     } else {
-      callback(new Error("Not allowed by CORS"))
+      callback(new Error("Not allowed by CORS"));
     }
   },
   credentials: true
