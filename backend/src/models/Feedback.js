@@ -7,7 +7,7 @@ const feedbackSchema = new mongoose.Schema({
         required: true,
     },
     table_number: {
-        type: String,
+        type: Number,
         required: true,
     },
     customer_rating: {

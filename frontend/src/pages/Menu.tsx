@@ -30,10 +30,14 @@ import {
 } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import MenuItemCard from "@/components/menu/MenuItemCard";
+import Cart from "@/components/menu/Cart";
+import MyOrdersPanel from "@/components/menu/MyOrdersPanel";
+import DishDetail from "@/components/menu/DishDetail";
 
 // ─── Config ──────────────────────────────────────────────────────────────────
-const API_BASE = import.meta.env.VITE_API_URL || "https://qr-restaurant-system-1.onrender.com/api";
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "https://qr-restaurant-system-1.onrender.com";
+const API_BASE = import.meta.env.VITE_API_URL || "/api";
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || window.location.origin;
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface MenuItem {
@@ -871,67 +875,20 @@ const MenuContent = () => {
                 <motion.div key={activeCategory}
                   initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
                   className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {filteredMenu.map((item, i) => {
-                    const qty = getQty(item._id);
-                    const isSale = isItemOnSale(item);
-                    const displayPrice = isSale ? item.discountPrice : item.price;
-
-                    return (
-                      <motion.div key={item._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}>
-                        <Card className={`glass border-white/5 p-5 transition-all duration-300 group ${item.available ? "hover:border-white/20 hover:shadow-[0_0_30px_rgba(255,255,255,0.05)]" : "opacity-60"} ${isSale ? 'border-primary/20 bg-primary/5 shadow-[0_0_20px_rgba(var(--primary),0.05)]' : ''}`}>
-                          <div className="flex flex-col gap-4 mb-4 cursor-pointer" onClick={() => setSelectedDish(item)}>
-                            {item.image && (
-                              <div className="w-full h-72 sm:h-80 rounded-2xl overflow-hidden border border-white/10 shadow-2xl mb-4 group-hover:border-white/20 transition-colors relative">
-                                <img src={resolveImagePath(item.image)} alt={item.name} loading="lazy" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out" />
-                                {isSale && (
-                                  <div className="absolute top-3 left-3 bg-primary text-primary-foreground text-[10px] font-black px-2 py-0.5 rounded-full animate-pulse shadow-lg">
-                                    🔥 FLASH DEAL
-                                  </div>
-                                )}
-                                <div className="absolute top-3 right-3 bg-black/50 backdrop-blur-md px-2 py-1 rounded-full border border-white/10 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <Info className="h-3 w-3 text-white" />
-                                  <span className="text-[10px] text-white font-bold">Details</span>
-                                </div>
-                              </div>
-                            )}
-                            <div className="flex-1">
-                              <div className="flex justify-between items-start">
-                                <div className="flex-1 mr-2">
-                                  <h3 className="font-display text-xl font-bold tracking-tight text-white group-hover:text-glow-white transition-all">{item.name}</h3>
-                                  <div className="flex flex-wrap items-center gap-2 mt-2">
-                                    {item.category && <p className="text-[10px] text-white/40 font-black uppercase tracking-[0.2em]">{item.category}</p>}
-                                    {getBadges(item).map((badge, bIdx) => (
-                                      <div key={bIdx} className={`px-2 py-0.5 rounded-full border ${badge.color} flex items-center gap-1 scale-90 origin-left`}>
-                                        <span className="text-[10px]">{badge.icon}</span>
-                                        <span className="text-[8px] uppercase font-black whitespace-nowrap">{badge.text}</span>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                                <div className="flex flex-col items-end shrink-0">
-                                  <span className={`font-display font-black text-2xl ${isSale ? 'text-primary' : 'text-white'} shadow-sm`}>₹{displayPrice}</span>
-                                  {isSale && <span className="text-xs text-white/20 line-through">₹{item.price}</span>}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-                          {qty > 0 ? (
-                            <div className="flex items-center justify-between glass rounded-lg p-1">
-                              <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => updateQty(item._id, -1)}><Minus className="h-4 w-4" /></Button>
-                              <motion.span key={qty} initial={{ scale: 1.3 }} animate={{ scale: 1 }} className="font-bold">{qty}</motion.span>
-                              <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => updateQty(item._id, 1)}><Plus className="h-4 w-4" /></Button>
-                            </div>
-                          ) : (
-                            <Button onClick={() => item.available && addToCart({ ...item, price: displayPrice ?? item.price })} disabled={!item.available}
-                              variant="outline" className={`w-full ${isSale ? 'bg-primary/20 border-primary/40 hover:bg-primary/30 text-primary' : 'bg-primary/10 border-primary/30 hover:bg-primary/20'}`}>
-                              <Plus className="h-4 w-4 mr-1" />{item.available ? "Add" : "Unavailable"}
-                            </Button>
-                          )}
-                        </Card>
-                      </motion.div>
-                    );
-                  })}
+                  {filteredMenu.map((item) => (
+                    <MenuItemCard
+                      key={item._id}
+                      item={item}
+                      qty={getQty(item._id)}
+                      isSale={isItemOnSale(item)}
+                      displayPrice={isItemOnSale(item) ? item.discountPrice : item.price}
+                      resolveImagePath={resolveImagePath}
+                      getBadges={getBadges}
+                      setSelectedDish={setSelectedDish}
+                      addToCart={addToCart}
+                      updateQty={updateQty}
+                    />
+                  ))}
 
 
                   {filteredMenu.length === 0 && (
@@ -971,110 +928,26 @@ const MenuContent = () => {
           </main>
 
           {/* My Orders Panel */}
-          <AnimatePresence>
-            {showMyOrders && myOrder && (
-              <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 25 }}
-                className="fixed inset-x-0 bottom-0 z-50 glass-strong border-t border-white/10 rounded-t-2xl max-h-[70vh] overflow-y-auto">
-                <div className="max-w-2xl mx-auto p-6">
-                  <div className="flex justify-between items-center mb-5">
-                    <div>
-                      <h3 className="font-display text-xl font-bold">My Order</h3>
-                      <Badge className={`${STATUS_COLORS[myOrder.status] || STATUS_COLORS.pending} border text-xs mt-1`}>
-                        {myOrder.status.toUpperCase()}
-                      </Badge>
-                    </div>
-                    <Button variant="ghost" size="sm" onClick={() => setShowMyOrders(false)}><X className="h-4 w-4" /></Button>
-                  </div>
-
-                  <div className="space-y-2 mb-4">
-                    {myOrder.items.map((item, i) => (
-                      <div key={i} className="flex justify-between text-sm py-2 border-b border-white/5">
-                        <div>
-                          <p className="font-medium">{item.name || item.foodId}</p>
-                          <p className="text-xs text-muted-foreground">₹{item.price} × {item.quantity}</p>
-                        </div>
-                        <span className="font-semibold">₹{(item.price || 0) * item.quantity}</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="flex justify-between font-semibold text-lg mb-5">
-                    <span>Total</span><span className="text-glow-subtle">₹{myOrder.totalAmount}</span>
-                  </div>
-
-                  {myOrder.paymentStatus === "paid" ? (
-                    <div className="text-center py-3 bg-green-500/10 border border-green-500/30 rounded-xl text-green-400 text-sm">✅ Payment Confirmed</div>
-                  ) : myOrder.billRequested ? (
-                    <div className="text-center py-3 bg-yellow-500/10 border border-yellow-500/30 rounded-xl text-yellow-400 text-sm">🧾 Bill Requested — Staff will arrive shortly</div>
-                  ) : (
-                    <Button onClick={requestBill} variant="outline" className="w-full h-12 glass border-primary/30 hover:neon-glow">
-                      <Receipt className="h-4 w-4 mr-2" />Request Bill
-                    </Button>
-                  )}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <MyOrdersPanel
+            showMyOrders={showMyOrders}
+            setShowMyOrders={setShowMyOrders}
+            myOrder={myOrder}
+            requestBill={requestBill}
+            STATUS_COLORS={STATUS_COLORS}
+          />
 
           {/* Cart Panel */}
-          <AnimatePresence>
-            {showCart && (
-              <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 25 }}
-                className="fixed inset-x-0 bottom-0 z-50 glass-strong border-t border-primary/20 rounded-t-2xl max-h-[65vh] overflow-y-auto">
-                <div className="max-w-2xl mx-auto p-6">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="font-display text-xl font-bold">Your Cart</h3>
-                    <Button variant="ghost" size="sm" onClick={() => setShowCart(false)}><X className="h-4 w-4" /></Button>
-                  </div>
-
-                  {cart.length === 0 ? (
-                    <p className="text-muted-foreground text-center py-8">Your cart is empty</p>
-                  ) : (
-                    <>
-                      {cart.map(item => (
-                        <div key={item.foodId} className="flex justify-between items-center py-3 border-b border-white/5">
-                          <div>
-                            <p className="font-medium">{item.name}</p>
-                            <p className="text-sm text-muted-foreground">₹{item.price} × {item.quantity}</p>
-                          </div>
-                          <div className="flex items-center gap-2 ml-4">
-                            <span className="font-bold">₹{item.price * item.quantity}</span>
-                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => updateQty(item.foodId, -1)}><Minus className="h-3 w-3" /></Button>
-                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => updateQty(item.foodId, 1)}><Plus className="h-3 w-3" /></Button>
-                          </div>
-                        </div>
-                      ))}
-
-                      <Separator className="my-4 bg-white/10" />
-
-                      <div className="flex justify-between items-center mb-6">
-                        <span className="font-display text-lg">Total</span>
-                        <span className="font-display text-2xl font-bold text-glow-subtle">₹{total}</span>
-                      </div>
-
-                      <div className="space-y-2 mb-6">
-                        <Label htmlFor="specialNote" className="text-white/60 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
-                          <ChefHat className="h-3.5 w-3.5" /> Add Note for Chef
-                        </Label>
-                        <Input
-                          id="specialNote"
-                          placeholder="Less spicy, no onions, extra cheese..."
-                          className="glass border-white/10 focus:border-white/20 h-12"
-                          value={specialNote}
-                          onChange={(e) => setSpecialNote(e.target.value)}
-                        />
-                      </div>
-
-                      <Button onClick={placeOrder} disabled={ordering}
-                        className="w-full h-12 bg-primary hover:bg-primary/80 font-semibold hover:neon-glow">
-                        {ordering ? "Placing..." : "Place Order"}
-                      </Button>
-                    </>
-                  )}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <Cart
+            showCart={showCart}
+            setShowCart={setShowCart}
+            cart={cart}
+            updateQty={updateQty}
+            total={total}
+            specialNote={specialNote}
+            setSpecialNote={setSpecialNote}
+            placeOrder={placeOrder}
+            ordering={ordering}
+          />
 
           {/* Floating cart bar */}
           <AnimatePresence>
@@ -1117,11 +990,12 @@ const MenuContent = () => {
                   className="w-full max-w-lg relative"
                 >
                   {/* Atmospheric Glow */}
-                  <div className={`absolute inset-0 blur-[120px] opacity-40 rounded-full animate-pulse-slow ${popupStatus === "served" ? "bg-yellow-500" : "bg-blue-500"
-                    }`} />
+                  <div className={`absolute inset-0 blur-[120px] opacity-40 rounded-full animate-pulse-slow ${
+                    popupStatus === "served" ? "bg-yellow-500" : "bg-blue-500"
+                  }`} />
 
                   <div className="glass-strong border-white/10 rounded-[3rem] p-10 text-center relative z-10 overflow-hidden">
-                    <div className="absolute inset-0 bg-white/5 group-hover:bg-white/10 transition-colors pointer-events-none" />
+                    <div className="absolute inset-0 bg-white/5 transition-colors pointer-events-none" />
 
                     <motion.div
                       animate={{
@@ -1163,84 +1037,13 @@ const MenuContent = () => {
             )}
           </AnimatePresence>
 
-          {/* ────── MODALS ────── */}
-
-          {/* 1. Dish Detail Story View */}
-          <AnimatePresence>
-            {selectedDish && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 z-[100] flex flex-col bg-black/95 backdrop-blur-2xl overflow-y-auto"
-              >
-                <div className="relative w-full aspect-[4/5] sm:aspect-video max-h-[70vh]">
-                  <img
-                    src={resolveImagePath(selectedDish.image)}
-                    alt={selectedDish.name}
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
-                  <motion.button
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => setSelectedDish(null)}
-                    className="fixed top-6 right-4 sm:top-6 sm:right-6 z-[120] w-12 h-12 rounded-full glass-strong bg-black/40 border-white/20 flex items-center justify-center shadow-2xl"
-                  >
-                    <X className="h-6 w-6 text-white" />
-                  </motion.button>
-                </div>
-
-                <div className="px-6 py-8 space-y-8 max-w-3xl mx-auto w-full flex-grow">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Badge className="bg-white/10 text-white border-white/20">{selectedDish.category}</Badge>
-                      <div className="flex text-yellow-500"><Star className="h-3 w-3 fill-current" /><Star className="h-3 w-3 fill-current" /><Star className="h-3 w-3 fill-current" /></div>
-                    </div>
-                    <h2 className="font-display text-5xl font-black text-white text-glow-white">{selectedDish.name}</h2>
-                    <p className="text-3xl font-display font-black text-white/50">₹{selectedDish.price}</p>
-                  </div>
-
-                  <p className="text-white/60 text-lg leading-relaxed">
-                    Crafted with premium ingredients and our secret blend of spices. Each bite is a journey into the heart of authentic flavors. Properly seasoned and cooked to perfection by our master chefs.
-                  </p>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="glass border-white/10 p-4 rounded-2xl flex items-center gap-4">
-                      <Flame className="h-6 w-6 text-orange-500" />
-                      <div>
-                        <p className="text-[10px] uppercase font-bold text-white/30">Spice Level</p>
-                        <p className="text-sm font-bold">Medium Authentic</p>
-                      </div>
-                    </div>
-                    <div className="glass border-white/10 p-4 rounded-2xl flex items-center gap-4">
-                      <Utensils className="h-6 w-6 text-blue-500" />
-                      <div>
-                        <p className="text-[10px] uppercase font-bold text-white/30">Preparation</p>
-                        <p className="text-sm font-bold">Hand-crafted</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="sticky bottom-0 p-6 glass border-t border-white/10 mt-auto flex flex-col gap-3">
-                  <Button
-                    onClick={() => { addToCart(selectedDish); setSelectedDish(null); }}
-                    disabled={!selectedDish.available}
-                    className="w-full h-16 text-lg font-black bg-white text-black hover:bg-white/90 rounded-2xl shadow-[0_0_30px_rgba(255,255,255,0.2)]"
-                  >
-                    Add to Collection · ₹{selectedDish.price}
-                  </Button>
-                  <Button
-                    onClick={() => setSelectedDish(null)}
-                    variant="outline"
-                    className="w-full h-14 text-base font-bold bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/20 hover:text-red-400 rounded-2xl transition-all"
-                  >
-                    Go Back
-                  </Button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {/* Modal Components */}
+          <DishDetail
+            selectedDish={selectedDish}
+            setSelectedDish={setSelectedDish}
+            resolveImagePath={resolveImagePath}
+            addToCart={addToCart}
+          />
 
           {/* 2. Feedback Modal */}
           <AnimatePresence>

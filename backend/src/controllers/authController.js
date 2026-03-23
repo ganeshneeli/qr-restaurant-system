@@ -7,13 +7,19 @@ exports.login = async (req, res) => {
     const { email, password } = req.body
     console.log(`Login attempt for: ${email}`)
 
+    console.time(`DB find for ${email}`)
     const user = await User.findOne({ email })
+    console.timeEnd(`DB find for ${email}`)
+
     if (!user) {
       console.log(`User not found: ${email}`)
       return res.status(400).json({ success: false, message: "User not found" })
     }
 
+    console.time(`Bcrypt compare for ${email}`)
     const match = await bcrypt.compare(password, user.password)
+    console.timeEnd(`Bcrypt compare for ${email}`)
+
     if (!match) {
       console.log(`Password mismatch for: ${email}`)
       return res.status(400).json({ success: false, message: "Invalid credentials" })

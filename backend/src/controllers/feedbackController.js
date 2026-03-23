@@ -46,11 +46,8 @@ const getFeedback = async (req, res) => {
         const cachedData = await redisClient.get(cacheKey);
 
         if (cachedData) {
-            return res.status(200).json({
-                success: true,
-                source: "redis",
-                data: JSON.parse(cachedData)
-            });
+            // Return the full cached response object directly (preserves data + pagination shape)
+            return res.status(200).json(JSON.parse(cachedData));
         }
 
         let query = {};

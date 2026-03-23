@@ -5,13 +5,31 @@ const redisClient = redis.createClient({
     url: process.env.REDIS_URL || "redis://localhost:6379"
 });
 
-redisClient.on("error", (err) => logger.error("Redis Client Error", err));
-redisClient.on("connect", () => logger.info("Redis Connected successfully"));
+let isConnected = false;
+
+redisClient.on("error", (err) => {
+    isConnected = false;
+    logger.error("Redis Client Error", err);
+});
+
+redisClient.on("connect", () => {
+    if (!isConnected) {
+        logger.info("Redis Connected successfully");
+        isConnected = true;
+    }
+});
+
+redisClient.on("end", () => {
+    isConnected = false;
+    logger.warn("Redis connection ended");
+});
 
 // Connect initially
 (async () => {
     try {
-        await redisClient.connect();
+        if (!redisClient.isOpen) {
+            await redisClient.connect();
+        }
     } catch (err) {
         logger.error("Failed to connect to Redis initially", err);
     }

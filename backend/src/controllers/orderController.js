@@ -29,25 +29,53 @@ exports.getAllOrders = async (req, res) => {
 exports.getDailySummary = async (req, res) => {
   try {
     const now = new Date()
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
 
-    const [todayOrders, monthOrders] = await Promise.all([
-      Order.find({ createdAt: { $gte: today } }),
-      Order.find({
-        createdAt: { $gte: startOfMonth },
-        status: "completed"
-      })
+    const stats = await Order.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: monthStart }
+        }
+      },
+      {
+        $facet: {
+          todayStats: [
+            { $match: { createdAt: { $gte: todayStart } } },
+            {
+              $group: {
+                _id: null,
+                totalOrders: { $sum: 1 },
+                totalRevenue: {
+                  $sum: {
+                    $cond: [{ $eq: ["$status", "completed"] }, "$totalAmount", 0]
+                  }
+                }
+              }
+            }
+          ],
+          monthRevenue: [
+            { $match: { status: "completed" } },
+            {
+              $group: {
+                _id: null,
+                totalMonthlyRevenue: { $sum: "$totalAmount" }
+              }
+            }
+          ]
+        }
+      }
     ])
 
-    const totalOrders = todayOrders.length
-    const totalRevenue = todayOrders
-      .filter(o => o.status === "completed")
-      .reduce((sum, o) => sum + (o.totalAmount || 0), 0)
+    const today = stats[0].todayStats[0] || { totalOrders: 0, totalRevenue: 0 }
+    const month = stats[0].monthRevenue[0] || { totalMonthlyRevenue: 0 }
 
-    const totalMonthlyRevenue = monthOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0)
-
-    res.json({ success: true, totalOrders, totalRevenue, totalMonthlyRevenue })
+    res.json({
+      success: true,
+      totalOrders: today.totalOrders,
+      totalRevenue: today.totalRevenue,
+      totalMonthlyRevenue: month.totalMonthlyRevenue
+    })
   } catch (error) {
     res.status(500).json({ success: false, message: error.message })
   }
@@ -74,11 +102,22 @@ exports.getMyOrder = async (req, res) => {
 exports.createOrder = async (req, res) => {
   try {
     const { sessionId, tableId, tableNumber } = req.session
+    const items = req.body.items
+    const foodIds = items.map(i => i.foodId)
+    
+    // Fetch all menu items at once to avoid N+1 queries
+    const menuItems = await Menu.find({ _id: { $in: foodIds } })
+    const menuMap = menuItems.reduce((map, item) => {
+      map[item._id.toString()] = item
+      return map
+    }, {})
+
     let total = 0
     let validated = []
-    for (let item of req.body.items) {
-      const menu = await Menu.findById(item.foodId)
-      if (!menu || !menu.available) return res.status(400).json({ success: false })
+    
+    for (let item of items) {
+      const menu = menuMap[item.foodId]
+      if (!menu || !menu.available) return res.status(400).json({ success: false, message: `Item ${item.foodId} not available` })
 
       const now = new Date()
       const isSaleActive = menu.isFlashSale &&
@@ -94,14 +133,21 @@ exports.createOrder = async (req, res) => {
     let order = await Order.findOne({ sessionId, tableNumber, status: { $ne: "completed" } })
 
     if (order) {
+      const bulkOps = []
       for (let newItem of validated) {
         const existing = order.items.find(i => i.foodId?.toString() === newItem.foodId.toString())
         if (existing) existing.quantity += newItem.quantity
         else order.items.push(newItem)
 
-        // Increment order_count in Menu
-        await Menu.findByIdAndUpdate(newItem.foodId, { $inc: { order_count: newItem.quantity } })
+        bulkOps.push({
+          updateOne: {
+            filter: { _id: newItem.foodId },
+            update: { $inc: { order_count: newItem.quantity } }
+          }
+        })
       }
+      if (bulkOps.length > 0) await Menu.bulkWrite(bulkOps)
+      
       order.totalAmount += total
       order.status = "pending"
       order.billRequested = false
@@ -118,10 +164,14 @@ exports.createOrder = async (req, res) => {
         totalAmount: total,
         specialNote: req.body.specialNote || ""
       })
-      // Increment order_count for each item
-      for (let item of validated) {
-        await Menu.findByIdAndUpdate(item.foodId, { $inc: { order_count: item.quantity } })
-      }
+      
+      const bulkOps = validated.map(item => ({
+        updateOne: {
+          filter: { _id: item.foodId },
+          update: { $inc: { order_count: item.quantity } }
+        }
+      }))
+      if (bulkOps.length > 0) await Menu.bulkWrite(bulkOps)
     }
 
     // Notify only admins about the new order

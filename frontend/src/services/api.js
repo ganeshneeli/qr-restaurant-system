@@ -6,8 +6,7 @@ import axios from "axios";
  Falls back to deployed backend if not set
 */
 
-const API_BASE =
-    import.meta.env.VITE_API_URL || "https://qr-restaurant-system-1.onrender.com/api";
+const API_BASE = import.meta.env.VITE_API_URL || "/api";
 
 const api = axios.create({
     baseURL: API_BASE,

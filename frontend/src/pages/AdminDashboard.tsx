@@ -70,6 +70,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
+import { formatSafeTime } from "@/lib/dateUtils";
 
 interface OrderItem {
   name?: string;
@@ -279,13 +280,40 @@ const AdminDashboard = () => {
     }
   }, [toast]);
 
+
+  const fetchFeedback = useCallback(async (rating?: number | null, page: number = 1) => {
+    setFeedbacksLoading(true);
+    try {
+      let url = `/feedback?page=${page}&limit=10`;
+      if (rating) url += `&rating=${rating}`;
+
+      const [listRes, statsRes] = await Promise.all([
+        api.get(url),
+        api.get("/feedback/stats"),
+      ]);
+
+      // Guard: ensure we always get an array, never crash on unexpected shape
+      const rawData = listRes.data?.data;
+      setFeedbacks(Array.isArray(rawData) ? rawData : []);
+      setFeedbackPagination({
+        totalPages: listRes.data?.pagination?.totalPages || 1,
+        totalCount: listRes.data?.pagination?.totalCount || 0
+      });
+      setFeedbackStats(statsRes.data?.data || { averageRating: 0, totalReviews: 0 });
+    } catch {
+      toast({ title: "Error", description: "Failed to load reviews", variant: "destructive" });
+    } finally {
+      setFeedbacksLoading(false);
+    }
+  }, [toast]);
+
   useEffect(() => {
     if (activeSection === "history") fetchHistory();
     if (activeSection === "summary") fetchAnalytics();
     if (activeSection === "reviews") fetchFeedback(feedbackFilter, feedbackPage);
     if (activeSection === "menu") fetchMenu();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeSection, fetchHistory, feedbackPage, menuPage, menuSearchQuery]);
+  }, [activeSection, fetchHistory, fetchFeedback, feedbackPage, menuPage, menuSearchQuery]);
 
 
   const fetchAnalytics = async () => {
@@ -299,30 +327,6 @@ const AdminDashboard = () => {
       setAnalyticsLoading(false);
     }
   };
-
-  const fetchFeedback = async (rating?: number | null, page: number = 1) => {
-    setFeedbacksLoading(true);
-    try {
-      let url = `/feedback?page=${page}&limit=10`;
-      if (rating) url += `&rating=${rating}`;
-
-      const [listRes, statsRes] = await Promise.all([
-        api.get(url),
-        api.get("/feedback/stats"),
-      ]);
-      setFeedbacks(listRes.data?.data || []);
-      setFeedbackPagination({
-        totalPages: listRes.data?.pagination?.totalPages || 1,
-        totalCount: listRes.data?.pagination?.totalCount || 0
-      });
-      setFeedbackStats(statsRes.data?.data || { averageRating: 0, totalReviews: 0 });
-    } catch {
-      // silent
-    } finally {
-      setFeedbacksLoading(false);
-    }
-  };
-
 
   // Handle Socket Connection separately to keep it stable
   useEffect(() => {
@@ -347,6 +351,21 @@ const AdminDashboard = () => {
       socketRef.current = null;
     };
   }, []); // Only on mount/unmount
+
+  const loadQrCodes = useCallback(async (forced = false) => {
+    if (!forced && qrCodes.length > 0) return;
+    setQrLoading(true);
+    try {
+      const res = await api.get("/table/qrs");
+      if (res.data?.success) {
+        setQrCodes(res.data.data);
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to load QR codes", variant: "destructive" });
+    } finally {
+      setQrLoading(false);
+    }
+  }, [qrCodes.length, toast]);
 
   // Handle Socket Listeners
   useEffect(() => {
@@ -385,6 +404,7 @@ const AdminDashboard = () => {
     const handleTableUpdated = () => {
       console.log("🪑 Socket: tableUpdated received");
       fetchData();
+      loadQrCodes(true); // Instantly sync QR codes when any table changes
     };
 
     const socket = socketRef.current;
@@ -403,7 +423,7 @@ const AdminDashboard = () => {
       socket.off("orderPaid", handleOrderPaid);
       socket.off("tableUpdated", handleTableUpdated);
     };
-  }, [fetchData, toast]);
+  }, [fetchData, loadQrCodes, toast]);
 
   // Initial Data Fetch
   useEffect(() => {
@@ -436,25 +456,6 @@ const AdminDashboard = () => {
     }
   };
 
-  const loadQrCodes = useCallback(async (forced = false) => {
-    if (!forced && qrCodes.length > 0 && qrCodes.length === tables.length) return;
-    setQrLoading(true);
-    try {
-      const qrs: QrData[] = [];
-      // Fetch QRs for all existing tables in the state
-      const tableNumbers = tables.map(t => t.tableNumber ?? t.number).filter(Boolean);
-
-      for (const tableNum of tableNumbers) {
-        try {
-          const res = await api.get(`/table/${tableNum}/qr`);
-          if (res.data?.success) qrs.push(res.data);
-        } catch { /* skip */ }
-      }
-      setQrCodes(qrs);
-    } finally {
-      setQrLoading(false);
-    }
-  }, [qrCodes.length, tables]);
 
   useEffect(() => {
     if (activeSection === "qrcodes") loadQrCodes();
@@ -483,6 +484,7 @@ const AdminDashboard = () => {
       const res = await api.post("/table/add");
       if (res.data?.success) {
         fetchData();
+        loadQrCodes(true); // Instantly add new table's QR
         toast({ title: "Success", description: `Table ${res.data.data.tableNumber} added!` });
       }
     } catch (error) {
@@ -496,6 +498,7 @@ const AdminDashboard = () => {
       const res = await api.delete(`/table/${tableNumber}`);
       if (res.data?.success) {
         fetchData();
+        loadQrCodes(true); // Instantly remove the table's QR
         toast({ title: "Success", description: `Table ${tableNumber} removed.` });
       }
     } catch (error: any) {
@@ -2011,7 +2014,9 @@ const AdminDashboard = () => {
                     <div className="grid grid-cols-2 gap-4 mb-6">
                       <div className="glass-strong rounded-2xl p-5 text-center">
                         <div className="text-3xl font-black text-yellow-400">
-                          {feedbackStats.averageRating > 0 ? feedbackStats.averageRating.toFixed(1) : "—"}
+                          {typeof feedbackStats.averageRating === "number" && feedbackStats.averageRating > 0 
+                            ? feedbackStats.averageRating.toFixed(1) 
+                            : "—"}
                         </div>
                         <div className="flex justify-center gap-0.5 mt-1">
                           {[1, 2, 3, 4, 5].map(s => (
@@ -2070,7 +2075,7 @@ const AdminDashboard = () => {
                                   </div>
                                 </div>
                                 <span className="text-white/30 text-xs whitespace-nowrap">
-                                  {new Date(fb.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                                  {formatSafeTime(fb.createdAt)}
                                 </span>
                               </div>
                               {fb.customer_feedback_text && (

@@ -358,3 +358,4 @@ const Landing = () => {
 };
 
 export default Landing;
+// No hardcoded deployment URLs found in Landing.tsx, it mostly uses local /assets/ or cdn.gintaa.com

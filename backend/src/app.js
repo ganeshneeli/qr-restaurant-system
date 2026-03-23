@@ -25,8 +25,12 @@ app.use((req, res, next) => {
 
 app.use(cors({
   origin: (origin, callback) => {
-    // For development, allow all origins to avoid CORS issues with localhost/127.0.0.1 mismatch
-    callback(null, true)
+    const allowed = process.env.FRONTEND_URL || "http://localhost:5173"
+    if (!origin || origin === allowed || process.env.NODE_ENV !== "production") {
+      callback(null, true)
+    } else {
+      callback(new Error("Not allowed by CORS"))
+    }
   },
   credentials: true
 }))
