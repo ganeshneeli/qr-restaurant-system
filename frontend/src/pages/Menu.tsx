@@ -7,6 +7,7 @@ import {
   Bell, Flame, Star, Sparkles, Utensils, Coffee, Ghost, Check
 } from "lucide-react";
 import axios from "axios";
+import Lenis from "lenis";
 import { io as socketIO } from "socket.io-client";
 import type { Socket } from "socket.io-client";
 import { useAuth } from "@/context/AuthContext";
@@ -191,6 +192,31 @@ const MenuContent = () => {
     }
   }, [sessionToken, tableId, navigate]);
 
+  // ── Lenis Smooth Scroll ───────────────────────────────────────────────────
+  useEffect(() => {
+    const lenis = new Lenis({
+      duration: 1.2,
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      orientation: 'vertical',
+      gestureOrientation: 'vertical',
+      smoothWheel: true,
+      wheelMultiplier: 1,
+      touchMultiplier: 2,
+      infinite: false,
+    });
+
+    function raf(time: number) {
+      lenis.raf(time);
+      requestAnimationFrame(raf);
+    }
+
+    requestAnimationFrame(raf);
+
+    return () => {
+      lenis.destroy();
+    };
+  }, []);
+
   // ── Persist cart ──────────────────────────────────────────────────────────
   useEffect(() => {
     localStorage.setItem(cartKey, JSON.stringify(cart));
@@ -231,6 +257,11 @@ const MenuContent = () => {
           limit: 12
         }
       });
+
+      // The backend now returns a 'cached: true' flag if data is from memory
+      if (res.data?.cached) {
+        console.log("⚡ Menu loaded from cache");
+      }
       const sanitizedMenu = (res.data?.data || []).map((item: MenuItem) => {
         if (item.isFlashSale && !isItemOnSale(item)) {
           return { ...item, isFlashSale: false, discountPrice: undefined };
@@ -597,15 +628,24 @@ const MenuContent = () => {
             </div>
           </div>
 
-          {/* Category tabs */}
           <div className="max-w-6xl mx-auto px-4 pb-3 overflow-x-auto no-scrollbar">
             <div className="flex gap-2 min-w-max">
               {CATEGORIES.map(cat => (
-                <button key={cat} onClick={() => { setActiveCategory(cat); setMenuPage(1); }}
-                  className={`px-4 py-2 rounded-full text-xs font-bold transition-all border whitespace-nowrap ${activeCategory === cat
-                    ? "bg-white text-black border-white shadow-[0_0_15px_rgba(255,255,255,0.3)]"
-                    : "bg-white/5 border-white/10 text-white/50 hover:text-white hover:border-white/20"}`}>
-                  {cat}
+                <button
+                  key={cat}
+                  onClick={() => { setActiveCategory(cat); setMenuPage(1); }}
+                  className={`relative px-4 py-2 rounded-full text-xs font-bold transition-colors border whitespace-nowrap ${
+                    activeCategory === cat ? "text-black" : "bg-white/5 border-white/10 text-white/50 hover:text-white"
+                  }`}
+                >
+                  <span className="relative z-10">{cat}</span>
+                  {activeCategory === cat && (
+                    <motion.div
+                      layoutId="active-cat"
+                      className="absolute inset-0 bg-white rounded-full shadow-[0_0_15px_rgba(255,255,255,0.4)]"
+                      transition={{ type: "spring", bounce: 0.25, duration: 0.5 }}
+                    />
+                  )}
                 </button>
               ))}
             </div>
@@ -871,23 +911,36 @@ const MenuContent = () => {
             </div>
 
             {loading ? <LoadingSkeleton /> : (
-              <AnimatePresence mode="wait">
-                <motion.div key={activeCategory}
-                  initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                  className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <AnimatePresence mode="popLayout">
+                <motion.div
+                  key={activeCategory + searchQuery + menuPage}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.3, ease: "easeOut" }}
+                  className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+                >
                   {filteredMenu.map((item) => (
-                    <MenuItemCard
+                    <motion.div
+                      layout
                       key={item._id}
-                      item={item}
-                      qty={getQty(item._id)}
-                      isSale={isItemOnSale(item)}
-                      displayPrice={isItemOnSale(item) ? item.discountPrice : item.price}
-                      resolveImagePath={resolveImagePath}
-                      getBadges={getBadges}
-                      setSelectedDish={setSelectedDish}
-                      addToCart={addToCart}
-                      updateQty={updateQty}
-                    />
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <MenuItemCard
+                        key={item._id}
+                        item={item}
+                        qty={getQty(item._id)}
+                        isSale={isItemOnSale(item)}
+                        displayPrice={isItemOnSale(item) ? item.discountPrice : item.price}
+                        resolveImagePath={resolveImagePath}
+                        getBadges={getBadges}
+                        setSelectedDish={setSelectedDish}
+                        addToCart={addToCart}
+                        updateQty={updateQty}
+                      />
+                    </motion.div>
                   ))}
 
 
