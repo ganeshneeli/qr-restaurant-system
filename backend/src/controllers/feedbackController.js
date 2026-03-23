@@ -21,12 +21,14 @@ const submitFeedback = async (req, res) => {
 
         // Invalidate cache
         try {
-            const keys = await redisClient.keys("feedback_*");
-            if (keys.length > 0) {
-                await redisClient.del(keys);
+            if (redisClient.isOpen) {
+                const keys = await redisClient.keys("feedback_*");
+                if (keys.length > 0) {
+                    await redisClient.del(keys);
+                }
             }
         } catch (err) {
-            console.error("Failed to invalidate feedback cache", err);
+            console.error("Failed to invalidate feedback cache:", err.message);
         }
 
         return res.status(201).json({ success: true, data: newFeedback });
@@ -43,7 +45,14 @@ const getFeedback = async (req, res) => {
         const cacheKey = `feedback_${rating || 'All'}_${page}_${limit}`;
 
         // 1. Check Redis Cache
-        const cachedData = await redisClient.get(cacheKey);
+        let cachedData = null;
+        try {
+            if (redisClient.isOpen) {
+                cachedData = await redisClient.get(cacheKey);
+            }
+        } catch (err) {
+            console.warn("Redis GET failed, falling back to DB:", err.message);
+        }
 
         if (cachedData) {
             // Return the full cached response object directly (preserves data + pagination shape)
@@ -78,7 +87,13 @@ const getFeedback = async (req, res) => {
         };
 
         // Cache result
-        await redisClient.setEx(cacheKey, 600, JSON.stringify(responseData));
+        try {
+            if (redisClient.isOpen) {
+                await redisClient.setEx(cacheKey, 600, JSON.stringify(responseData));
+            }
+        } catch (err) {
+            console.warn("Redis SETEX failed:", err.message);
+        }
 
         return res.status(200).json(responseData);
     } catch (error) {

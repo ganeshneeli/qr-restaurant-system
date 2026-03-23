@@ -4,13 +4,15 @@ const redisClient = require("../config/redis")
 
 const invalidateMenuCache = async () => {
   try {
-    const keys = await redisClient.keys("menu_*");
-    if (keys.length > 0) {
-      await redisClient.del(keys);
-      console.log("Menu cache invalidated");
+    if (redisClient.isOpen) {
+      const keys = await redisClient.keys("menu_*");
+      if (keys.length > 0) {
+        await redisClient.del(keys);
+        console.log("Menu cache invalidated");
+      }
     }
   } catch (err) {
-    console.error("Failed to invalidate menu cache", err);
+    console.error("Failed to invalidate menu cache:", err.message);
   }
 };
 
@@ -20,8 +22,15 @@ exports.getMenu = async (req, res) => {
     const cacheKey = `menu_${category || "All"}_${search || "NoSearch"}_${page}_${limit}`;
 
     // Try to get from cache
-    const cachedData = await redisClient.get(cacheKey);
-    let responseData = cachedData ? JSON.parse(cachedData) : null;
+    let responseData = null;
+    try {
+      if (redisClient.isOpen) {
+        const cachedData = await redisClient.get(cacheKey);
+        if (cachedData) responseData = JSON.parse(cachedData);
+      }
+    } catch (err) {
+      console.warn("Redis GET failed for menu, falling back to DB:", err.message);
+    }
 
     if (!responseData) {
       let query = {};
@@ -56,7 +65,13 @@ exports.getMenu = async (req, res) => {
       };
 
       // Store in cache (items and pagination only)
-      await redisClient.setEx(cacheKey, 3600, JSON.stringify(responseData));
+      try {
+        if (redisClient.isOpen) {
+          await redisClient.setEx(cacheKey, 3600, JSON.stringify(responseData));
+        }
+      } catch (err) {
+        console.warn("Redis SETEX failed for menu:", err.message);
+      }
     }
 
     // Always fetch active AND upcoming flash sales fresh (or with very short cache)
