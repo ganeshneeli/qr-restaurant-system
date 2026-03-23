@@ -50,9 +50,9 @@ exports.getActiveTables = async (req, res) => {
 
 exports.getAllTables = async (req, res) => {
   try {
-    const tables = await Table.find({}).sort({ tableNumber: 1 })
+    const tables = await Table.find({}).sort({ tableNumber: 1 }).lean()
     const formattedTables = tables.map(t => ({
-      ...t.toObject(),
+      ...t,
       number: t.tableNumber,
       activatedAt: t.startedAt
     }))
@@ -79,14 +79,26 @@ exports.getTableQR = async (req, res) => {
 }
 
 exports.getAllTableQRs = async (req, res) => {
+  const cacheKey = "all_table_qrs";
+  const redisClient = require("../config/redis");
+
   try {
-    const tables = await Table.find({}).sort({ tableNumber: 1 })
+    // 1. Try Cache
+    if (redisClient.isReadyForCommands()) {
+      const cached = await redisClient.get(cacheKey);
+      if (cached) {
+        return res.json({ success: true, data: JSON.parse(cached), source: "cache" });
+      }
+    }
+
+    // 2. Generate (Fallback)
+    const tables = await Table.find({}).sort({ tableNumber: 1 }).lean();
     const frontendBaseUrl = process.env.FRONTEND_URL || "http://localhost:5173"
     
     const qrPromises = tables.map(async (table) => {
       const url = `${frontendBaseUrl}/#/table/${table.tableNumber}`
       const qrDataUrl = await QRCode.toDataURL(url, {
-        width: 250, // Slightly smaller for bulk loading/dashboard
+        width: 250,
         margin: 2,
         color: { dark: "#000000", light: "#ffffff" }
       })
@@ -98,11 +110,29 @@ exports.getAllTableQRs = async (req, res) => {
     })
 
     const qrs = await Promise.all(qrPromises)
-    res.json({ success: true, data: qrs })
+
+    // 3. Cache results (1 hour TTL)
+    if (redisClient.isReadyForCommands()) {
+      await redisClient.setEx(cacheKey, 3600, JSON.stringify(qrs));
+    }
+
+    res.json({ success: true, data: qrs, source: "generated" })
   } catch (error) {
     res.status(500).json({ success: false, message: error.message })
   }
 }
+
+// Internal Helper to Clear QR Cache
+const invalidateQrCache = async () => {
+    const redisClient = require("../config/redis");
+    try {
+        if (redisClient.isReadyForCommands()) {
+            await redisClient.del("all_table_qrs");
+        }
+    } catch (e) {
+        console.error("Failed to invalidate QR cache:", e.message);
+    }
+};
 
 exports.forceReleaseTable = async (req, res) => {
   try {
@@ -136,6 +166,7 @@ exports.addTable = async (req, res) => {
     const nextNumber = lastTable ? lastTable.tableNumber + 1 : 1
     const newTable = await Table.create({ tableNumber: nextNumber })
 
+    await invalidateQrCache();
     try { getIO().to("admin").emit("tableUpdated"); } catch (e) { }
 
     res.json({ success: true, data: newTable })
@@ -155,6 +186,7 @@ exports.removeTable = async (req, res) => {
     }
 
     await Table.deleteOne({ tableNumber })
+    await invalidateQrCache();
 
     try { getIO().to("admin").emit("tableUpdated"); } catch (e) { }
 

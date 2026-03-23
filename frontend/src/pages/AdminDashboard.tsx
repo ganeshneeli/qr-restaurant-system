@@ -221,6 +221,10 @@ const AdminDashboard = () => {
   const [menuPage, setMenuPage] = useState(1);
   const [menuPagination, setMenuPagination] = useState({ totalPages: 1, totalCount: 0 });
   const [menuLoading, setMenuLoading] = useState(false);
+  const [historyPagination, setHistoryPagination] = useState({ totalPages: 1, totalCount: 0 });
+
+  // Memory Cache for Sections
+  const [loadedSections, setLoadedSections] = useState<Record<string, boolean>>({});
 
   const resolveImagePath = (imagePath?: string) => {
     if (!imagePath) return "";
@@ -268,17 +272,29 @@ const AdminDashboard = () => {
   }, [menuPage, menuSearchQuery, toast]);
 
 
-  const fetchHistory = useCallback(async () => {
+  const fetchHistory = useCallback(async (forced = false) => {
+    if (!forced && loadedSections["history"]) return;
     setHistoryLoading(true);
     try {
-      const res = await api.get("/orders?status=all");
+      const res = await api.get("/orders", {
+        params: {
+          status: "all",
+          page: historyPage,
+          limit: HISTORY_PAGE_SIZE
+        }
+      });
       setHistoryOrders(res.data?.orders || []);
+      setHistoryPagination({
+        totalPages: res.data?.pagination?.totalPages || 1,
+        totalCount: res.data?.pagination?.totalCount || 0
+      });
+      setLoadedSections(prev => ({ ...prev, history: true }));
     } catch {
       toast({ title: "Error", description: "Failed to load history", variant: "destructive" });
     } finally {
       setHistoryLoading(false);
     }
-  }, [toast]);
+  }, [historyPage, loadedSections, toast]);
 
 
   const fetchFeedback = useCallback(async (rating?: number | null, page: number = 1) => {
@@ -309,18 +325,20 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     if (activeSection === "history") fetchHistory();
-    if (activeSection === "summary") fetchAnalytics();
-    if (activeSection === "reviews") fetchFeedback(feedbackFilter, feedbackPage);
+    if (activeSection === "summary" && !loadedSections["summary"]) fetchAnalytics();
+    if (activeSection === "reviews" && !loadedSections["reviews"]) fetchFeedback(feedbackFilter, feedbackPage);
     if (activeSection === "menu") fetchMenu();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeSection, fetchHistory, fetchFeedback, feedbackPage, menuPage, menuSearchQuery]);
 
 
   const fetchAnalytics = async () => {
+    if (loadedSections["summary"]) return;
     setAnalyticsLoading(true);
     try {
       const res = await api.get("/orders/analytics");
       setAnalytics(res.data?.data || null);
+      setLoadedSections(prev => ({ ...prev, summary: true }));
     } catch {
       toast({ title: "Error", description: "Failed to load analytics", variant: "destructive" });
     } finally {
@@ -704,32 +722,13 @@ const AdminDashboard = () => {
 
 
   const processedHistory = useMemo(() => {
-    // Sort all history by date ascending to assign stable sequential IDs
-    const sorted = [...historyOrders].sort((a, b) =>
-      new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()
-    );
-
-    let currentDayLabel = "";
-    let daySerial = 0;
-
-    return sorted.map((order, index) => {
-      const orderDate = new Date(order.createdAt || "");
-      const dayLabel = orderDate.toLocaleDateString();
-
-      if (dayLabel !== currentDayLabel) {
-        currentDayLabel = dayLabel;
-        daySerial = 1;
-      } else {
-        daySerial++;
-      }
-
-      return {
-        ...order,
-        sequentialId: index + 1,
-        dailySerial: daySerial
-      };
-    });
-  }, [historyOrders]);
+    // With server-side pagination, we just need to ensure stable formatting for the current page
+    return historyOrders.map((order, index) => ({
+      ...order,
+      sequentialId: order.tableNumber || 0, // Fallback
+      dailySerial: ((historyPage - 1) * HISTORY_PAGE_SIZE) + index + 1
+    }));
+  }, [historyOrders, historyPage]);
 
   const filteredHistory = processedHistory.filter(o => {
     // Search Filter
@@ -1492,13 +1491,13 @@ const AdminDashboard = () => {
                               </td>
                             </tr>
                           ) : (
-                            filteredHistory.slice((historyPage - 1) * HISTORY_PAGE_SIZE, historyPage * HISTORY_PAGE_SIZE).map((order) => (
+                            processedHistory.map((order) => (
                               <tr key={order._id} className="hover:bg-white/5 transition-colors group">
                                 <td className="px-6 py-4 font-bold text-muted-foreground text-xs">
                                   {order.dailySerial}
                                 </td>
                                 <td className="px-6 py-4 font-mono text-xs text-primary font-bold">
-                                  #{String(order.sequentialId).padStart(4, '0')}
+                                  #{order._id.slice(-4).toUpperCase()}
                                 </td>
                                 <td className="px-6 py-4 text-xs text-muted-foreground">
                                   {new Date(order.createdAt || "").toLocaleString(undefined, {
@@ -1564,7 +1563,7 @@ const AdminDashboard = () => {
                           <Button
                             variant="ghost"
                             size="sm"
-                            disabled={historyPage >= Math.ceil(filteredHistory.length / HISTORY_PAGE_SIZE)}
+                            disabled={historyPage >= historyPagination.totalPages}
                             onClick={() => setHistoryPage(p => p + 1)}
                             className="text-xs uppercase font-bold tracking-widest gap-2"
                           >

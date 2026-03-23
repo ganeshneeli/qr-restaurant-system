@@ -13,13 +13,34 @@ const emitToAdmin = (event, data) => {
   getIO().to("admin").emit(event, data)
 }
 
-// Admin: Get all active orders
+// Admin: Get all orders (active or history) with pagination
 exports.getAllOrders = async (req, res) => {
   try {
-    const showAll = req.query.status === "all"
+    const { status, page = 1, limit = 10 } = req.query;
+    const showAll = status === "all"
     const query = showAll ? {} : { status: { $ne: "completed" } }
-    const orders = await Order.find(query).sort({ createdAt: -1 })
-    res.json({ success: true, orders })
+    
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const [orders, totalCount] = await Promise.all([
+      Order.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(Number(limit))
+        .lean(),
+      Order.countDocuments(query)
+    ]);
+
+    res.json({ 
+      success: true, 
+      orders,
+      pagination: {
+        totalCount,
+        totalPages: Math.ceil(totalCount / Number(limit)),
+        currentPage: Number(page),
+        limit: Number(limit)
+      }
+    })
   } catch (error) {
     res.status(500).json({ success: false, message: error.message })
   }
@@ -257,25 +278,26 @@ exports.markAsPaid = async (req, res) => {
 // Admin: Get analytics
 exports.getAnalytics = async (req, res) => {
   try {
-    const mostOrdered = await Menu.find({ order_count: { $gt: 0 } }).sort({ order_count: -1 }).limit(10)
-    const leastOrdered = await Menu.find({ order_count: { $gte: 0 } }).sort({ order_count: 1 }).limit(10)
-
     // Daily trends (last 7 days)
     const sevenDaysAgo = new Date()
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
     sevenDaysAgo.setHours(0, 0, 0, 0)
 
-    const trends = await Order.aggregate([
-      { $match: { createdAt: { $gte: sevenDaysAgo } } },
-      {
-        $group: {
-          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
-          count: { $sum: 1 },
-          revenue: { $sum: "$totalAmount" }
-        }
-      },
-      { $sort: { _id: 1 } }
-    ])
+    const [mostOrdered, leastOrdered, trends] = await Promise.all([
+      Menu.find({ order_count: { $gt: 0 } }).sort({ order_count: -1 }).limit(10).lean(),
+      Menu.find({ order_count: { $gte: 0 } }).sort({ order_count: 1 }).limit(10).lean(),
+      Order.aggregate([
+        { $match: { createdAt: { $gte: sevenDaysAgo } } },
+        {
+          $group: {
+            _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+            count: { $sum: 1 },
+            revenue: { $sum: "$totalAmount" }
+          }
+        },
+        { $sort: { _id: 1 } }
+      ])
+    ]);
 
     res.json({
       success: true,
