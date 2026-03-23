@@ -21,7 +21,7 @@ const submitFeedback = async (req, res) => {
 
         // Invalidate cache
         try {
-            if (redisClient.isOpen) {
+            if (redisClient.isReadyForCommands()) {
                 const keys = await redisClient.keys("feedback_*");
                 if (keys.length > 0) {
                     await redisClient.del(keys);
@@ -47,7 +47,7 @@ const getFeedback = async (req, res) => {
         // 1. Check Redis Cache
         let cachedData = null;
         try {
-            if (redisClient.isOpen) {
+            if (redisClient.isReadyForCommands()) {
                 cachedData = await redisClient.get(cacheKey);
             }
         } catch (err) {
@@ -66,14 +66,16 @@ const getFeedback = async (req, res) => {
 
         const skip = (Number(page) - 1) * Number(limit);
 
-        // Fetch paginated feedbacks
-        const feedbacks = await Feedback.find(query)
-            .populate('order_id', 'items totalAmount')
-            .sort({ createdAt: -1 })
-            .skip(skip)
-            .limit(Number(limit));
-
-        const totalCount = await Feedback.countDocuments(query);
+        // Fetch paginated feedbacks and total count in parallel
+        const [feedbacks, totalCount] = await Promise.all([
+            Feedback.find(query)
+                .populate('order_id', 'items totalAmount')
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(Number(limit))
+                .lean(),
+            Feedback.countDocuments(query)
+        ]);
 
         const responseData = {
             success: true,
@@ -88,7 +90,7 @@ const getFeedback = async (req, res) => {
 
         // Cache result
         try {
-            if (redisClient.isOpen) {
+            if (redisClient.isReadyForCommands()) {
                 await redisClient.setEx(cacheKey, 600, JSON.stringify(responseData));
             }
         } catch (err) {

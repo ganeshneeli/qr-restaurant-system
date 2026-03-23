@@ -51,8 +51,10 @@ redisClient.on("end", () => {
         }
     } catch (err) {
         logger.error("Failed to connect to Redis initially:", err.message);
-        // Don't throw, let the app continue (Socket.IO will handle its own reconnects)
     }
 })();
+
+// Helper to check if redis is actually ready for commands (not just open but not connected)
+redisClient.isReadyForCommands = () => redisClient.isReady;
 
 module.exports = redisClient;

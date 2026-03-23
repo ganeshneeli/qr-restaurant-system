@@ -4,7 +4,7 @@ const redisClient = require("../config/redis")
 
 const invalidateMenuCache = async () => {
   try {
-    if (redisClient.isOpen) {
+    if (redisClient.isReadyForCommands()) {
       const keys = await redisClient.keys("menu_*");
       if (keys.length > 0) {
         await redisClient.del(keys);
@@ -19,12 +19,10 @@ const invalidateMenuCache = async () => {
 exports.getMenu = async (req, res) => {
   try {
     const { category, search, page = 1, limit = 12 } = req.query;
-    const cacheKey = `menu_${category || "All"}_${search || "NoSearch"}_${page}_${limit}`;
-
     // Try to get from cache
     let responseData = null;
     try {
-      if (redisClient.isOpen) {
+      if (redisClient.isReadyForCommands()) {
         const cachedData = await redisClient.get(cacheKey);
         if (cachedData) responseData = JSON.parse(cachedData);
       }
@@ -32,6 +30,8 @@ exports.getMenu = async (req, res) => {
       console.warn("Redis GET failed for menu, falling back to DB:", err.message);
     }
 
+    const now = new Date();
+    
     if (!responseData) {
       let query = {};
       if (category && category !== "All") {
@@ -47,12 +47,11 @@ exports.getMenu = async (req, res) => {
 
       const skip = (Number(page) - 1) * Number(limit);
 
-      const items = await Menu.find(query)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(Number(limit));
-
-      const totalCount = await Menu.countDocuments(query);
+      // Fetch menu and count in parallel
+      const [items, totalCount] = await Promise.all([
+        Menu.find(query).sort({ createdAt: -1 }).skip(skip).limit(Number(limit)).lean(),
+        Menu.countDocuments(query)
+      ]);
 
       responseData = {
         data: items,
@@ -64,9 +63,9 @@ exports.getMenu = async (req, res) => {
         }
       };
 
-      // Store in cache (items and pagination only)
+      // Store in cache
       try {
-        if (redisClient.isOpen) {
+        if (redisClient.isReadyForCommands()) {
           await redisClient.setEx(cacheKey, 3600, JSON.stringify(responseData));
         }
       } catch (err) {
@@ -74,14 +73,13 @@ exports.getMenu = async (req, res) => {
       }
     }
 
-    // Always fetch active AND upcoming flash sales fresh (or with very short cache)
-    const now = new Date();
+    // Always fetch active flash sales, potentially in parallel with other logic if needed
     const activeFlashSales = Number(page) === 1
       ? await Menu.find({
         isFlashSale: true,
         available: true,
-        saleEndTime: { $gte: now } // We only verify it hasn't ended yet
-      })
+        saleEndTime: { $gte: now }
+      }).lean()
       : [];
 
     res.json({
