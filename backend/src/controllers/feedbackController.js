@@ -66,7 +66,8 @@ const getFeedback = async (req, res) => {
             .populate('order_id', 'items totalAmount')
             .sort({ createdAt: -1 })
             .skip(skip)
-            .limit(Number(limit));
+            .limit(Number(limit))
+            .lean();
 
         const totalCount = await Feedback.countDocuments(query);
 
