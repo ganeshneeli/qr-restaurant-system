@@ -9,11 +9,7 @@ exports.initSocket = async (server) => {
     const pubClient = redisClient.duplicate();
     const subClient = redisClient.duplicate();
 
-    // Set short timeout for initial connection to avoid blocking startup too long
-    await Promise.all([
-      pubClient.connect(),
-      subClient.connect()
-    ]);
+    await Promise.all([pubClient.connect(), subClient.connect()]);
 
     io = socketIo(server, {
       cors: { origin: "*" },

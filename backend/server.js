@@ -45,8 +45,8 @@ if (cluster.isPrimary) {
   server.headersTimeout = 66000;
 
   initSocket(server).then(() => {
-    server.listen(PORT, "0.0.0.0", () => {
-      console.log(`Worker ${process.pid} started and listening on 0.0.0.0:${PORT}`)
+    server.listen(PORT, () => {
+      console.log(`Worker ${process.pid} started and running on port ${PORT}`)
     })
   }).catch(err => {
     console.error("Socket init failed", err);
