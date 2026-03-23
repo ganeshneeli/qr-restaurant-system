@@ -5,15 +5,27 @@ const redisClient = require("./redis")
 let io
 
 exports.initSocket = async (server) => {
-  const pubClient = redisClient.duplicate();
-  const subClient = redisClient.duplicate();
+  try {
+    const pubClient = redisClient.duplicate();
+    const subClient = redisClient.duplicate();
 
-  await Promise.all([pubClient.connect(), subClient.connect()]);
+    // Set short timeout for initial connection to avoid blocking Render's port binding too long
+    await Promise.all([
+      pubClient.connect(),
+      subClient.connect()
+    ]);
 
-  io = socketIo(server, {
-    cors: { origin: "*" },
-    adapter: createAdapter(pubClient, subClient)
-  })
+    io = socketIo(server, {
+      cors: { origin: "*" },
+      adapter: createAdapter(pubClient, subClient)
+    })
+    console.log("[Socket] Redis Adapter initialized");
+  } catch (err) {
+    console.error("[Socket] Redis Adapter failed to initialize, falling back to in-memory:", err.message);
+    io = socketIo(server, {
+      cors: { origin: "*" }
+    })
+  }
   io.on("connection", (socket) => {
     console.log(`[Socket] Connected: ${socket.id}`)
 
