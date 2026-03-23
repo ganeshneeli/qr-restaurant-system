@@ -19,7 +19,7 @@ const invalidateMenuCache = async () => {
 exports.getMenu = async (req, res) => {
   try {
     const { category, search, page = 1, limit = 12 } = req.query;
-    const cacheKey = `menu_${category || "all"}_${search || "none"}_${page}_${limit}`;
+    const cacheKey = `menu_v2_${category || "all"}_${search || "none"}_${page}_${limit}`;
     let responseData = null;
     try {
       if (redisClient.isReadyForCommands()) {
@@ -87,8 +87,8 @@ exports.getMenu = async (req, res) => {
 
     res.json({
       success: true,
-      ...responseData,
-      flashSales: activeFlashSales
+      ...(responseData || { data: [], pagination: { totalCount: 0, totalPages: 1, currentPage: 1, limit: 12 } }),
+      flashSales: activeFlashSales || []
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
