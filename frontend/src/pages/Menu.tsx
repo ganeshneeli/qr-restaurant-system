@@ -7,7 +7,6 @@ import {
   Bell, Flame, Star, Sparkles, Utensils, Coffee, Ghost, Check
 } from "lucide-react";
 import axios from "axios";
-import Lenis from "lenis";
 import { io as socketIO } from "socket.io-client";
 import type { Socket } from "socket.io-client";
 import { useAuth } from "@/context/AuthContext";
@@ -191,31 +190,6 @@ const MenuContent = () => {
       navigate(`/table/${tableId}`, { replace: true });
     }
   }, [sessionToken, tableId, navigate]);
-
-  // ── Lenis Smooth Scroll ───────────────────────────────────────────────────
-  useEffect(() => {
-    const lenis = new Lenis({
-      duration: 1.2,
-      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-      orientation: 'vertical',
-      gestureOrientation: 'vertical',
-      smoothWheel: true,
-      wheelMultiplier: 1,
-      touchMultiplier: 2,
-      infinite: false,
-    });
-
-    function raf(time: number) {
-      lenis.raf(time);
-      requestAnimationFrame(raf);
-    }
-
-    requestAnimationFrame(raf);
-
-    return () => {
-      lenis.destroy();
-    };
-  }, []);
 
   // ── Persist cart ──────────────────────────────────────────────────────────
   useEffect(() => {

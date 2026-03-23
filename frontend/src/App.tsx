@@ -7,6 +7,8 @@ import { HashRouter, Routes, Route } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import { AuthProvider } from "@/context/AuthContext";
 import { AdminRoute, CustomerRoute } from "@/components/ProtectedRoute";
+import SmoothScroll from "@/components/SmoothScroll";
+import { useLocation } from "react-router-dom";
 
 // Lazy loading pages for better performance
 const Landing = lazy(() => import("@/pages/Landing"));
@@ -25,6 +27,41 @@ const PageLoader = () => (
 
 const queryClient = new QueryClient();
 
+const AppContent = () => {
+  const location = useLocation();
+
+  return (
+    <SmoothScroll>
+      <AnimatePresence mode="wait">
+        <Suspense fallback={<PageLoader />}>
+          <Routes location={location} key={location.pathname}>
+            <Route path="/" element={<Landing />} />
+            <Route path="/table/:tableId" element={<TableActivation />} />
+            <Route
+              path="/table/:tableId/menu"
+              element={
+                <CustomerRoute>
+                  <TablePage />
+                </CustomerRoute>
+              }
+            />
+            <Route path="/admin-login" element={<AdminLogin />} />
+            <Route
+              path="/admin"
+              element={
+                <AdminRoute>
+                  <AdminDashboard />
+                </AdminRoute>
+              }
+            />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Suspense>
+      </AnimatePresence>
+    </SmoothScroll>
+  );
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
@@ -32,33 +69,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <HashRouter>
-          <AnimatePresence mode="wait">
-            <Suspense fallback={<PageLoader />}>
-              <Routes>
-                <Route path="/" element={<Landing />} />
-                <Route path="/table/:tableId" element={<TableActivation />} />
-                <Route
-                  path="/table/:tableId/menu"
-                  element={
-                    <CustomerRoute>
-                      <TablePage />
-                    </CustomerRoute>
-                  }
-                />
-                <Route path="/admin-login" element={<AdminLogin />} />
-                <Route
-                  path="/admin"
-                  element={
-                    <AdminRoute>
-                      <AdminDashboard />
-                    </AdminRoute>
-                  }
-                />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Suspense>
-          </AnimatePresence>
-
+          <AppContent />
         </HashRouter>
       </TooltipProvider>
     </AuthProvider>
