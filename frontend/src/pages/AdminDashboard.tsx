@@ -61,7 +61,14 @@ import {
   endOfDay,
   startOfDay
 } from "date-fns";
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:5001";
+// Better production socket URL detection
+const getSocketUrl = () => {
+  if (import.meta.env.VITE_SOCKET_URL) return import.meta.env.VITE_SOCKET_URL;
+  const apiUrl = import.meta.env.VITE_API_URL || "";
+  if (apiUrl.includes("/api")) return apiUrl.split("/api")[0];
+  return "http://localhost:5001";
+};
+const SOCKET_URL = getSocketUrl();
 import PageTransition from "@/components/PageTransition";
 import AnimatedCounter from "@/components/AnimatedCounter";
 import LoadingSkeleton from "@/components/LoadingSkeleton";
@@ -372,9 +379,6 @@ const AdminDashboard = () => {
     }
   }, [qrCodes.length, toast]);
 
-  const [isSocketConnected, setIsSocketConnected] = useState(false);
-  const [isAdminRoomJoined, setIsAdminRoomJoined] = useState(false);
-
   // Manage socket in state for reactivity
   const [socket, setSocket] = useState<Socket | null>(null);
 
@@ -389,30 +393,11 @@ const AdminDashboard = () => {
 
     s.on("connect", () => {
       console.log("✅ Admin Socket connected:", s.id);
-      setIsSocketConnected(true);
-      
-      // DIAGNOSTIC: Request acknowledgment for joining the admin room
-      s.emit("join-admin", (response: { success: boolean }) => {
-        console.log("🏁 Admin Room Join Response:", response);
-        if (response?.success) {
-          setIsAdminRoomJoined(true);
-        } else {
-          console.error("❌ Admin Room Join Failed:", response);
-          setIsAdminRoomJoined(false);
-        }
-      });
-    });
-
-    s.on("disconnect", () => {
-      console.log("🔌 Admin Socket disconnected");
-      setIsSocketConnected(false);
-      setIsAdminRoomJoined(false);
+      s.emit("join-admin");
     });
 
     s.on("connect_error", (err) => {
       console.error("❌ Admin Socket connection error:", err.message);
-      setIsSocketConnected(false);
-      setIsAdminRoomJoined(false);
     });
 
     setSocket(s);
@@ -888,26 +873,6 @@ const AdminDashboard = () => {
             </div>
           </div>
           <nav className="flex-1 p-4 space-y-1">
-            <div className="mt-8 pt-8 border-t border-white/5 space-y-4">
-              {/* Real-Time Status Diagnostic */}
-              <div className="px-4 py-2 rounded-lg bg-black/40 border border-white/5">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Real-time Sync</span>
-                  <div className={`w-2 h-2 rounded-full ${isSocketConnected && isAdminRoomJoined ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : isSocketConnected ? 'bg-yellow-500 shadow-[0_0_8px_rgba(234,179,8,0.6)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]'}`} />
-                </div>
-                <p className="text-[9px] text-muted-foreground">
-                  {isSocketConnected && isAdminRoomJoined ? "Authorized & Active" : isSocketConnected ? "Connected, pending auth..." : "Disconnected"}
-                </p>
-              </div>
-
-              <button
-                onClick={logout}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all duration-300"
-              >
-                <LogOut className="h-5 w-5" />
-                <span className="font-medium">Logout</span>
-              </button>
-            </div>
             {sections.map((s) => (
               <button
                 key={s.id}

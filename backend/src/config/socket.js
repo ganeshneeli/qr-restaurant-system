@@ -4,9 +4,17 @@ const jwt = require("jsonwebtoken")
 let io
 
 exports.initSocket = async (server) => {
+  const allowedOrigins = (process.env.FRONTEND_URL || "http://localhost:5173").split(",")
+  
   io = socketIo(server, {
     cors: { 
-      origin: process.env.FRONTEND_URL || "http://localhost:5173",
+      origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV !== "production") {
+          callback(null, true)
+        } else {
+          callback(new Error("Not allowed by CORS"))
+        }
+      },
       credentials: true
     }
   })
@@ -32,28 +40,26 @@ exports.initSocket = async (server) => {
   })
 
   io.on("connection", (socket) => {
-    const userId = socket.user?.id || socket.user?.sessionId || "anonymous"
-    console.log(`[Socket] Connected: ${socket.id} (User: ${userId})`)
+    const userDisplay = socket.user ? (socket.user.id || socket.user.sessionId) : "Unauthenticated"
+    console.log(`[Socket] Connected: ${socket.id} (User: ${userDisplay})`)
 
-    // Customer joins their table-specific room
+    // Customer joins their table-specific room — MUST match their token's tableNumber
     socket.on("join-table", (tableNumber) => {
       if (socket.user && socket.user.tableNumber && socket.user.tableNumber == tableNumber) {
         socket.join(`table-${tableNumber}`)
-        console.log(`[Socket] Room Join: table-${tableNumber} (Socket: ${socket.id})`)
+        console.log(`[Socket] Table room joined: table-${tableNumber}`)
       } else {
-        console.warn(`[Socket] Unauthorized join: table-${tableNumber} (User: ${userId})`)
+        console.warn(`[Socket] Unauthorized join attempt for table-${tableNumber} by ${socket.id}`)
       }
     })
 
-    // Admin joins the admin-specific room
-    socket.on("join-admin", (callback) => {
+    // Admin joins the admin-specific room — MUST have admin-like payload (id)
+    socket.on("join-admin", () => {
       if (socket.user && socket.user.id) { 
         socket.join("admin")
-        console.log(`[Socket] Room Join: admin (Socket: ${socket.id})`)
-        if (callback) callback({ success: true, room: "admin" })
+        console.log(`[Socket] SUCCESS: Admin room joined by ${socket.id}`)
       } else {
-        console.warn(`[Socket] Unauthorized admin join (User: ${userId})`)
-        if (callback) callback({ success: false, message: "Unauthorized" })
+        console.warn(`[Socket] FAILED: Admin join attempt by ${socket.id}. User:`, socket.user)
       }
     })
 
