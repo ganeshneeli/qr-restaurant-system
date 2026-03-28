@@ -253,15 +253,6 @@ const AdminDashboard = () => {
   }, []);
 
   const fetchMenu = useCallback(async (force = false) => {
-    // If not forcing and we already have items, skip (unless search/page changed)
-    // Actually, since this is called in useEffect with dependencies, 
-    // we only need to skip if the activeSection just changed back to "menu"
-    if (!force && menuItems.length > 0 && activeSection === "menu") {
-      // Small optimization: if we already have data and are just switching tabs, skip
-      // But we need to be careful with page/search dependencies.
-      // A better way is to use a ref to track the last fetched params.
-    }
-
     setMenuLoading(true);
     try {
       const res = await api.get("/menu", {
@@ -282,7 +273,7 @@ const AdminDashboard = () => {
     } finally {
       setMenuLoading(false);
     }
-  }, [menuPage, menuSearchQuery, toast, menuItems.length, activeSection]);
+  }, [menuPage, menuSearchQuery, toast]);
 
 
   const fetchHistory = useCallback(async () => {
@@ -364,8 +355,10 @@ const AdminDashboard = () => {
     }
   };
 
+
+
   const loadQrCodes = useCallback(async (forced = false) => {
-    if (!forced && qrCodes.length > 0) return;
+    // Use a ref to store loaded state to avoid qrCodes.length as a dep
     setQrLoading(true);
     try {
       const res = await api.get("/table/qrs");
@@ -377,112 +370,127 @@ const AdminDashboard = () => {
     } finally {
       setQrLoading(false);
     }
-  }, [qrCodes.length, toast]);
+  }, [toast]);
 
-  // Manage socket in state for reactivity
-  const [socket, setSocket] = useState<Socket | null>(null);
+
+  // ─── SOCKET SETUP (Ref-based stable pattern) ──────────────────────────────
+  // KEY DESIGN: Socket is stored in a ref (not state) to avoid re-renders.
+  // All callbacks are stored in refs so listeners are registered ONCE and always
+  // call the latest function without ever needing to re-register.
+  // This eliminates the stale closure and infinite re-subscription loop bugs.
+
+  // Stable ref-wrapped callbacks — always point to latest function
+  const fetchDataRef = useRef(fetchData);
+  const loadQrCodesRef = useRef(loadQrCodes);
+  const activeSectionRef = useRef(activeSection);
+  const fetchMenuRef = useRef(fetchMenu);
+  const toastRef = useRef(toast);
+
+  // Keep refs up-to-date on every render (no deps needed)
+  useEffect(() => { fetchDataRef.current = fetchData; });
+  useEffect(() => { loadQrCodesRef.current = loadQrCodes; });
+  useEffect(() => { activeSectionRef.current = activeSection; });
+  useEffect(() => { fetchMenuRef.current = fetchMenu; });
+  useEffect(() => { toastRef.current = toast; });
 
   useEffect(() => {
     const token = localStorage.getItem("adminToken");
     if (!token) return;
 
-    console.log("🔌 Admin: Initializing socket...");
+    console.log("[Admin Socket] Initializing socket connection to:", SOCKET_URL);
     const s = socketIO(SOCKET_URL, {
-      auth: { token }
+      auth: { token },
+      transports: ["websocket", "polling"],
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
     });
 
-    s.on("connect", () => {
-      console.log("✅ Admin Socket connected:", s.id);
+    // ─── Permanently registered handlers (never torn down) ───────────────────
+    // They call ref.current so they always use the latest state/callbacks.
+
+    const onConnect = () => {
+      console.log("[Admin Socket] ✅ Connected:", s.id);
       s.emit("joinAdmin");
-    });
-
-    s.on("joinAdminSuccess", () => {
-      console.log("👑 Socket: Successfully joined Admin room. Live updates active.");
-    });
-
-    s.on("connect_error", (err) => {
-      console.error("❌ Socket connection error:", err.message);
-      // If VITE_SOCKET_URL is wrong, let's log it clearly
-      console.log("Current SOCKET_URL attempting to use:", SOCKET_URL);
-    });
-
-    setSocket(s);
-
-    return () => {
-      console.log("🔌 Admin: Cleaning up socket...");
-      s.disconnect();
     };
-  }, []); // Run once on mount
 
-  useEffect(() => {
-    if (!socket) return;
+    const onJoinAdminSuccess = () => {
+      console.log("[Admin Socket] 👑 Joined admin room. Live updates active.");
+    };
 
-    const handleNewOrder = (order: Order) => {
-      console.log("📦 [Socket] orderCreated/newOrder received", order);
+    const onConnectError = (err: Error) => {
+      console.error("[Admin Socket] ❌ Connection error:", err.message);
+    };
+
+    const onOrderCreated = (order: Order) => {
+      console.log("[Admin Socket] 📦 orderCreated received", order);
       setOrders((prev) => {
         const exists = prev.find((o) => o._id === order._id);
         if (exists) return prev.map((o) => (o._id === order._id ? order : o));
         return [order, ...prev];
       });
-      fetchData();
-      toast({
+      fetchDataRef.current();
+      toastRef.current({
         title: "🍽️ New Order!",
         description: `Table ${order.tableNumber || order.table?.number}`
       });
     };
 
-    const handleBillRequested = (data: { tableNumber: number }) => {
-      console.log("🧾 [Socket] billRequested received", data);
-      toast({
+    const onBillRequested = (data: { tableNumber: number }) => {
+      console.log("[Admin Socket] 🧾 billRequested received", data);
+      toastRef.current({
         title: "🧾 Bill Requested",
         description: `Table ${data.tableNumber}`
       });
-      fetchData();
+      fetchDataRef.current();
     };
 
-    const handleStatusUpdated = () => {
-      console.log("🔄 [Socket] statusUpdated received");
-      fetchData();
+    const onStatusUpdated = (payload: unknown) => {
+      console.log("[Admin Socket] 🔄 statusUpdated received", payload);
+      fetchDataRef.current();
     };
 
-    const handleOrderPaid = () => {
-      console.log("💰 [Socket] orderPaid received");
-      fetchData();
+    const onTableStatusChanged = (data?: { tableNumber?: number; status?: string }) => {
+      console.log("[Admin Socket] 🪑 tableStatusChanged received", data);
+      fetchDataRef.current();
+      loadQrCodesRef.current(true);
     };
 
-    const handleTableStatusChanged = (data?: { tableNumber?: number; status?: string }) => {
-      console.log("🪑 [Socket] tableStatusChanged received", data);
-      fetchData();
-      loadQrCodes(true);
-    };
-
-    const handleMenuUpdate = () => {
-      console.log("🍴 [Socket] menuUpdate received");
-      if (activeSection === "menu") fetchMenu(true);
+    const onMenuUpdate = () => {
+      console.log("[Admin Socket] 🍴 menuUpdate received");
+      if (activeSectionRef.current === "menu") fetchMenuRef.current(true);
       else lastMenuFetchRef.current = "";
     };
 
-    socket.on("orderCreated", handleNewOrder);
-    socket.on("newOrder", handleNewOrder);
-    socket.on("billRequested", handleBillRequested);
-    socket.on("statusUpdated", handleStatusUpdated);
-    socket.on("tableStatusChanged", handleTableStatusChanged);
-    socket.on("menuUpdate", handleMenuUpdate);
+    s.on("connect", onConnect);
+    s.on("joinAdminSuccess", onJoinAdminSuccess);
+    s.on("connect_error", onConnectError);
+    s.on("orderCreated", onOrderCreated);
+    s.on("newOrder", onOrderCreated);      // both event names
+    s.on("billRequested", onBillRequested);
+    s.on("statusUpdated", onStatusUpdated);
+    s.on("tableStatusChanged", onTableStatusChanged);
+    s.on("menuUpdate", onMenuUpdate);
+
+    // If already connected on second Strict-Mode mount, emit joinAdmin immediately
+    if (s.connected) s.emit("joinAdmin");
+
+    socketRef.current = s;
 
     return () => {
-      socket.off("orderCreated", handleNewOrder);
-      socket.off("newOrder", handleNewOrder);
-      socket.off("billRequested", handleBillRequested);
-      socket.off("statusUpdated", handleStatusUpdated);
-      socket.off("tableStatusChanged", handleTableStatusChanged);
-      socket.off("menuUpdate", handleMenuUpdate);
+      console.log("[Admin Socket] Cleaning up and disconnecting.");
+      s.disconnect();
+      socketRef.current = null;
     };
-  }, [socket, fetchData, loadQrCodes, toast, activeSection, fetchMenu]); // Added activeSection + fetchMenu to fix stale closure
+  }, []); // ← Run ONCE. Refs handle stale closures; no deps needed.
+
+
 
   // Initial Data Fetch
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
 
   const updateOrderStatus = async (orderId: string, status: string) => {
     try {
