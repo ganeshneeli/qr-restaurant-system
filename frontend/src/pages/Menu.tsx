@@ -389,11 +389,7 @@ const MenuContent = () => {
         }
       }
 
-      if (data.status === "completed") { 
-        localStorage.removeItem(cartKey); 
-        setCart([]); 
-        setSessionToken(null, tableId); 
-      }
+      if (data.status === "completed") { localStorage.removeItem(cartKey); setCart([]); }
     };
 
     const onPaid = (data: { sessionId?: string; tableNumber?: number; orderId?: string }) => {

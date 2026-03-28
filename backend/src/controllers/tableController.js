@@ -4,7 +4,7 @@ const jwt = require("jsonwebtoken")
 const { v4: uuidv4 } = require("uuid")
 const QRCode = require("qrcode")
 const crypto = require("crypto")
-const { emitToAdmin, emitToTable } = require("../config/socket")
+const { emitToAdmin } = require("../config/socket")
 
 // Helper to generate a security signature for a table
 const generateSignature = (tableNumber) => {
@@ -153,7 +153,6 @@ exports.forceReleaseTable = async (req, res) => {
       )
     }
 
-    emitToTable(tableNumber, "statusUpdated", { status: "completed" })
     emitToAdmin("tableStatusChanged")
 
     res.json({ success: true, message: `Table ${tableNumber} released` })
