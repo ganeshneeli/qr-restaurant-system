@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
+import { io as socketIO, Socket } from "socket.io-client";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard,
@@ -50,7 +51,6 @@ import { Switch } from "@/components/ui/switch";
 import { useNavigate } from "react-router-dom";
 import api from "@/api/axios";
 import { useAuth } from "@/context/AuthContext";
-import { io as socketIO } from "socket.io-client";
 import {
   format,
   isToday,
@@ -357,33 +357,6 @@ const AdminDashboard = () => {
     }
   };
 
-  // Handle Socket Connection separately to keep it stable
-  useEffect(() => {
-    console.log("🔌 Admin: Initializing socket connection...");
-    const socket = socketIO(SOCKET_URL, { 
-      autoConnect: false,
-      auth: { token: localStorage.getItem("adminToken") }
-    });
-    socketRef.current = socket;
-
-    socket.connect();
-
-    socket.on("connect", () => {
-      console.log("✅ Admin Socket connected:", socket.id);
-      socket.emit("join-admin");
-    });
-
-    socket.on("connect_error", (err) => {
-      console.error("❌ Admin Socket connection error:", err);
-    });
-
-    return () => {
-      console.log("🔌 Admin: Disconnecting socket...");
-      socket.disconnect();
-      socketRef.current = null;
-    };
-  }, []); // Only on mount/unmount
-
   const loadQrCodes = useCallback(async (forced = false) => {
     if (!forced && qrCodes.length > 0) return;
     setQrLoading(true);
@@ -399,8 +372,38 @@ const AdminDashboard = () => {
     }
   }, [qrCodes.length, toast]);
 
-  // Handle Socket Listeners
+  // Manage socket in state for reactivity
+  const [socket, setSocket] = useState<Socket | null>(null);
+
   useEffect(() => {
+    const token = localStorage.getItem("adminToken");
+    if (!token) return;
+
+    console.log("🔌 Admin: Initializing socket...");
+    const s = socketIO(SOCKET_URL, {
+      auth: { token }
+    });
+
+    s.on("connect", () => {
+      console.log("✅ Admin Socket connected:", s.id);
+      s.emit("join-admin");
+    });
+
+    s.on("connect_error", (err) => {
+      console.error("❌ Admin Socket connection error:", err.message);
+    });
+
+    setSocket(s);
+
+    return () => {
+      console.log("🔌 Admin: Cleaning up socket...");
+      s.disconnect();
+    };
+  }, []); // Run once on mount
+
+  useEffect(() => {
+    if (!socket) return;
+
     const handleNewOrder = (order: Order) => {
       console.log("📦 Socket: newOrder received", order);
       setOrders((prev) => {
@@ -436,22 +439,14 @@ const AdminDashboard = () => {
     const handleTableUpdated = () => {
       console.log("🪑 Socket: tableUpdated received");
       fetchData();
-      loadQrCodes(true); // Instantly sync QR codes when any table changes
+      loadQrCodes(true);
     };
 
     const handleMenuUpdate = () => {
       console.log("🍴 Socket: menuUpdate received");
-      // If we are in the menu section, refresh it
-      if (activeSection === "menu") {
-        fetchMenu(true);
-      } else {
-        // Clear the ref so it refetches next time we enter the menu section
-        lastMenuFetchRef.current = "";
-      }
+      if (activeSection === "menu") fetchMenu(true);
+      else lastMenuFetchRef.current = "";
     };
-
-    const socket = socketRef.current;
-    if (!socket) return;
 
     socket.on("newOrder", handleNewOrder);
     socket.on("billRequested", handleBillRequested);
@@ -468,7 +463,7 @@ const AdminDashboard = () => {
       socket.off("tableUpdated", handleTableUpdated);
       socket.off("menuUpdate", handleMenuUpdate);
     };
-  }, [fetchData, loadQrCodes, toast, activeSection, fetchMenu]);
+  }, [socket, fetchData, loadQrCodes, toast, activeSection, fetchMenu]);
 
   // Initial Data Fetch
   useEffect(() => {
