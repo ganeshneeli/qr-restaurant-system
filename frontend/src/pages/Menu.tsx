@@ -370,42 +370,28 @@ const MenuContent = () => {
       setIsConnected(false);
     };
 
-    const onStatusUpdate = (data: { status: string; sessionId?: string; tableNumber?: number }) => {
+    const onStatusUpdate = (data: { status: string; sessionId?: string; tableNumber?: number; orderId?: string }) => {
       if (data.tableNumber && String(data.tableNumber) !== tableId) return;
       if (data.sessionId && data.sessionId !== sessionId) return;
+
+      // Always fetch latest order to keep UI synced
       fetchOrder();
 
       if (data.status === "preparing" || data.status === "served") {
         setPopupStatus(data.status);
         setShowTopPopup(true);
-        // Extend duration for cinematic effect
         setTimeout(() => setShowTopPopup(false), 7000);
-      } else {
-        const msg: Record<string, string> = {
-          completed: "Session ended. Thank you!",
-        };
-        if (msg[data.status]) {
-          toast({ title: "Update", description: msg[data.status] });
-        }
+      } else if (data.status === "completed") {
+        toast({ title: "✅ Payment Confirmed", description: "Please leave your feedback before leaving!" });
+        localStorage.removeItem(cartKey);
+        setCart([]);
+        
+        // Track the order ID for feedback and show feedback modal
+        if (data.orderId) setPaidOrderId(data.orderId);
+        else if (myOrder) setPaidOrderId(myOrder._id);
+        
+        setShowFeedback(true);
       }
-
-      if (data.status === "completed") { localStorage.removeItem(cartKey); setCart([]); }
-    };
-
-    const onPaid = (data: { sessionId?: string; tableNumber?: number; orderId?: string }) => {
-      if (data.tableNumber && String(data.tableNumber) !== tableId) return; // hard table guard
-      if (data.sessionId && data.sessionId !== sessionId) return;
-
-      toast({ title: "✅ Paid", description: "Payment confirmed! Please leave feedback." });
-      localStorage.removeItem(cartKey);
-      setCart([]);
-
-      // Save order ID for feedback and show feedback modal
-      if (data.orderId) setPaidOrderId(data.orderId);
-      // Fallback: if backend doesn't send orderId in paid event, try to get from current order
-      else if (myOrder) setPaidOrderId(myOrder._id);
-
-      setShowFeedback(true);
     };
 
     const onMenuUpdate = () => {
@@ -425,8 +411,8 @@ const MenuContent = () => {
     return () => {
       socket.emit("leave-table", tableId);
       socket.off("connect", onConnect);
-      socket.off("orderStatusUpdated", onStatusUpdate);
-      socket.off("orderPaid", onPaid);
+      socket.off("disconnect", onDisconnect);
+      socket.off("statusUpdated", onStatusUpdate);
       socket.off("menuUpdate", onMenuUpdate);
       socket.disconnect();
       socketRef.current = null;
