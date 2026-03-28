@@ -46,7 +46,7 @@ const Cart = ({
                 {cart.map(item => (
                   <div key={item.foodId} className="flex justify-between items-center py-3 border-b border-white/5">
                     <div>
-                      <p className="font-bold text-primary">{item.name}</p>
+                      <p className="font-black text-primary">{item.name}</p>
                       <p className="text-sm text-muted-foreground">₹{item.price} × {item.quantity}</p>
                     </div>
                     <div className="flex items-center gap-2 ml-4">
