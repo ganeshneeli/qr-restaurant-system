@@ -2,7 +2,7 @@ const Order = require("../models/Order")
 const Menu = require("../models/Menu")
 const Table = require("../models/Table")
 const Session = require("../models/Session")
-const { emitToAdmin, emitToTable } = require("../config/socket")
+const { emitToAdmin, emitToTable, emitToAll } = require("../config/socket")
 
 // Admin: Get all active orders
 exports.getAllOrders = async (req, res) => {
@@ -165,10 +165,13 @@ exports.createOrder = async (req, res) => {
       if (bulkOps.length > 0) await Menu.bulkWrite(bulkOps)
     }
 
-    // Notify only admins about the new order
+    // Notify admins about the new order (both event names for compatibility)
+    console.log("[Socket] Emitting orderCreated to admin room, orderId:", order._id)
+    emitToAdmin("orderCreated", order)
     emitToAdmin("newOrder", order)
-    // Also notify that tables might have changed state (Occupied)
-    emitToAdmin("tableStatusChanged")
+    // Broadcast tableStatusChanged to ALL clients (table is now occupied)
+    console.log("[Socket] Emitting tableStatusChanged (occupied) to all clients, tableNumber:", order.tableNumber)
+    emitToAll("tableStatusChanged", { tableNumber: order.tableNumber, status: "occupied" })
     
     res.json({ success: true, data: order })
   } catch (error) {
@@ -211,6 +214,9 @@ exports.updateStatus = async (req, res) => {
     if (order.status === "completed") {
       await Table.updateOne({ _id: order.tableId }, { status: "available", currentSessionId: null })
       await Session.updateOne({ sessionId: order.sessionId }, { active: false })
+      // Broadcast tableStatusChanged (free) to ALL clients
+      console.log("[Socket] Emitting tableStatusChanged (free) to all clients, tableNumber:", order.tableNumber)
+      emitToAll("tableStatusChanged", { tableNumber: order.tableNumber, status: "free" })
     }
 
     // Notify specific table and admin
@@ -237,6 +243,10 @@ exports.markAsPaid = async (req, res) => {
 
     await Table.updateOne({ _id: order.tableId }, { status: "available", currentSessionId: null, startedAt: null })
     await Session.updateOne({ sessionId: order.sessionId }, { active: false })
+
+    // Broadcast tableStatusChanged (free) to ALL clients
+    console.log("[Socket] Emitting tableStatusChanged (free) via markAsPaid, tableNumber:", order.tableNumber)
+    emitToAll("tableStatusChanged", { tableNumber: order.tableNumber, status: "free" })
 
     const payload = { orderId: order._id, tableNumber: order.tableNumber, status: "completed" }
     emitToTable(order.tableNumber, "statusUpdated", payload)

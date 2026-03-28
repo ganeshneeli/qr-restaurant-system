@@ -83,7 +83,7 @@ exports.emitToAdmin = (event, data) => {
   try {
     const io = exports.getIO()
     io.to("admin").emit(event, data)
-    console.log(`[Socket Broadcast] Event: ${event} to room: admin`)
+    console.log(`[Socket Broadcast] Event: ${event} → room: admin`, data !== undefined ? data : "")
   } catch (err) {
     console.warn(`[Socket Broadcast] FAILED: ${event}. Error: ${err.message}`)
   }
@@ -93,9 +93,19 @@ exports.emitToTable = (tableNumber, event, data) => {
   try {
     const io = exports.getIO()
     io.to(`table-${tableNumber}`).emit(event, data)
-    console.log(`[Socket Broadcast] Event: ${event} to room: table-${tableNumber}`)
+    console.log(`[Socket Broadcast] Event: ${event} → room: table-${tableNumber}`, data !== undefined ? data : "")
   } catch (err) {
     console.warn(`[Socket Broadcast] FAILED: ${event} for table ${tableNumber}. Error: ${err.message}`)
+  }
+}
+
+exports.emitToAll = (event, data) => {
+  try {
+    const io = exports.getIO()
+    io.emit(event, data)
+    console.log(`[Socket Broadcast] Event: ${event} → ALL clients`, data !== undefined ? data : "")
+  } catch (err) {
+    console.warn(`[Socket Broadcast] FAILED (global): ${event}. Error: ${err.message}`)
   }
 }
 

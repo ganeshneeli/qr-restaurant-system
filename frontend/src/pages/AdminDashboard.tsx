@@ -418,14 +418,12 @@ const AdminDashboard = () => {
     if (!socket) return;
 
     const handleNewOrder = (order: Order) => {
-      console.log("📦 Socket: newOrder received", order);
-      // Directly update orders for immediate UI feedback...
+      console.log("📦 [Socket] orderCreated/newOrder received", order);
       setOrders((prev) => {
         const exists = prev.find((o) => o._id === order._id);
         if (exists) return prev.map((o) => (o._id === order._id ? order : o));
         return [order, ...prev];
       });
-      // ...but ALWAYS call fetchData to sync tables and summary (Revenue/Orders count)
       fetchData();
       toast({
         title: "🍽️ New Order!",
@@ -434,7 +432,7 @@ const AdminDashboard = () => {
     };
 
     const handleBillRequested = (data: { tableNumber: number }) => {
-      console.log("🧾 Socket: billRequested received", data);
+      console.log("🧾 [Socket] billRequested received", data);
       toast({
         title: "🧾 Bill Requested",
         description: `Table ${data.tableNumber}`
@@ -443,27 +441,28 @@ const AdminDashboard = () => {
     };
 
     const handleStatusUpdated = () => {
-      console.log("🔄 Socket: orderStatusUpdated received");
+      console.log("🔄 [Socket] statusUpdated received");
       fetchData();
     };
 
     const handleOrderPaid = () => {
-      console.log("💰 Socket: orderPaid received");
+      console.log("💰 [Socket] orderPaid received");
       fetchData();
     };
 
-    const handleTableStatusChanged = () => {
-      console.log("🪑 Socket: tableStatusChanged received");
+    const handleTableStatusChanged = (data?: { tableNumber?: number; status?: string }) => {
+      console.log("🪑 [Socket] tableStatusChanged received", data);
       fetchData();
       loadQrCodes(true);
     };
 
     const handleMenuUpdate = () => {
-      console.log("🍴 Socket: menuUpdate received");
+      console.log("🍴 [Socket] menuUpdate received");
       if (activeSection === "menu") fetchMenu(true);
       else lastMenuFetchRef.current = "";
     };
 
+    socket.on("orderCreated", handleNewOrder);
     socket.on("newOrder", handleNewOrder);
     socket.on("billRequested", handleBillRequested);
     socket.on("statusUpdated", handleStatusUpdated);
@@ -471,13 +470,14 @@ const AdminDashboard = () => {
     socket.on("menuUpdate", handleMenuUpdate);
 
     return () => {
+      socket.off("orderCreated", handleNewOrder);
       socket.off("newOrder", handleNewOrder);
       socket.off("billRequested", handleBillRequested);
       socket.off("statusUpdated", handleStatusUpdated);
       socket.off("tableStatusChanged", handleTableStatusChanged);
       socket.off("menuUpdate", handleMenuUpdate);
     };
-  }, [socket, fetchData, loadQrCodes, toast]); // Dependency reduced for stability
+  }, [socket, fetchData, loadQrCodes, toast, activeSection, fetchMenu]); // Added activeSection + fetchMenu to fix stale closure
 
   // Initial Data Fetch
   useEffect(() => {

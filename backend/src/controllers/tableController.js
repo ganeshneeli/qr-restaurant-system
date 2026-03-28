@@ -4,7 +4,7 @@ const jwt = require("jsonwebtoken")
 const { v4: uuidv4 } = require("uuid")
 const QRCode = require("qrcode")
 const crypto = require("crypto")
-const { emitToAdmin } = require("../config/socket")
+const { emitToAdmin, emitToAll } = require("../config/socket")
 
 // Helper to generate a security signature for a table
 const generateSignature = (tableNumber) => {
@@ -54,7 +54,8 @@ exports.activateTable = async (req, res) => {
     { expiresIn: "15m" } // Strict 15 min expiry
   )
 
-  emitToAdmin("tableStatusChanged")
+  console.log("[Socket] Emitting tableStatusChanged (occupied) for table:", table.tableNumber)
+  emitToAll("tableStatusChanged", { tableNumber: table.tableNumber, status: "occupied" })
 
   res.json({ success: true, token })
 }
@@ -153,7 +154,8 @@ exports.forceReleaseTable = async (req, res) => {
       )
     }
 
-    emitToAdmin("tableStatusChanged")
+    console.log("[Socket] Emitting tableStatusChanged (free) for force-released table:", tableNumber)
+    emitToAll("tableStatusChanged", { tableNumber: Number(tableNumber), status: "free" })
 
     res.json({ success: true, message: `Table ${tableNumber} released` })
   } catch (error) {
@@ -166,7 +168,8 @@ exports.addTable = async (req, res) => {
     const nextNumber = lastTable ? lastTable.tableNumber + 1 : 1
     const newTable = await Table.create({ tableNumber: nextNumber })
 
-    emitToAdmin("tableStatusChanged")
+    console.log("[Socket] Emitting tableStatusChanged after adding table:", newTable.tableNumber)
+    emitToAll("tableStatusChanged", { tableNumber: newTable.tableNumber, status: "free" })
 
     res.json({ success: true, data: newTable })
   } catch (error) {
@@ -186,7 +189,8 @@ exports.removeTable = async (req, res) => {
 
     await Table.deleteOne({ tableNumber })
 
-    emitToAdmin("tableStatusChanged")
+    console.log("[Socket] Emitting tableStatusChanged after removing table:", tableNumber)
+    emitToAll("tableStatusChanged", { tableNumber: Number(tableNumber), status: "removed" })
 
     res.json({ success: true, message: "Table removed successfully" })
   } catch (error) {
