@@ -449,8 +449,8 @@ const AdminDashboard = () => {
       fetchData();
     };
 
-    const handleTableUpdated = () => {
-      console.log("🪑 Socket: tableUpdated received");
+    const handleTableStatusChanged = () => {
+      console.log("🪑 Socket: tableStatusChanged received");
       fetchData();
       loadQrCodes(true);
     };
@@ -463,17 +463,15 @@ const AdminDashboard = () => {
 
     socket.on("newOrder", handleNewOrder);
     socket.on("billRequested", handleBillRequested);
-    socket.on("orderStatusUpdated", handleStatusUpdated);
-    socket.on("orderPaid", handleOrderPaid);
-    socket.on("tableUpdated", handleTableUpdated);
+    socket.on("statusUpdated", handleStatusUpdated);
+    socket.on("tableStatusChanged", handleTableStatusChanged);
     socket.on("menuUpdate", handleMenuUpdate);
 
     return () => {
       socket.off("newOrder", handleNewOrder);
       socket.off("billRequested", handleBillRequested);
-      socket.off("orderStatusUpdated", handleStatusUpdated);
-      socket.off("orderPaid", handleOrderPaid);
-      socket.off("tableUpdated", handleTableUpdated);
+      socket.off("statusUpdated", handleStatusUpdated);
+      socket.off("tableStatusChanged", handleTableStatusChanged);
       socket.off("menuUpdate", handleMenuUpdate);
     };
   }, [socket, fetchData, loadQrCodes, toast, activeSection, fetchMenu]);
