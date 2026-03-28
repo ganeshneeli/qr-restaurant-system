@@ -153,6 +153,7 @@ exports.forceReleaseTable = async (req, res) => {
       )
     }
 
+    emitToTable(tableNumber, "statusUpdated", { status: "completed" })
     emitToAdmin("tableStatusChanged")
 
     res.json({ success: true, message: `Table ${tableNumber} released` })
