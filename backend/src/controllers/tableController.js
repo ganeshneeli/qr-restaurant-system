@@ -3,30 +3,55 @@ const Session = require("../models/Session")
 const jwt = require("jsonwebtoken")
 const { v4: uuidv4 } = require("uuid")
 const QRCode = require("qrcode")
+const crypto = require("crypto")
 const { getIO } = require("../config/socket")
 
+// Helper to generate a security signature for a table
+const generateSignature = (tableNumber) => {
+  return crypto
+    .createHmac("sha256", process.env.JWT_SECRET)
+    .update(String(tableNumber))
+    .digest("hex")
+    .substring(0, 16) // 16 chars is enough for a URL signature
+}
+
 exports.activateTable = async (req, res) => {
+  const { tableNumber } = req.params
+  const { signature } = req.body
+
+  // LAYER 1: Verify signed QR URL
+  const expectedSignature = generateSignature(tableNumber)
+  if (signature !== expectedSignature) {
+    return res.status(403).json({ 
+      success: false, 
+      message: "Invalid QR Signature. Please use the official table QR code." 
+    })
+  }
+
   const sessionId = uuidv4()
   const table = await Table.findOneAndUpdate(
-    { tableNumber: req.params.tableNumber, status: "available" },
+    { tableNumber: tableNumber, status: "available" },
     { status: "occupied", currentSessionId: sessionId, startedAt: new Date() },
     { new: true }
   )
 
   if (!table)
-    return res.status(400).json({ success: false, message: "Table occupied" })
+    return res.status(400).json({ success: false, message: "Table occupied or invalid" })
 
+  // LAYER 3: 15-minute Token/Session Expiry (Industry Standard for anti-misuse)
+  const EXPIRY_TIME = 15 * 60 * 1000 // 15 mins
+  
   await Session.create({
     sessionId,
     tableId: table._id,
     startedAt: new Date(),
-    expiresAt: new Date(Date.now() + 2 * 60 * 60 * 1000)
+    expiresAt: new Date(Date.now() + EXPIRY_TIME)
   })
 
   const token = jwt.sign(
     { sessionId, tableNumber: table.tableNumber, tableId: table._id },
     process.env.JWT_SECRET,
-    { expiresIn: "2h" }
+    { expiresIn: "15m" } // Strict 15 min expiry
   )
 
   try { getIO().to("admin").emit("tableUpdated"); } catch (e) { }
@@ -66,7 +91,11 @@ exports.getTableQR = async (req, res) => {
   try {
     const { tableNumber } = req.params
     const frontendBaseUrl = process.env.FRONTEND_URL || "http://localhost:5173"
-    const url = `${frontendBaseUrl}/#/table/${tableNumber}`
+    
+    // Add signature to the URL
+    const signature = generateSignature(tableNumber)
+    const url = `${frontendBaseUrl}/#/table/${tableNumber}?s=${signature}`
+    
     const qrDataUrl = await QRCode.toDataURL(url, {
       width: 300,
       margin: 2,
@@ -84,9 +113,11 @@ exports.getAllTableQRs = async (req, res) => {
     const frontendBaseUrl = process.env.FRONTEND_URL || "http://localhost:5173"
     
     const qrPromises = tables.map(async (table) => {
-      const url = `${frontendBaseUrl}/#/table/${table.tableNumber}`
+      const signature = generateSignature(table.tableNumber)
+      const url = `${frontendBaseUrl}/#/table/${table.tableNumber}?s=${signature}`
+      
       const qrDataUrl = await QRCode.toDataURL(url, {
-        width: 250, // Slightly smaller for bulk loading/dashboard
+        width: 250,
         margin: 2,
         color: { dark: "#000000", light: "#ffffff" }
       })
@@ -115,7 +146,6 @@ exports.forceReleaseTable = async (req, res) => {
 
     if (!table) return res.status(404).json({ success: false, message: "Table not found" })
 
-    // If there was a session, deactivate it
     if (table.currentSessionId) {
       await Session.updateOne(
         { sessionId: table.currentSessionId },

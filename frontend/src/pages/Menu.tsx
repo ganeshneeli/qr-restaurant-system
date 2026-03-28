@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus, Minus, Receipt, ShoppingCart,
   ChefHat, ClipboardList, X, Info, Search,
-  Bell, Flame, Star, Sparkles, Utensils, Coffee, Ghost, Check
+  Bell, Flame, Star, Sparkles, Utensils, Coffee, Ghost, Check, Loader2
 } from "lucide-react";
 import axios from "axios";
 import { io as socketIO } from "socket.io-client";
@@ -176,6 +176,7 @@ const MenuContent = () => {
   const [specialNote, setSpecialNote] = useState("");
 
 
+  const [isConnected, setIsConnected] = useState(true);
   const socketRef = useRef<Socket | null>(null);
 
   const resolveImagePath = (imagePath?: string) => {
@@ -184,12 +185,27 @@ const MenuContent = () => {
     return `${SOCKET_URL}${imagePath}`;
   };
 
-  // ── Redirect if no session ────────────────────────────────────────────────
+  // ── Redirect if no session or invalid table ──────────────────────────────
   useEffect(() => {
-    if (!sessionToken && tableId) {
+    if (!tableId) return;
+
+    if (!sessionToken) {
+      navigate(`/table/${tableId}`, { replace: true });
+      return;
+    }
+
+    // SECURITY GUARD: If user manualy changes URL to Table B while token is for Table A
+    if (decoded && String(decoded.tableNumber) !== String(tableId)) {
+      console.warn(`[Security] Table mismatch! URL: ${tableId}, Token: ${decoded.tableNumber}`);
+      toast({ 
+        title: "Session Mismatch", 
+        description: "Your session is for another table. Please re-scan.",
+        variant: "destructive" 
+      });
+      setSessionToken(null, tableId); // Clear invalid token for THIS table URL
       navigate(`/table/${tableId}`, { replace: true });
     }
-  }, [sessionToken, tableId, navigate]);
+  }, [sessionToken, tableId, navigate, decoded, setSessionToken, toast]);
 
   // ── Persist cart ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -338,13 +354,20 @@ const MenuContent = () => {
     // avoiding room closure overlaps and auto-reconnect cross-contamination.
     const socket = socketIO(SOCKET_URL, {
       transports: ["websocket", "polling"],
-      forceNew: true
+      forceNew: true,
+      auth: { token: sessionToken }
     });
     socketRef.current = socket;
 
     const onConnect = () => {
       console.log(`[Table-${tableId}] Socket connected → joining room`);
+      setIsConnected(true);
       socket.emit("join-table", tableId);
+    };
+
+    const onDisconnect = () => {
+      console.log(`[Table-${tableId}] Socket disconnected!`);
+      setIsConnected(false);
     };
 
     const onStatusUpdate = (data: { status: string; sessionId?: string; tableNumber?: number }) => {
@@ -390,6 +413,7 @@ const MenuContent = () => {
     };
 
     socket.on("connect", onConnect);
+    socket.on("disconnect", onDisconnect);
     socket.on("orderStatusUpdated", onStatusUpdate);
     socket.on("orderPaid", onPaid);
     socket.on("menuUpdate", onMenuUpdate);
@@ -559,9 +583,28 @@ const MenuContent = () => {
             <div className="flex items-center gap-3">
               <h1 className="font-display text-2xl font-bold text-glow-white text-white">OG</h1>
               {tableId && (
-                <Badge className="bg-primary/20 text-primary border-primary/30 border text-xs font-semibold">
-                  Table {tableId}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Badge className="bg-primary/20 text-primary border-primary/30 border text-xs font-semibold">
+                    Table {tableId}
+                  </Badge>
+                  
+                  {/* REAL-WORLD PRODUCTION INDICATOR */}
+                  {!isConnected ? (
+                    <motion.div
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-destructive/10 border border-destructive/20 text-[10px] text-destructive font-black uppercase tracking-tighter"
+                    >
+                      <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                      Offline
+                    </motion.div>
+                  ) : (
+                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-500/10 border border-green-500/20 text-[10px] text-green-500 font-black uppercase tracking-tighter">
+                      <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                      Live
+                    </div>
+                  )}
+                </div>
               )}
             </div>
             <div className="flex items-center gap-2">

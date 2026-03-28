@@ -61,7 +61,7 @@ import {
   endOfDay,
   startOfDay
 } from "date-fns";
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "https://qr-restaurant-system-1.onrender.com";
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:5001";
 import PageTransition from "@/components/PageTransition";
 import AnimatedCounter from "@/components/AnimatedCounter";
 import LoadingSkeleton from "@/components/LoadingSkeleton";
@@ -360,7 +360,10 @@ const AdminDashboard = () => {
   // Handle Socket Connection separately to keep it stable
   useEffect(() => {
     console.log("🔌 Admin: Initializing socket connection...");
-    const socket = socketIO(SOCKET_URL, { autoConnect: false });
+    const socket = socketIO(SOCKET_URL, { 
+      autoConnect: false,
+      auth: { token: localStorage.getItem("adminToken") }
+    });
     socketRef.current = socket;
 
     socket.connect();
