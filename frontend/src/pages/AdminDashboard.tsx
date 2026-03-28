@@ -949,7 +949,9 @@ const AdminDashboard = () => {
                 </h2>
                 <div className="flex items-center gap-2 mt-1">
                   <p className="text-muted-foreground text-xs md:text-sm">
-                    {activeSection === "dashboard" ? "Overview of your restaurant" : `Manage your ${activeSection}`}
+                    {new Date().toLocaleDateString("en-IN", {
+                      weekday: "long", year: "numeric", month: "long", day: "numeric"
+                    })}
                   </p>
                   <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wider ${
                     isSocketConnected 
@@ -960,11 +962,6 @@ const AdminDashboard = () => {
                     {isSocketConnected ? "Live" : "Offline"}
                   </div>
                 </div>
-              </div>
-                  {new Date().toLocaleDateString("en-IN", {
-                    weekday: "long", year: "numeric", month: "long", day: "numeric"
-                  })}
-                </p>
               </div>
               <Button
                 variant="ghost"
