@@ -11,17 +11,23 @@ exports.initSocket = async (server) => {
     }
   })
 
-  // Middleware to authenticate socket connections
+  // Middleware to authenticate socket connections (Optional for connection, mandatory for rooms)
   io.use((socket, next) => {
     const token = socket.handshake.auth?.token
-    if (!token) return next(new Error("Authentication error: No token provided"))
+    
+    if (!token) {
+      socket.user = null // Allow connection, but no room access
+      return next()
+    }
 
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET)
-      socket.user = decoded // Store decoded payload (could be admin or customer)
+      socket.user = decoded 
       next()
     } catch (err) {
-      next(new Error("Authentication error: Invalid token"))
+      // If token is invalid, we still allow connection but user is null
+      socket.user = null
+      next()
     }
   })
 
@@ -30,7 +36,7 @@ exports.initSocket = async (server) => {
 
     // Customer joins their table-specific room — MUST match their token's tableNumber
     socket.on("join-table", (tableNumber) => {
-      if (socket.user.tableNumber && socket.user.tableNumber == tableNumber) {
+      if (socket.user && socket.user.tableNumber && socket.user.tableNumber == tableNumber) {
         socket.join(`table-${tableNumber}`)
         console.log(`[Socket] Table room joined: table-${tableNumber}`)
       } else {
@@ -40,7 +46,7 @@ exports.initSocket = async (server) => {
 
     // Admin joins the admin-specific room — MUST have admin-like payload (id)
     socket.on("join-admin", () => {
-      if (socket.user.id) { // Admin tokens have 'id', customer tokens have 'sessionId'
+      if (socket.user && socket.user.id) { // Admin tokens have 'id', customer tokens have 'sessionId'
         socket.join("admin")
         console.log(`[Socket] Admin room joined by ${socket.id}`)
       } else {

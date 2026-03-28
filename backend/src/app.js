@@ -1,6 +1,5 @@
 const express = require("express")
 const helmet = require("helmet")
-const mongoSanitize = require("express-mongo-sanitize")
 const path = require("path")
 const cors = require("cors")
 const morgan = require("morgan")
@@ -19,7 +18,6 @@ app.set("trust proxy", 1)
 const logger = require("./config/logger")
 
 app.use(helmet())
-app.use(mongoSanitize())
 app.use(compression())
 app.use((req, res, next) => {
   logger.info(`${req.method} ${req.url} - ${req.ip}`)
