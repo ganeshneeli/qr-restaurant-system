@@ -4,7 +4,7 @@ const jwt = require("jsonwebtoken")
 const { v4: uuidv4 } = require("uuid")
 const QRCode = require("qrcode")
 const crypto = require("crypto")
-const { emitToAdmin } = require("../config/socket")
+const { emitToAdmin, emitToTable } = require("../config/socket")
 
 // Helper to generate a security signature for a table
 const generateSignature = (tableNumber) => {
