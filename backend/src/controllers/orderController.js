@@ -167,6 +167,9 @@ exports.createOrder = async (req, res) => {
 
     // Notify only admins about the new order
     emitToAdmin("newOrder", order)
+    // Also notify that tables might have changed state (Occupied)
+    emitToAdmin("tableStatusChanged")
+    
     res.json({ success: true, data: order })
   } catch (error) {
     res.status(500).json({ success: false, message: error.message })

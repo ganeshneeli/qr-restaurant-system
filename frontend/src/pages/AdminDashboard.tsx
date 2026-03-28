@@ -419,11 +419,14 @@ const AdminDashboard = () => {
 
     const handleNewOrder = (order: Order) => {
       console.log("📦 Socket: newOrder received", order);
+      // Directly update orders for immediate UI feedback...
       setOrders((prev) => {
         const exists = prev.find((o) => o._id === order._id);
         if (exists) return prev.map((o) => (o._id === order._id ? order : o));
         return [order, ...prev];
       });
+      // ...but ALWAYS call fetchData to sync tables and summary (Revenue/Orders count)
+      fetchData();
       toast({
         title: "🍽️ New Order!",
         description: `Table ${order.tableNumber || order.table?.number}`
@@ -474,7 +477,7 @@ const AdminDashboard = () => {
       socket.off("tableStatusChanged", handleTableStatusChanged);
       socket.off("menuUpdate", handleMenuUpdate);
     };
-  }, [socket, fetchData, loadQrCodes, toast, activeSection, fetchMenu]);
+  }, [socket, fetchData, loadQrCodes, toast]); // Dependency reduced for stability
 
   // Initial Data Fetch
   useEffect(() => {
