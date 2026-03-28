@@ -46,7 +46,7 @@ exports.initSocket = async (server) => {
     console.log(`[Socket] Connected: ${socket.id} (User: ${userDisplay})`)
 
     // Customer joins their table-specific room — MUST match their token's tableNumber
-    socket.on("join-table", (tableNumber) => {
+    socket.on("joinTable", (tableNumber) => {
       if (socket.user && socket.user.tableNumber && socket.user.tableNumber == tableNumber) {
         socket.join(`table-${tableNumber}`)
         console.log(`[Socket] Table room joined: table-${tableNumber}`)
@@ -56,11 +56,11 @@ exports.initSocket = async (server) => {
     })
 
     // Admin joins the admin-specific room — MUST have admin-like payload (id)
-    socket.on("join-admin", () => {
-      console.log(`[Socket Room] join-admin requested by: ${socket.id}, User:`, socket.user)
+    socket.on("joinAdmin", () => {
+      console.log(`[Socket Room] joinAdmin requested by: ${socket.id}, User:`, socket.user)
       if (socket.user && socket.user.id) { 
         socket.join("admin")
-        socket.emit("join-admin-success")
+        socket.emit("joinAdminSuccess")
         console.log(`[Socket Room] SUCCESS: Admin room joined by ${socket.id}`)
       } else {
         console.warn(`[Socket Room] FAILED: Admin join attempt by ${socket.id}. Reason: ${!socket.user ? "No User object" : "Not an Admin token"}`)

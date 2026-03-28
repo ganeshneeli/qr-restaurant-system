@@ -393,10 +393,10 @@ const AdminDashboard = () => {
 
     s.on("connect", () => {
       console.log("✅ Admin Socket connected:", s.id);
-      s.emit("join-admin");
+      s.emit("joinAdmin");
     });
 
-    s.on("join-admin-success", () => {
+    s.on("joinAdminSuccess", () => {
       console.log("👑 Socket: Successfully joined Admin room. Live updates active.");
     });
 

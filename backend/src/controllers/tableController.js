@@ -54,7 +54,7 @@ exports.activateTable = async (req, res) => {
     { expiresIn: "15m" } // Strict 15 min expiry
   )
 
-  emitToAdmin("tableUpdated")
+  emitToAdmin("tableStatusChanged")
 
   res.json({ success: true, token })
 }
@@ -153,7 +153,7 @@ exports.forceReleaseTable = async (req, res) => {
       )
     }
 
-    emitToAdmin("tableUpdated")
+    emitToAdmin("tableStatusChanged")
 
     res.json({ success: true, message: `Table ${tableNumber} released` })
   } catch (error) {
@@ -166,7 +166,7 @@ exports.addTable = async (req, res) => {
     const nextNumber = lastTable ? lastTable.tableNumber + 1 : 1
     const newTable = await Table.create({ tableNumber: nextNumber })
 
-    emitToAdmin("tableUpdated")
+    emitToAdmin("tableStatusChanged")
 
     res.json({ success: true, data: newTable })
   } catch (error) {
@@ -186,7 +186,7 @@ exports.removeTable = async (req, res) => {
 
     await Table.deleteOne({ tableNumber })
 
-    emitToAdmin("tableUpdated")
+    emitToAdmin("tableStatusChanged")
 
     res.json({ success: true, message: "Table removed successfully" })
   } catch (error) {

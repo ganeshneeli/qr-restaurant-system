@@ -186,7 +186,7 @@ exports.requestBill = async (req, res) => {
     if (!order) return res.status(404).json({ success: false })
 
     // Notify specific table and admin
-    emitToTable(tableNumber, "billRequested", { tableNumber, orderId: order._id })
+    emitToTable(tableNumber, "statusUpdated", { tableNumber, orderId: order._id, status: "billRequested" })
     emitToAdmin("billRequested", { tableNumber, orderId: order._id })
 
     res.json({ success: true, data: order })
@@ -212,8 +212,8 @@ exports.updateStatus = async (req, res) => {
 
     // Notify specific table and admin
     const payload = { orderId: order._id, status: order.status, tableNumber: order.tableNumber }
-    emitToTable(order.tableNumber, "orderStatusUpdated", payload)
-    emitToAdmin("orderStatusUpdated", payload)
+    emitToTable(order.tableNumber, "statusUpdated", payload)
+    emitToAdmin("statusUpdated", payload)
 
     res.json({ success: true, data: order })
   } catch (error) {
@@ -236,8 +236,8 @@ exports.markAsPaid = async (req, res) => {
     await Session.updateOne({ sessionId: order.sessionId }, { active: false })
 
     const payload = { orderId: order._id, tableNumber: order.tableNumber, status: "completed" }
-    emitToTable(order.tableNumber, "orderPaid", payload)
-    emitToAdmin("orderPaid", payload)
+    emitToTable(order.tableNumber, "statusUpdated", payload)
+    emitToAdmin("statusUpdated", payload)
 
     res.json({ success: true, data: order })
   } catch (error) {

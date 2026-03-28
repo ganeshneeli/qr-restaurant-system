@@ -362,7 +362,7 @@ const MenuContent = () => {
     const onConnect = () => {
       console.log(`[Table-${tableId}] Socket connected → joining room`);
       setIsConnected(true);
-      socket.emit("join-table", tableId);
+      socket.emit("joinTable", tableId);
     };
 
     const onDisconnect = () => {
@@ -414,13 +414,12 @@ const MenuContent = () => {
 
     socket.on("connect", onConnect);
     socket.on("disconnect", onDisconnect);
-    socket.on("orderStatusUpdated", onStatusUpdate);
-    socket.on("orderPaid", onPaid);
+    socket.on("statusUpdated", onStatusUpdate);
     socket.on("menuUpdate", onMenuUpdate);
 
     // If already connected (Strict Mode second mount), emit immediately
     if (socket.connected) {
-      socket.emit("join-table", tableId);
+      socket.emit("joinTable", tableId);
     }
 
     return () => {
