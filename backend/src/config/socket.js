@@ -32,25 +32,28 @@ exports.initSocket = async (server) => {
   })
 
   io.on("connection", (socket) => {
-    console.log(`[Socket] Connected: ${socket.id} (User: ${socket.user.id || socket.user.sessionId})`)
+    const userId = socket.user?.id || socket.user?.sessionId || "anonymous"
+    console.log(`[Socket] Connected: ${socket.id} (User: ${userId})`)
 
-    // Customer joins their table-specific room — MUST match their token's tableNumber
+    // Customer joins their table-specific room
     socket.on("join-table", (tableNumber) => {
       if (socket.user && socket.user.tableNumber && socket.user.tableNumber == tableNumber) {
         socket.join(`table-${tableNumber}`)
-        console.log(`[Socket] Table room joined: table-${tableNumber}`)
+        console.log(`[Socket] Room Join: table-${tableNumber} (Socket: ${socket.id})`)
       } else {
-        console.warn(`[Socket] Unauthorized join attempt for table-${tableNumber} by ${socket.id}`)
+        console.warn(`[Socket] Unauthorized join: table-${tableNumber} (User: ${userId})`)
       }
     })
 
-    // Admin joins the admin-specific room — MUST have admin-like payload (id)
-    socket.on("join-admin", () => {
-      if (socket.user && socket.user.id) { // Admin tokens have 'id', customer tokens have 'sessionId'
+    // Admin joins the admin-specific room
+    socket.on("join-admin", (callback) => {
+      if (socket.user && socket.user.id) { 
         socket.join("admin")
-        console.log(`[Socket] Admin room joined by ${socket.id}`)
+        console.log(`[Socket] Room Join: admin (Socket: ${socket.id})`)
+        if (callback) callback({ success: true, room: "admin" })
       } else {
-        console.warn(`[Socket] Unauthorized admin join attempt by ${socket.id}`)
+        console.warn(`[Socket] Unauthorized admin join (User: ${userId})`)
+        if (callback) callback({ success: false, message: "Unauthorized" })
       }
     })
 
