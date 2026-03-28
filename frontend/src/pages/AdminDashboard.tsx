@@ -66,6 +66,8 @@ const getSocketUrl = () => {
   if (import.meta.env.VITE_SOCKET_URL) return import.meta.env.VITE_SOCKET_URL;
   const apiUrl = import.meta.env.VITE_API_URL || "";
   if (apiUrl.includes("/api")) return apiUrl.split("/api")[0];
+  // Render/Production fallback: use current origin if we are not on localhost
+  if (!window.location.hostname.includes("localhost")) return window.location.origin;
   return "http://localhost:5001";
 };
 const SOCKET_URL = getSocketUrl();
@@ -381,19 +383,29 @@ const AdminDashboard = () => {
 
   // Manage socket in state for reactivity
   const [socket, setSocket] = useState<Socket | null>(null);
+  const [isSocketConnected, setIsSocketConnected] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("adminToken");
     if (!token) return;
 
-    console.log("🔌 Admin: Initializing socket...");
+    console.log("🔌 Admin: Initializing socket at:", SOCKET_URL);
     const s = socketIO(SOCKET_URL, {
-      auth: { token }
+      auth: { token },
+      transports: ["polling", "websocket"], // Ensure compatibility
+      reconnectionAttempts: 10,
+      reconnectionDelay: 2000
     });
 
     s.on("connect", () => {
       console.log("✅ Admin Socket connected:", s.id);
+      setIsSocketConnected(true);
       s.emit("join-admin");
+    });
+
+    s.on("disconnect", () => {
+      console.warn("🔌 Socket disconnected");
+      setIsSocketConnected(false);
     });
 
     s.on("join-admin-success", () => {
@@ -402,8 +414,7 @@ const AdminDashboard = () => {
 
     s.on("connect_error", (err) => {
       console.error("❌ Socket connection error:", err.message);
-      // If VITE_SOCKET_URL is wrong, let's log it clearly
-      console.log("Current SOCKET_URL attempting to use:", SOCKET_URL);
+      setIsSocketConnected(false);
     });
 
     setSocket(s);
@@ -936,7 +947,20 @@ const AdminDashboard = () => {
                   <span className="md:hidden text-white/20 mr-2">|</span>
                   {sections.find((s) => s.id === activeSection)?.label}
                 </h2>
-                <p className="text-muted-foreground text-xs md:text-sm mt-1">
+                <div className="flex items-center gap-2 mt-1">
+                  <p className="text-muted-foreground text-xs md:text-sm">
+                    {activeSection === "dashboard" ? "Overview of your restaurant" : `Manage your ${activeSection}`}
+                  </p>
+                  <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wider ${
+                    isSocketConnected 
+                      ? "bg-green-500/10 border-green-500/20 text-green-500" 
+                      : "bg-red-500/10 border-red-500/20 text-red-500"
+                  }`}>
+                    <div className={`w-1 h-1 rounded-full ${isSocketConnected ? "bg-green-500 animate-pulse" : "bg-red-500"}`} />
+                    {isSocketConnected ? "Live" : "Offline"}
+                  </div>
+                </div>
+              </div>
                   {new Date().toLocaleDateString("en-IN", {
                     weekday: "long", year: "numeric", month: "long", day: "numeric"
                   })}
