@@ -396,8 +396,14 @@ const AdminDashboard = () => {
       s.emit("join-admin");
     });
 
+    s.on("join-admin-success", () => {
+      console.log("👑 Socket: Successfully joined Admin room. Live updates active.");
+    });
+
     s.on("connect_error", (err) => {
-      console.error("❌ Admin Socket connection error:", err.message);
+      console.error("❌ Socket connection error:", err.message);
+      // If VITE_SOCKET_URL is wrong, let's log it clearly
+      console.log("Current SOCKET_URL attempting to use:", SOCKET_URL);
     });
 
     setSocket(s);

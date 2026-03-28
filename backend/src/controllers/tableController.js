@@ -4,7 +4,7 @@ const jwt = require("jsonwebtoken")
 const { v4: uuidv4 } = require("uuid")
 const QRCode = require("qrcode")
 const crypto = require("crypto")
-const { getIO } = require("../config/socket")
+const { emitToAdmin } = require("../config/socket")
 
 // Helper to generate a security signature for a table
 const generateSignature = (tableNumber) => {
@@ -54,7 +54,7 @@ exports.activateTable = async (req, res) => {
     { expiresIn: "15m" } // Strict 15 min expiry
   )
 
-  try { getIO().to("admin").emit("tableUpdated"); } catch (e) { }
+  emitToAdmin("tableUpdated")
 
   res.json({ success: true, token })
 }
@@ -153,7 +153,7 @@ exports.forceReleaseTable = async (req, res) => {
       )
     }
 
-    try { getIO().to("admin").emit("tableUpdated"); } catch (e) { }
+    emitToAdmin("tableUpdated")
 
     res.json({ success: true, message: `Table ${tableNumber} released` })
   } catch (error) {
@@ -166,7 +166,7 @@ exports.addTable = async (req, res) => {
     const nextNumber = lastTable ? lastTable.tableNumber + 1 : 1
     const newTable = await Table.create({ tableNumber: nextNumber })
 
-    try { getIO().to("admin").emit("tableUpdated"); } catch (e) { }
+    emitToAdmin("tableUpdated")
 
     res.json({ success: true, data: newTable })
   } catch (error) {
@@ -186,7 +186,7 @@ exports.removeTable = async (req, res) => {
 
     await Table.deleteOne({ tableNumber })
 
-    try { getIO().to("admin").emit("tableUpdated"); } catch (e) { }
+    emitToAdmin("tableUpdated")
 
     res.json({ success: true, message: "Table removed successfully" })
   } catch (error) {

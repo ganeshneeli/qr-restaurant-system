@@ -2,16 +2,7 @@ const Order = require("../models/Order")
 const Menu = require("../models/Menu")
 const Table = require("../models/Table")
 const Session = require("../models/Session")
-const { getIO } = require("../config/socket")
-
-// HELPER: Send socket events to SPECIFIC rooms
-const emitToTable = (tableNumber, event, data) => {
-  getIO().to(`table-${tableNumber}`).emit(event, data)
-}
-
-const emitToAdmin = (event, data) => {
-  getIO().to("admin").emit(event, data)
-}
+const { emitToAdmin, emitToTable } = require("../config/socket")
 
 // Admin: Get all active orders
 exports.getAllOrders = async (req, res) => {

@@ -22,18 +22,20 @@ exports.initSocket = async (server) => {
   // Middleware to authenticate socket connections (Optional for connection, mandatory for rooms)
   io.use((socket, next) => {
     const token = socket.handshake.auth?.token
+    console.log(`[Socket Handshake] Attempt: ${socket.id}, Token: ${token ? "YES" : "NO"}`)
     
     if (!token) {
-      socket.user = null // Allow connection, but no room access
+      socket.user = null
       return next()
     }
 
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET)
       socket.user = decoded 
+      console.log(`[Socket Handshake] SUCCESS: ${socket.id}, UserID: ${decoded.id || decoded.sessionId}`)
       next()
     } catch (err) {
-      // If token is invalid, we still allow connection but user is null
+      console.error(`[Socket Handshake] FAILED: ${socket.id}, Error: ${err.message}`)
       socket.user = null
       next()
     }
@@ -55,11 +57,13 @@ exports.initSocket = async (server) => {
 
     // Admin joins the admin-specific room — MUST have admin-like payload (id)
     socket.on("join-admin", () => {
+      console.log(`[Socket Room] join-admin requested by: ${socket.id}, User:`, socket.user)
       if (socket.user && socket.user.id) { 
         socket.join("admin")
-        console.log(`[Socket] SUCCESS: Admin room joined by ${socket.id}`)
+        socket.emit("join-admin-success")
+        console.log(`[Socket Room] SUCCESS: Admin room joined by ${socket.id}`)
       } else {
-        console.warn(`[Socket] FAILED: Admin join attempt by ${socket.id}. User:`, socket.user)
+        console.warn(`[Socket Room] FAILED: Admin join attempt by ${socket.id}. Reason: ${!socket.user ? "No User object" : "Not an Admin token"}`)
       }
     })
 
@@ -73,6 +77,26 @@ exports.initSocket = async (server) => {
       console.log(`[Socket] Disconnected: ${socket.id}`)
     })
   })
+}
+
+exports.emitToAdmin = (event, data) => {
+  try {
+    const io = exports.getIO()
+    io.to("admin").emit(event, data)
+    console.log(`[Socket Broadcast] Event: ${event} to room: admin`)
+  } catch (err) {
+    console.warn(`[Socket Broadcast] FAILED: ${event}. Error: ${err.message}`)
+  }
+}
+
+exports.emitToTable = (tableNumber, event, data) => {
+  try {
+    const io = exports.getIO()
+    io.to(`table-${tableNumber}`).emit(event, data)
+    console.log(`[Socket Broadcast] Event: ${event} to room: table-${tableNumber}`)
+  } catch (err) {
+    console.warn(`[Socket Broadcast] FAILED: ${event} for table ${tableNumber}. Error: ${err.message}`)
+  }
 }
 
 exports.getIO = () => {
