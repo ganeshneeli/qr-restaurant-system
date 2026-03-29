@@ -360,9 +360,9 @@ const MenuContent = () => {
     socketRef.current = socket;
 
     const onConnect = () => {
-      console.log(`[Table-${tableId}] Socket connected → joining room`);
+      console.log(`[Table-${tableNumber}] Socket connected → joining room`);
       setIsConnected(true);
-      socket.emit("joinTable", tableId);
+      socket.emit("joinTable", tableNumber);
     };
 
     const onDisconnect = () => {
@@ -371,7 +371,7 @@ const MenuContent = () => {
     };
 
     const onStatusUpdate = (data: { status: string; sessionId?: string; tableNumber?: number; orderId?: string }) => {
-      if (data.tableNumber && String(data.tableNumber) !== tableId) return;
+      if (data.tableNumber && data.tableNumber !== tableNumber) return;
       if (data.sessionId && data.sessionId !== sessionId) return;
 
       // Always fetch latest order to keep UI synced
@@ -405,11 +405,11 @@ const MenuContent = () => {
 
     // If already connected (Strict Mode second mount), emit immediately
     if (socket.connected) {
-      socket.emit("joinTable", tableId);
+      socket.emit("joinTable", tableNumber);
     }
 
     return () => {
-      socket.emit("leave-table", tableId);
+      socket.emit("leave-table", tableNumber);
       socket.off("connect", onConnect);
       socket.off("disconnect", onDisconnect);
       socket.off("statusUpdated", onStatusUpdate);

@@ -61,14 +61,7 @@ import {
   endOfDay,
   startOfDay
 } from "date-fns";
-// Better production socket URL detection
-const getSocketUrl = () => {
-  if (import.meta.env.VITE_SOCKET_URL) return import.meta.env.VITE_SOCKET_URL;
-  const apiUrl = import.meta.env.VITE_API_URL || "";
-  if (apiUrl.includes("/api")) return apiUrl.split("/api")[0];
-  return "http://localhost:5001";
-};
-const SOCKET_URL = getSocketUrl();
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "https://qr-restaurant-system-1.onrender.com";
 import PageTransition from "@/components/PageTransition";
 import AnimatedCounter from "@/components/AnimatedCounter";
 import LoadingSkeleton from "@/components/LoadingSkeleton";
