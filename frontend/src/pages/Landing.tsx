@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import PageTransition from "@/components/PageTransition";
 import { useNavigate } from "react-router-dom";
 import RestaurantInfo from "@/components/RestaurantInfo";
+import VideoBackground from "@/components/VideoBackground";
 import {
   Carousel,
   CarouselContent,
@@ -41,15 +42,9 @@ const Landing = () => {
         <section className="relative h-screen flex flex-col items-center justify-center overflow-hidden px-4">
           {/* Background Video */}
           <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-            <video
-              className="w-full h-full object-cover scale-105"
-              autoPlay
-              muted
-              loop
-              playsInline
-            >
-              <source src="/assets/dashboard-video.mp4" type="video/mp4" />
-            </video>
+            <VideoBackground 
+              className="scale-105"
+            />
             <div className="absolute inset-0 bg-black/70 backdrop-blur-[1px]" />
             <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-[#050505]" />
           </div>

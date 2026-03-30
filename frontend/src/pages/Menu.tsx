@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import RestaurantInfo from "@/components/RestaurantInfo";
+import VideoBackground from "@/components/VideoBackground";
 import {
   Carousel,
   CarouselContent,
@@ -531,15 +532,9 @@ const MenuContent = () => {
       <div className="min-h-screen bg-[#050505] flex flex-col relative overflow-hidden pb-32 selection:bg-white selection:text-black">
         {/* Background Video */}
         <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
-          <video
-            className="w-full h-full object-cover scale-105"
-            autoPlay
-            muted
-            loop
-            playsInline
-          >
-            <source src="/assets/dashboard-video.mp4" type="video/mp4" />
-          </video>
+          <VideoBackground 
+            className="scale-105"
+          />
           <div className="absolute inset-0 bg-black/90 backdrop-blur-[2px]" />
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-black" />
         </div>

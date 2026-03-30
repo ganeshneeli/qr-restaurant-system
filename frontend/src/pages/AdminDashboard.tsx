@@ -51,6 +51,9 @@ import { Switch } from "@/components/ui/switch";
 import { useNavigate } from "react-router-dom";
 import api from "@/api/axios";
 import { useAuth } from "@/context/AuthContext";
+import VideoBackground from "@/components/VideoBackground";
+import LoadingSkeleton from "@/components/LoadingSkeleton";
+import PageTransition from "@/components/PageTransition";
 import {
   format,
   isToday,
@@ -62,9 +65,7 @@ import {
   startOfDay
 } from "date-fns";
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "https://qr-restaurant-system-1.onrender.com";
-import PageTransition from "@/components/PageTransition";
 import AnimatedCounter from "@/components/AnimatedCounter";
-import LoadingSkeleton from "@/components/LoadingSkeleton";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -867,16 +868,7 @@ const AdminDashboard = () => {
 
             {/* Background Video */}
             <div className="relative w-full aspect-video rounded-xl overflow-hidden border border-white/10 shadow-lg">
-              <video
-                className="w-full h-full object-cover"
-                autoPlay
-                muted
-                loop
-                playsInline
-              >
-                <source src="/assets/dashboard-video.mp4" type="video/mp4" />
-                Your browser does not support the video tag.
-              </video>
+              <VideoBackground />
               <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
             </div>
           </div>
@@ -956,16 +948,7 @@ const AdminDashboard = () => {
 
             {/* Mobile Video Header */}
             <div className="md:hidden mb-6 relative w-full aspect-[21/9] rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
-              <video
-                className="w-full h-full object-cover"
-                autoPlay
-                muted
-                loop
-                playsInline
-              >
-                <source src="/assets/dashboard-video.mp4" type="video/mp4" />
-                Your browser does not support the video tag.
-              </video>
+              <VideoBackground />
               <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
               <div className="absolute bottom-3 left-4">
                 <p className="text-[10px] uppercase tracking-[0.2em] text-white/60 font-medium">Fine Dining</p>
