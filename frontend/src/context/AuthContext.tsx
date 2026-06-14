@@ -8,7 +8,7 @@ import React, {
 } from "react";
 
 interface AuthContextType {
-  // Per-table token -- stored as sessionToken-{tableNumber} in sessionStorage
+  // Per-table token -- stored as sessionToken-{tableNumber} in localStorage
   getSessionToken: (tableNumber: string | number) => string | null;
   setSessionToken: (token: string | null, tableNumber: string | number) => void;
 
@@ -45,13 +45,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Per-table token helpers
   const getSessionToken = useCallback((tableNumber: string | number) => {
-    return sessionStorage.getItem(sessionTokenKey(tableNumber));
+    return localStorage.getItem(sessionTokenKey(tableNumber));
   }, []);
 
   const setSessionToken = useCallback((token: string | null, tableNumber: string | number) => {
     const key = sessionTokenKey(tableNumber);
-    if (token) sessionStorage.setItem(key, token);
-    else sessionStorage.removeItem(key);
+    if (token) localStorage.setItem(key, token);
+    else localStorage.removeItem(key);
   }, []);
 
   const setAdminToken = useCallback((token: string | null) => {
@@ -61,10 +61,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const logout = useCallback(() => {
-    // Remove all table session tokens from sessionStorage
-    Object.keys(sessionStorage)
+    // Remove all table session tokens from localStorage
+    Object.keys(localStorage)
       .filter(k => k.startsWith("sessionToken-table-"))
-      .forEach(k => sessionStorage.removeItem(k));
+      .forEach(k => localStorage.removeItem(k));
     localStorage.removeItem("adminToken");
     setAdminTokenState(null);
   }, []);

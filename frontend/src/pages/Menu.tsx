@@ -35,6 +35,16 @@ import MenuItemCard from "@/components/menu/MenuItemCard";
 import Cart from "@/components/menu/Cart";
 import MyOrdersPanel from "@/components/menu/MyOrdersPanel";
 import DishDetail from "@/components/menu/DishDetail";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "https://qr-restaurant-system-1.onrender.com/api";
@@ -159,6 +169,7 @@ const MenuContent = () => {
   const [showTopPopup, setShowTopPopup] = useState(false);
   const [popupStatus, setPopupStatus] = useState<string | null>(null);
   const [selectedDish, setSelectedDish] = useState<MenuItem | null>(null);
+  const [showExitModal, setShowExitModal] = useState(false);
 
   // Pagination States
   // Pagination & Flash Sale States
@@ -195,7 +206,6 @@ const MenuContent = () => {
       return;
     }
 
-    // SECURITY GUARD: If user manualy changes URL to Table B while token is for Table A
     if (decoded && String(decoded.tableNumber) !== String(tableId)) {
       console.warn(`[Security] Table mismatch! URL: ${tableId}, Token: ${decoded.tableNumber}`);
       toast({ 
@@ -207,6 +217,52 @@ const MenuContent = () => {
       navigate(`/table/${tableId}`, { replace: true });
     }
   }, [sessionToken, tableId, navigate, decoded, setSessionToken, toast]);
+
+  // ── Handle Browser Back Button ────────────────────────────────────────────
+  useEffect(() => {
+    if (!sessionToken) return;
+
+    // Push a dummy state so the first "back" click triggers our popstate 
+    // instead of actually navigating away immediately.
+    window.history.pushState(null, "", window.location.href);
+
+    const handlePopState = () => {
+      // Show our custom centered popup
+      setShowExitModal(true);
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, [sessionToken]);
+
+  const handleExitConfirm = async () => {
+    setShowExitModal(false);
+    try {
+      // Send request to backend to release table
+      await axios.post(
+        `${API_BASE}/table/exit`,
+        {},
+        { headers: { Authorization: `Bearer ${sessionToken}` } }
+      );
+    } catch (error) {
+      console.error("Failed to release table on exit:", error);
+    }
+    
+    // Clear local storage token and cart
+    setSessionToken(null, tableId || "");
+    localStorage.removeItem(cartKey);
+    
+    // Actually navigate back
+    window.history.back();
+  };
+
+  const handleExitCancel = () => {
+    setShowExitModal(false);
+    // User cancelled. Push the dummy state again to trap the next back click.
+    window.history.pushState(null, "", window.location.href);
+  };
 
   // ── Persist cart ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -553,6 +609,36 @@ const MenuContent = () => {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Custom Exit Modal */}
+        <AlertDialog open={showExitModal}>
+          <AlertDialogContent className="glass-strong border-white/10 text-white rounded-3xl w-[90%] max-w-md bg-black/80 backdrop-blur-2xl">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="font-display text-2xl font-bold text-center text-white text-glow-white mb-2">
+                Exit Table?
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-white/70 text-center text-base leading-relaxed">
+                Are you sure you want to exit? If you leave, your table will be released and your session will end.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="mt-8 flex flex-row gap-3 items-center justify-center sm:justify-center">
+              <Button 
+                variant="outline" 
+                onClick={handleExitCancel}
+                className="flex-1 glass border-white/10 hover:bg-white/10 hover:text-white rounded-xl h-12 font-bold"
+              >
+                Cancel
+              </Button>
+              <Button 
+                variant="destructive"
+                onClick={handleExitConfirm}
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white rounded-xl h-12 font-bold"
+              >
+                Yes, Exit
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Cinematic Particles/Glow - matching landing page */}
         <div className="fixed top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full bg-white/5 blur-[120px] pointer-events-none z-0 animate-pulse-slow" />

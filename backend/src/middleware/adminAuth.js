@@ -9,8 +9,13 @@ module.exports = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET)
     const user = await User.findById(decoded.id)
 
-    if (!user || user.role !== "admin")
+    if (!user) {
+      return res.status(401).json({ success: false, message: "User not found, invalid token" })
+    }
+    
+    if (user.role !== "admin") {
       return res.status(403).json({ success: false, message: "Unauthorized access" })
+    }
 
     req.user = user
     next()

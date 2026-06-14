@@ -1,8 +1,10 @@
 const router = require("express").Router()
 const adminAuth = require("../middleware/adminAuth")
-const { activateTable, getActiveTables, getAllTables, getTableQR, getAllTableQRs, forceReleaseTable, addTable, removeTable } = require("../controllers/tableController")
+const sessionAuth = require("../middleware/sessionAuth")
+const { activateTable, getActiveTables, getAllTables, getTableQR, getAllTableQRs, forceReleaseTable, addTable, removeTable, exitTable } = require("../controllers/tableController")
 
 router.post("/:tableNumber/activate", activateTable)
+router.post("/exit", sessionAuth, exitTable)
 router.get("/active", adminAuth, getActiveTables)
 router.get("/all", adminAuth, getAllTables)
 router.get("/qrs", adminAuth, getAllTableQRs)

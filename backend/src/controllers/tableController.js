@@ -162,6 +162,32 @@ exports.forceReleaseTable = async (req, res) => {
     res.status(500).json({ success: false, message: error.message })
   }
 }
+
+exports.exitTable = async (req, res) => {
+  try {
+    const { tableId, sessionId, tableNumber } = req.user
+
+    const table = await Table.findOneAndUpdate(
+      { _id: tableId, currentSessionId: sessionId },
+      { status: "available", currentSessionId: null, startedAt: null },
+      { new: true }
+    )
+
+    if (!table) return res.status(404).json({ success: false, message: "Active session not found for this table" })
+
+    await Session.updateOne(
+      { sessionId },
+      { active: false }
+    )
+
+    console.log("[Socket] Emitting tableStatusChanged (free) for exited table:", tableNumber)
+    emitToAll("tableStatusChanged", { tableNumber: Number(tableNumber), status: "free" })
+
+    res.json({ success: true, message: `Table ${tableNumber} exited` })
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message })
+  }
+}
 exports.addTable = async (req, res) => {
   try {
     const lastTable = await Table.findOne().sort({ tableNumber: -1 })
