@@ -13,7 +13,8 @@ import {
   IceCream, 
   Camera, 
   Coins, 
-  Truck 
+  Truck,
+  ArrowLeft
 } from "lucide-react";
 import api from "@/api/axios";
 import { useAuth } from "@/context/AuthContext";
@@ -104,6 +105,15 @@ const AdminLogin = () => {
           {/* Shared geometric background grid */}
           <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:4rem_4rem] opacity-30" />
         </div>
+
+        {/* Back to home (Mobile/Tablet view) */}
+        <button
+          onClick={() => navigate("/")}
+          className="lg:hidden absolute top-6 left-6 z-50 text-white/40 hover:text-white flex items-center gap-1.5 text-xs font-black uppercase tracking-widest transition-all"
+        >
+          <ArrowLeft className="w-4 h-4 text-red-500" />
+          <span>Back</span>
+        </button>
 
         {/* Main Grid Wrapper - strict h-screen and overflow-hidden on desktop */}
         <div className="grid grid-cols-1 lg:grid-cols-12 h-full min-h-screen w-full relative z-10 overflow-y-auto lg:overflow-hidden">
