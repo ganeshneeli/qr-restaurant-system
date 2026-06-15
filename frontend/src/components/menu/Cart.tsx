@@ -31,7 +31,7 @@ const Cart = ({
   return (
     <AnimatePresence>
       {showCart && (
-        <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 25 }}
+        <motion.div data-lenis-prevent initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 25 }}
           className="fixed inset-x-0 bottom-0 z-50 glass-strong border-t border-primary/20 rounded-t-2xl max-h-[65vh] overflow-y-auto">
           <div className="max-w-2xl mx-auto p-6">
             <div className="flex justify-between items-center mb-4">

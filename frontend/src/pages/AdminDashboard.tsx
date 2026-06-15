@@ -921,7 +921,7 @@ const AdminDashboard = () => {
             </div>
           </div>
 
-          <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto">
+          <nav data-lenis-prevent className="flex-1 p-4 space-y-1.5 overflow-y-auto">
             {sections.map((s) => {
               // Dynamic counters for active feedback, live orders, etc.
               let badge = null;
