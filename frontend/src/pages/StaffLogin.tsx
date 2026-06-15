@@ -158,9 +158,12 @@ export default function StaffLogin() {
         </AnimatePresence>
 
         {/* Login Card */}
-        <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-6 backdrop-blur-xl">
+        <div className="glass-strong border border-white/10 rounded-3xl p-6 relative overflow-hidden shadow-2xl bg-black/40 backdrop-blur-3xl">
+          {/* Top glow indicator */}
+          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-orange-500/30 to-transparent" />
+          
           {/* Email (always shown) */}
-          <div className="mb-4">
+          <div className="mb-5">
             <label className="text-[10px] uppercase tracking-widest text-white/40 font-black block mb-2">
               Staff Email
             </label>
@@ -169,7 +172,7 @@ export default function StaffLogin() {
               value={email}
               onChange={e => setEmail(e.target.value)}
               placeholder="your@email.com"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 text-sm focus:outline-none focus:border-orange-500/50 focus:bg-white/[0.07] transition-all"
+              className="w-full bg-white/[0.02] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 text-sm focus:outline-none focus:border-orange-500/50 focus:bg-white/[0.05] focus:ring-1 focus:ring-orange-500/20 transition-all duration-300"
             />
           </div>
 
@@ -185,7 +188,7 @@ export default function StaffLogin() {
                     value={password}
                     onChange={e => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 text-sm focus:outline-none focus:border-orange-500/50 focus:bg-white/[0.07] transition-all pr-12"
+                    className="w-full bg-white/[0.02] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 text-sm focus:outline-none focus:border-orange-500/50 focus:bg-white/[0.05] focus:ring-1 focus:ring-orange-500/20 transition-all duration-300 pr-12"
                     onKeyDown={e => e.key === "Enter" && handleSubmit()}
                   />
                   <button
@@ -201,7 +204,7 @@ export default function StaffLogin() {
               <button
                 onClick={() => handleSubmit()}
                 disabled={loading || !email || !password}
-                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-orange-600 to-red-600 text-white font-black text-sm tracking-wider hover:from-orange-500 hover:to-red-500 transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white font-black text-sm tracking-wider hover:shadow-[0_0_20px_rgba(249,115,22,0.2)] transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:shadow-none flex items-center justify-center gap-2"
               >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Sign In"}
               </button>
@@ -209,37 +212,44 @@ export default function StaffLogin() {
           ) : (
             <>
               {/* PIN dots */}
-              <div className="mb-5">
-                <label className="text-[10px] uppercase tracking-widest text-white/40 font-black block mb-3">
+              <div className="mb-6">
+                <label className="text-[10px] uppercase tracking-widest text-white/40 font-black block text-center mb-3">
                   4-Digit PIN
                 </label>
                 <div className="flex justify-center gap-4">
                   {[0, 1, 2, 3].map(i => (
-                    <div
+                    <motion.div
                       key={i}
-                      className={`w-12 h-12 rounded-xl border-2 flex items-center justify-center transition-all duration-200 ${
-                        pin.length > i
-                          ? "border-orange-500 bg-orange-500/20"
-                          : "border-white/10 bg-white/5"
-                      }`}
+                      initial={false}
+                      animate={{
+                        scale: pin.length > i ? [1, 1.15, 1] : 1,
+                        borderColor: pin.length > i ? "rgba(249, 115, 22, 0.4)" : "rgba(255, 255, 255, 0.1)",
+                        backgroundColor: pin.length > i ? "rgba(249, 115, 22, 0.15)" : "rgba(255, 255, 255, 0.02)"
+                      }}
+                      transition={{ duration: 0.15 }}
+                      className="w-11 h-11 rounded-xl border flex items-center justify-center"
                     >
                       {pin.length > i && (
-                        <span className="w-3 h-3 rounded-full bg-orange-400" />
+                        <motion.span
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          className="w-3.5 h-3.5 rounded-full bg-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.8)]"
+                        />
                       )}
-                    </div>
+                    </motion.div>
                   ))}
                 </div>
               </div>
 
               {/* PIN pad */}
-              <div className="grid grid-cols-3 gap-2 mb-2">
+              <div className="grid grid-cols-3 gap-3 max-w-[240px] mx-auto justify-items-center mb-2">
                 {pinPadKeys.map((key, idx) => {
-                  if (key === "") return <div key={idx} />;
+                  if (key === "") return <div key={idx} className="w-14 h-14" />;
                   if (key === "del") return (
                     <button
                       key={idx}
                       onClick={handlePinDelete}
-                      className="h-14 rounded-xl bg-white/5 border border-white/10 text-white/60 flex items-center justify-center hover:bg-white/10 active:scale-95 transition-all"
+                      className="w-14 h-14 rounded-full bg-white/5 border border-white/10 text-white/60 flex items-center justify-center hover:bg-red-500/10 hover:border-red-500/20 hover:text-red-400 active:scale-90 transition-all duration-200"
                     >
                       <Delete className="w-4 h-4" />
                     </button>
@@ -249,7 +259,7 @@ export default function StaffLogin() {
                       key={idx}
                       onClick={() => handlePinDigit(key)}
                       disabled={pin.length >= 4}
-                      className="h-14 rounded-xl bg-white/5 border border-white/10 text-white font-black text-lg hover:bg-orange-500/10 hover:border-orange-500/30 active:scale-95 transition-all disabled:opacity-30"
+                      className="w-14 h-14 rounded-full bg-white/5 border border-white/10 text-white font-black text-lg flex items-center justify-center hover:bg-orange-500/15 hover:border-orange-500/30 hover:text-orange-400 active:scale-90 transition-all duration-200 disabled:opacity-20 disabled:cursor-not-allowed"
                     >
                       {key}
                     </button>
