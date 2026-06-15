@@ -890,7 +890,7 @@ const AdminDashboard = () => {
 
   return (
     <PageTransition>
-      <div className="min-h-screen bg-[#050505] text-white flex flex-col md:flex-row pb-28 md:pb-0 relative overflow-x-hidden">
+      <div className="min-h-screen md:h-screen bg-[#050505] text-white flex flex-col md:flex-row pb-28 md:pb-0 overflow-y-auto md:overflow-hidden relative overflow-x-hidden">
         
         {/* Cinematic Backdrop Glow */}
         <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-red-950/10 blur-[130px] rounded-full pointer-events-none z-0" />
@@ -1008,7 +1008,7 @@ const AdminDashboard = () => {
         </nav>
 
         {/* Main Content */}
-        <main className="flex-1 p-4 md:p-8 xl:p-12 min-w-0 relative z-10">
+        <main data-lenis-prevent className="flex-1 p-4 md:p-8 xl:p-12 md:overflow-y-auto md:h-screen min-w-0 relative z-10">
           <div className="max-w-6xl mx-auto">
             
             {/* Header section with new date capsules */}
