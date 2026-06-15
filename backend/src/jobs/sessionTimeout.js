@@ -4,49 +4,87 @@ const Session = require("../models/Session")
 const Table = require("../models/Table")
 const Order = require("../models/Order")
 
-cron.schedule("*/5 * * * *", async () => {
+// Lazy-load socket to avoid circular deps at module load time
+const getSocket = () => {
+  try { return require("../config/socket") } catch { return null }
+}
+
+cron.schedule("*/1 * * * *", async () => {
   if (mongoose.connection.readyState !== 1) return
 
   try {
     const now = new Date()
+    const socket = getSocket()
 
-    // 1. HARD EXPIRY: Handle sessions that have reached their max duration (2h)
-    const expired = await Session.find({ expiresAt: { $lt: now }, active: true })
-    
-    // 2. IDLE TIMEOUT: Handle tables occupied for > 15m with NO orders
+    // ─────────────────────────────────────────────────────────────────────────
+    // RULE 1: IDLE NO-ORDER TIMEOUT — 15 minutes
+    // If a customer scanned the QR but placed NO order within 15 min,
+    // auto-logout them and free the table.
+    // ─────────────────────────────────────────────────────────────────────────
     const fifteenMinsAgo = new Date(now.getTime() - 15 * 60 * 1000)
-    const idleSessions = await Session.find({
+    const idleNoOrderSessions = await Session.find({
       startedAt: { $lt: fifteenMinsAgo },
       active: true
     })
 
-    const allSessionsToProcess = [...expired]
-    
-    for (let s of idleSessions) {
-      // Check if any order exists for this session
+    const idleToRelease = []
+    for (const s of idleNoOrderSessions) {
       const orderCount = await Order.countDocuments({ sessionId: s.sessionId })
       if (orderCount === 0) {
-        allSessionsToProcess.push(s)
+        // No order placed — release immediately
+        idleToRelease.push(s)
       }
     }
 
-    if (allSessionsToProcess.length > 0) {
-      console.log(`[NODE-CRON] Releasing ${allSessionsToProcess.length} sessions (Expired/Idle)`)
-      
-      const sessionIds = allSessionsToProcess.map(s => s.sessionId)
-      const tableIds = allSessionsToProcess.map(s => s.tableId)
+    if (idleToRelease.length > 0) {
+      console.log(`[CRON] 🕐 Idle timeout: releasing ${idleToRelease.length} no-order session(s)`)
 
-      await Table.updateMany(
-        { _id: { $in: tableIds } },
-        { status: "available", currentSessionId: null, startedAt: null }
-      )
-      
-      await Session.updateMany(
-        { sessionId: { $in: sessionIds } },
-        { active: false }
-      )
+      for (const s of idleToRelease) {
+        const table = await Table.findByIdAndUpdate(
+          s.tableId,
+          { status: "available", currentSessionId: null, startedAt: null },
+          { new: true }
+        )
+        await Session.updateOne({ sessionId: s.sessionId }, { active: false })
+
+        // Notify all clients so the customer's Menu page detects the expiry
+        if (socket && table) {
+          try {
+            socket.emitToAll("sessionExpired", { tableNumber: table.tableNumber, sessionId: s.sessionId })
+            socket.emitToAll("tableStatusChanged", { tableNumber: table.tableNumber, status: "free" })
+            socket.emitToAdmin("tableStatusChanged", { tableNumber: table.tableNumber, status: "free" })
+          } catch {}
+        }
+      }
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // RULE 2: HARD EXPIRY — sessions that exceeded their 4h max duration
+    // This catches any session regardless of order status.
+    // ─────────────────────────────────────────────────────────────────────────
+    const hardExpired = await Session.find({ expiresAt: { $lt: now }, active: true })
+
+    if (hardExpired.length > 0) {
+      console.log(`[CRON] ⏰ Hard expiry: releasing ${hardExpired.length} session(s)`)
+
+      for (const s of hardExpired) {
+        const table = await Table.findByIdAndUpdate(
+          s.tableId,
+          { status: "available", currentSessionId: null, startedAt: null },
+          { new: true }
+        )
+        await Session.updateOne({ sessionId: s.sessionId }, { active: false })
+
+        if (socket && table) {
+          try {
+            socket.emitToAll("sessionExpired", { tableNumber: table.tableNumber, sessionId: s.sessionId })
+            socket.emitToAll("tableStatusChanged", { tableNumber: table.tableNumber, status: "free" })
+          } catch {}
+        }
+      }
+    }
+
   } catch (error) {
-    console.error(`[NODE-CRON] Error in session job: ${error.message}`)
+    console.error(`[CRON] Error in session job: ${error.message}`)
   }
 })

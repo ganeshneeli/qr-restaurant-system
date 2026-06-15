@@ -15,10 +15,13 @@ const clearMenuCache = () => {
 
 exports.getMenu = async (req, res) => {
   try {
-    const { category, search, page = 1, limit = 12, forceRefresh } = req.query;
+    const { category, search, page = 1, limit = 12, forceRefresh, adminAll } = req.query;
+    
+    // Admin can pass ?adminAll=true to see all items including unavailable
+    const isAdminView = adminAll === 'true';
     
     // Generate a unique cache key based on query params
-    const cacheKey = `menu_${category || 'All'}_${search || ''}_${page}_${limit}`
+    const cacheKey = `menu_${category || 'All'}_${search || ''}_${page}_${limit}_${isAdminView ? 'admin' : 'public'}`
     
     if (!forceRefresh) {
       const cachedData = menuCache.get(cacheKey)
@@ -27,7 +30,8 @@ exports.getMenu = async (req, res) => {
       }
     }
 
-    let query = { available: true }; // Only show available items to customers
+    // Admin sees all items; customers only see available ones
+    let query = isAdminView ? {} : { available: true };
     if (category && category !== "All") {
       query.category = category;
     }

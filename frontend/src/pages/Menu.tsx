@@ -170,6 +170,7 @@ const MenuContent = () => {
   const [popupStatus, setPopupStatus] = useState<string | null>(null);
   const [selectedDish, setSelectedDish] = useState<MenuItem | null>(null);
   const [showExitModal, setShowExitModal] = useState(false);
+  const [sessionExpired, setSessionExpired] = useState(false);
 
   // Pagination States
   // Pagination & Flash Sale States
@@ -455,10 +456,24 @@ const MenuContent = () => {
       fetchMenu();
     };
 
+    // ── Session expired (server auto-released the idle table) ─────────────
+    const onSessionExpired = (data: { tableNumber?: number; sessionId?: string }) => {
+      // Only act if this event is for our table/session
+      if (data.tableNumber && data.tableNumber !== tableNumber) return;
+      if (data.sessionId && data.sessionId !== sessionId) return;
+
+      console.log(`[Table-${tableNumber}] Session expired — idle timeout triggered`);
+      setSessionExpired(true);
+      // Clear local storage so re-scan works cleanly
+      setSessionToken(null, tableId || "");
+      localStorage.removeItem(cartKey);
+    };
+
     socket.on("connect", onConnect);
     socket.on("disconnect", onDisconnect);
     socket.on("statusUpdated", onStatusUpdate);
     socket.on("menuUpdate", onMenuUpdate);
+    socket.on("sessionExpired", onSessionExpired);
 
     // If already connected (Strict Mode second mount), emit immediately
     if (socket.connected) {
@@ -471,10 +486,11 @@ const MenuContent = () => {
       socket.off("disconnect", onDisconnect);
       socket.off("statusUpdated", onStatusUpdate);
       socket.off("menuUpdate", onMenuUpdate);
+      socket.off("sessionExpired", onSessionExpired);
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [tableId, tableNumber, sessionId, sessionToken, cartKey]); // stable deps
+  }, [tableId, tableNumber, sessionId, sessionToken, cartKey, setSessionToken]); // stable deps
 
   // ── Cart helpers ──────────────────────────────────────────────────────────
   const addToCart = (item: MenuItem) => setCart(prev => {
@@ -579,6 +595,54 @@ const MenuContent = () => {
       toast({ title: "Error", description: "Failed to submit feedback", variant: "destructive" });
     }
   };
+
+  if (!sessionToken && !sessionExpired) return null;
+
+  // ─── Session Expired Screen ────────────────────────────────────────────────
+  if (sessionExpired) {
+    return (
+      <PageTransition>
+        <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center p-6 text-white relative overflow-hidden">
+          {/* Background glow */}
+          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-amber-950/20 blur-[120px] rounded-full pointer-events-none" />
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.92, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            className="flex flex-col items-center text-center max-w-sm"
+          >
+            {/* Icon */}
+            <div className="w-20 h-20 rounded-3xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mb-6 shadow-[0_0_40px_rgba(245,158,11,0.08)]">
+              <svg className="w-9 h-9 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 6v6l4 2"/>
+              </svg>
+            </div>
+
+            <h1 className="text-2xl font-black text-white tracking-tight mb-2">Session Expired</h1>
+            <p className="text-white/50 text-sm leading-relaxed mb-2">
+              Your table session was automatically released because no order was placed within <span className="text-amber-400 font-bold">15 minutes</span>.
+            </p>
+            <p className="text-white/30 text-xs mb-8">
+              The table is now free. Please re-scan the QR code to start a new session.
+            </p>
+
+            <button
+              onClick={() => navigate("/")}
+              className="px-8 py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 text-black font-black text-sm tracking-wider hover:from-amber-400 hover:to-orange-400 transition-all duration-300 shadow-[0_4px_20px_rgba(245,158,11,0.25)]"
+            >
+              Back to Home
+            </button>
+
+            <p className="mt-5 text-white/20 text-xs">
+              Table {tableId} · Session ended
+            </p>
+          </motion.div>
+        </div>
+      </PageTransition>
+    );
+  }
 
   if (!sessionToken) return null;
 

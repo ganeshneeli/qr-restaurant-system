@@ -38,8 +38,8 @@ exports.activateTable = async (req, res) => {
   if (!table)
     return res.status(400).json({ success: false, message: "Table occupied or invalid" })
 
-  // LAYER 3: 15-minute Token/Session Expiry (Industry Standard for anti-misuse)
-  const EXPIRY_TIME = 15 * 60 * 1000 // 15 mins
+  // Session Expiry: 4 hours — long enough for a full meal service
+  const EXPIRY_TIME = 4 * 60 * 60 * 1000 // 4 hours
   
   await Session.create({
     sessionId,
@@ -51,7 +51,7 @@ exports.activateTable = async (req, res) => {
   const token = jwt.sign(
     { sessionId, tableNumber: table.tableNumber, tableId: table._id },
     process.env.JWT_SECRET,
-    { expiresIn: "15m" } // Strict 15 min expiry
+    { expiresIn: "4h" } // 4h expiry — enough for a full dining session
   )
 
   console.log("[Socket] Emitting tableStatusChanged (occupied) for table:", table.tableNumber)
@@ -165,7 +165,8 @@ exports.forceReleaseTable = async (req, res) => {
 
 exports.exitTable = async (req, res) => {
   try {
-    const { tableId, sessionId, tableNumber } = req.user
+    // sessionAuth sets req.session (not req.user)
+    const { tableId, sessionId, tableNumber } = req.session
 
     const table = await Table.findOneAndUpdate(
       { _id: tableId, currentSessionId: sessionId },

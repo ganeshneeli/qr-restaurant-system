@@ -28,8 +28,18 @@ api.interceptors.response.use(
   (res) => res,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem("adminToken");
-      window.location.href = "/#/admin-login";
+      const adminToken = localStorage.getItem("adminToken");
+      const staffToken = localStorage.getItem("staffToken");
+      // Only redirect to admin-login if admin token expired (not staff sessions)
+      if (adminToken && !staffToken) {
+        localStorage.removeItem("adminToken");
+        window.location.href = "/#/admin-login";
+      }
+      // If staff token expired, redirect to staff-login instead
+      if (staffToken && !adminToken) {
+        localStorage.removeItem("staffToken");
+        window.location.href = "/#/staff-login";
+      }
     }
     return Promise.reject(error);
   }

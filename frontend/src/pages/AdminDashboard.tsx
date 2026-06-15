@@ -277,7 +277,8 @@ const AdminDashboard = () => {
           page: menuPage,
           limit: 20,
           search: menuSearchQuery,
-          forceRefresh: force
+          forceRefresh: force,
+          adminAll: true   // Admin sees ALL items including unavailable ones
         }
       });
       setMenuItems(res.data?.data || []);

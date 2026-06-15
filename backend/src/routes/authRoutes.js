@@ -7,7 +7,7 @@ const rateLimit = require("express-rate-limit")
 
 const loginLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 10, // Limit each IP to 10 login requests per windowMs
+  max: 50, // Allow 50 login attempts per hour per IP
   message: { success: false, message: "Too many login attempts, please try again after an hour" },
   standardHeaders: true,
   legacyHeaders: false,

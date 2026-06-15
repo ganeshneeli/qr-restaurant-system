@@ -12,7 +12,11 @@ import {
   Camera, 
   PartyPopper, 
   Coins, 
-  Truck 
+  Truck,
+  Phone,
+  Mail,
+  Linkedin,
+  Instagram 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -603,20 +607,22 @@ const Landing = () => {
           </div>
 
           {/* Contact */}
-          <div className="flex flex-col gap-2 text-white/60 text-sm">
-            <p>
-              📞 <span className="font-medium">Call / WhatsApp:</span>{" "}
-              <a href="tel:+919187135171" className="hover:text-white transition-colors">
-                +91 9187135171
-              </a>
-            </p>
+          <div className="flex flex-col sm:flex-row items-center gap-4 text-white/60 text-sm">
+            <a 
+              href="tel:+918328437123" 
+              className="flex items-center gap-2 hover:text-white transition-all duration-300 bg-white/5 hover:bg-white/10 hover:scale-[1.02] px-4 py-2.5 rounded-full border border-white/10"
+            >
+              <Phone className="h-4 w-4 text-red-500" />
+              <span className="font-medium">Call / WhatsApp:</span> +91 8328437123
+            </a>
 
-            <p>
-              📧 <span className="font-medium">Email Us:</span>{" "}
-              <a href="mailto:contact@codegeniusinnovations.in" className="hover:text-white transition-colors">
-                contact@codegeniusinnovations.in
-              </a>
-            </p>
+            <a 
+              href="mailto:hr@codegeniusinnovations.in" 
+              className="flex items-center gap-2 hover:text-white transition-all duration-300 bg-white/5 hover:bg-white/10 hover:scale-[1.02] px-4 py-2.5 rounded-full border border-white/10"
+            >
+              <Mail className="h-4 w-4 text-red-500" />
+              <span className="font-medium">Email Us:</span> hr@codegeniusinnovations.in
+            </a>
           </div>
 
           {/* Social Media */}
@@ -624,17 +630,19 @@ const Landing = () => {
             <a
               href="https://www.linkedin.com/company/fingrowconsulting/posts/?feedView=all"
               target="_blank"
-              className="hover:text-white transition-colors"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 hover:text-white transition-colors"
             >
-              🔗 LinkedIn
+              <Linkedin className="h-4 w-4" /> LinkedIn
             </a>
 
             <a
-              href="https://www.instagram.com/fingrow_technologies?igsh=MWJheXlybjR6MjFhOA%3D%3D"
+              href="https://www.instagram.com/codegenius_innovations/"
               target="_blank"
-              className="hover:text-white transition-colors"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 hover:text-white transition-colors"
             >
-              📸 Instagram
+              <Instagram className="h-4 w-4" /> Instagram
             </a>
           </div>
         </footer>
