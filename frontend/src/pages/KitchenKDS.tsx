@@ -543,36 +543,36 @@ export default function KitchenKDS() {
   }, [orders, selectedStation]);
 
   return (
-    <div className="h-screen bg-[#050506] bg-[radial-gradient(#ffffff03_1px,transparent_1px)] [background-size:16px_16px] text-white overflow-hidden flex flex-col font-sans">
+    <div className="min-h-screen lg:h-screen bg-[#050506] bg-[radial-gradient(#ffffff03_1px,transparent_1px)] [background-size:16px_16px] text-white overflow-y-auto lg:overflow-hidden flex flex-col font-sans">
       {/* Top bar control panel */}
-      <div className="sticky top-0 z-50 bg-black/60 backdrop-blur-xl border-b border-white/5 px-6 py-4 shadow-xl shrink-0">
-        <div className="flex items-center justify-between max-w-[1800px] mx-auto">
-          <div className="flex items-center gap-5">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-orange-500/10 to-red-500/10 border border-orange-500/25 flex items-center justify-center shadow-inner group">
-              <ChefHat className="w-6 h-6 text-orange-400 group-hover:scale-110 transition-transform duration-300" />
+      <div className="sticky top-0 z-50 bg-black/60 backdrop-blur-xl border-b border-white/5 px-4 md:px-6 py-3 md:py-4 shadow-xl shrink-0">
+        <div className="flex items-center justify-between max-w-[1800px] mx-auto w-full">
+          <div className="flex items-center gap-3 md:gap-5">
+            <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-gradient-to-tr from-orange-500/10 to-red-500/10 border border-orange-500/25 flex items-center justify-center shadow-inner group shrink-0">
+              <ChefHat className="w-5 h-5 md:w-6 md:h-6 text-orange-400 group-hover:scale-110 transition-transform duration-300" />
             </div>
-            <div>
-              <div className="flex items-baseline gap-2">
-                <h1 className="text-lg font-black tracking-wider uppercase bg-gradient-to-r from-white via-white to-gray-400 bg-clip-text text-transparent">Kitchen Display</h1>
-                <span className="text-[10px] text-white/30 font-bold font-mono">v1.5</span>
+            <div className="min-w-0">
+              <div className="flex items-baseline gap-1.5">
+                <h1 className="text-sm md:text-lg font-black tracking-wider uppercase bg-gradient-to-r from-white via-white to-gray-400 bg-clip-text text-transparent truncate">Kitchen Display</h1>
+                <span className="text-[8px] md:text-[10px] text-white/30 font-bold font-mono">v1.5</span>
               </div>
-              <p className="text-[10px] text-white/40 uppercase tracking-widest font-semibold flex items-center gap-1.5 mt-0.5">
+              <p className="text-[8px] md:text-[10px] text-white/40 uppercase tracking-widest font-semibold flex items-center gap-1 mt-0.5 truncate">
                 <span>{staffName || "Kitchen Crew"}</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-white/20" />
-                <span className="text-orange-400/80 font-bold">Temptations KDS</span>
+                <span className="w-1 h-1 rounded-full bg-white/20" />
+                <span className="text-orange-400/80 font-bold">Temptations</span>
               </p>
             </div>
-            <div className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border text-[9px] font-black uppercase tracking-widest transition-all duration-300 ${
+            <div className={`flex items-center gap-1 px-2 py-1 md:px-3.5 md:py-1.5 rounded-full border text-[8px] md:text-[9px] font-black uppercase tracking-widest transition-all duration-300 ${
               connected 
                 ? "border-emerald-500/20 bg-emerald-500/5 text-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.1)]" 
                 : "border-red-500/20 bg-red-500/5 text-red-400 shadow-[0_0_12px_rgba(239,68,68,0.1)] animate-pulse"
             }`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${connected ? "bg-emerald-400 shadow-[0_0_6px_#10b981] animate-pulse" : "bg-red-500 shadow-[0_0_6px_#ef4444]"}`} />
-              {connected ? "System Live" : "Offline Connection"}
+              <span className={`w-1 h-1 md:w-1.5 md:h-1.5 rounded-full ${connected ? "bg-emerald-400 shadow-[0_0_6px_#10b981] animate-pulse" : "bg-red-500 shadow-[0_0_6px_#ef4444]"}`} />
+              <span className="hidden xs:inline">{connected ? "System Live" : "Offline"}</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-2 md:gap-6 shrink-0">
             {/* Live Clock */}
             <div className="hidden md:flex flex-col items-end border-r border-white/10 pr-6">
               <LiveClock />
@@ -580,43 +580,44 @@ export default function KitchenKDS() {
             </div>
 
             {/* Active orders count */}
-            <div className="flex items-center gap-3 px-4 py-1.5 rounded-2xl bg-white/[0.02] border border-white/5">
+            <div className="hidden sm:flex items-center gap-3 px-4 py-1.5 rounded-2xl bg-white/[0.02] border border-white/5">
               <div className="text-right">
                 <p className="text-[9px] text-white/30 uppercase tracking-widest font-black leading-none mb-0.5">Queue Status</p>
-                <span className="text-lg font-black text-orange-400 font-mono leading-none">{totalActive} Active</span>
+                <span className="text-sm font-black text-orange-400 font-mono leading-none">{totalActive} Active</span>
               </div>
               <div className="w-8 h-8 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-center justify-center">
                 <Utensils className="w-4 h-4 text-orange-400" />
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 md:gap-2">
               <button
                 onClick={() => setSoundEnabled(!soundEnabled)}
-                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 border ${
+                className={`w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl flex items-center justify-center transition-all duration-300 border ${
                   soundEnabled 
                     ? "bg-white/[0.03] border-white/10 text-white/60 hover:text-white hover:bg-white/[0.05]" 
                     : "bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500/20"
                 }`}
                 title={soundEnabled ? "Mute alerts" : "Unmute alerts"}
               >
-                {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+                {soundEnabled ? <Volume2 className="w-3.5 h-3.5 md:w-4 md:h-4" /> : <VolumeX className="w-3.5 h-3.5 md:w-4 md:h-4" />}
               </button>
 
               <button
                 onClick={() => document.documentElement.requestFullscreen?.()}
-                className="w-10 h-10 rounded-xl bg-white/[0.03] border border-white/10 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/[0.05] transition-all duration-300"
+                className="hidden sm:flex w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-white/[0.03] border border-white/10 items-center justify-center text-white/60 hover:text-white hover:bg-white/[0.05] transition-all duration-300"
                 title="Fullscreen Mode"
               >
-                <Maximize className="w-4 h-4" />
+                <Maximize className="w-3.5 h-3.5 md:w-4 md:h-4" />
               </button>
 
               <button
                 onClick={handleLogout}
-                className="flex items-center gap-2 px-4 h-10 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-bold hover:bg-red-500/20 hover:border-red-500/30 transition-all duration-300 shadow-lg shadow-red-950/10"
+                className="flex items-center gap-1.5 px-3 h-8 md:h-10 rounded-lg md:rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs md:text-sm font-bold hover:bg-red-500/20 hover:border-red-500/30 transition-all duration-300 shadow-lg shadow-red-950/10"
               >
-                <LogOut className="w-4 h-4" />
-                <span>Exit KDS</span>
+                <LogOut className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                <span className="hidden xs:inline">Exit KDS</span>
+                <span className="xs:hidden">Exit</span>
               </button>
             </div>
           </div>
@@ -624,18 +625,18 @@ export default function KitchenKDS() {
       </div>
 
       {/* Main Body */}
-      <div className="p-6 max-w-[1800px] w-full mx-auto flex-1 overflow-hidden flex flex-col min-h-0">
-        <div className="flex gap-6 h-full min-h-0">
+      <div className="p-4 md:p-6 max-w-[1800px] w-full mx-auto flex-1 lg:overflow-hidden flex flex-col min-h-0">
+        <div className="flex flex-col lg:flex-row gap-6 h-auto lg:h-full min-h-0">
           
           {/* LEFT SIDEBAR - STATION SELECTOR & PREP COUNTERS */}
-          <div className="w-[340px] shrink-0 bg-[#0c0c0e]/40 border border-white/5 rounded-2xl p-5 flex flex-col gap-6 h-full min-h-0">
+          <div className="w-full lg:w-[340px] shrink-0 bg-[#0c0c0e]/40 border border-white/5 rounded-2xl p-5 flex flex-col gap-6 h-auto lg:h-full min-h-0">
             {/* Station Selector */}
             <div className="shrink-0 space-y-3">
               <span className="text-[10px] uppercase tracking-[0.2em] font-black text-white/40 flex items-center gap-1.5">
                 <Filter className="w-3.5 h-3.5 text-orange-400" />
                 Filter by Station
               </span>
-              <div className="space-y-1.5">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:flex lg:flex-col gap-1.5">
                 {STATIONS.map((station) => {
                   const Icon = station.icon;
                   const isActive = selectedStation === station.id;
@@ -657,18 +658,18 @@ export default function KitchenKDS() {
                     <button
                       key={station.id}
                       onClick={() => setSelectedStation(station.id)}
-                      className={`w-full flex items-center justify-between p-3 rounded-xl border text-sm font-bold text-left transition-all duration-200 ${
+                      className={`flex items-center justify-between p-2.5 rounded-xl border text-xs font-bold text-left transition-all duration-200 ${
                         isActive 
                           ? "bg-orange-500/20 border-orange-500/40 text-orange-400 shadow-[0_0_15px_rgba(245,158,11,0.05)]" 
                           : "bg-white/[0.01] border-white/5 text-white/50 hover:text-white hover:bg-white/[0.03] hover:border-white/10"
                       }`}
                     >
-                      <div className="flex items-center gap-2.5">
-                        <Icon className="w-4 h-4" />
-                        <span>{station.label}</span>
+                      <div className="flex items-center gap-2 truncate">
+                        <Icon className="w-3.5 h-3.5 shrink-0" />
+                        <span className="truncate">{station.label}</span>
                       </div>
                       {stationCount > 0 && (
-                        <span className={`text-[10px] font-black font-mono px-2 py-0.5 rounded-full border ${
+                        <span className={`text-[9px] font-black font-mono px-1.5 py-0.2 rounded-full border shrink-0 ${
                           isActive ? "bg-orange-500/20 border-orange-500/40 text-orange-400" : "bg-white/5 border-white/10 text-white/40"
                         }`}>
                           {stationCount}
@@ -681,7 +682,7 @@ export default function KitchenKDS() {
             </div>
 
             {/* Aggregated Cook List */}
-            <div className="flex-1 min-h-0 flex flex-col gap-3">
+            <div className="h-[250px] lg:h-auto lg:flex-1 min-h-0 flex flex-col gap-3">
               <span className="text-[10px] uppercase tracking-[0.2em] font-black text-white/40 flex items-center gap-1.5 shrink-0">
                 <ChefHat className="w-3.5 h-3.5 text-orange-400" />
                 Aggregated Prep List
@@ -692,7 +693,7 @@ export default function KitchenKDS() {
                 className="flex-1 overflow-y-auto pr-1 space-y-2 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent"
               >
                 {aggregatedPrepItems.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-20 text-white/10 text-center">
+                  <div className="flex flex-col items-center justify-center py-12 text-white/10 text-center">
                     <Utensils className="w-8 h-8 mb-2" />
                     <span className="text-[10px] font-bold uppercase tracking-widest">No active prep items</span>
                   </div>
@@ -743,8 +744,8 @@ export default function KitchenKDS() {
           </div>
 
           {/* RIGHT CONTENT - KANBAN BOARD */}
-          <div className="flex-1 min-h-0 h-full">
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 h-full min-h-0">
+          <div className="flex-1 min-h-0 h-auto lg:h-full">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 h-auto lg:h-full min-h-0">
               {COLUMNS.map((col) => {
                 const columnOrders = getColumnOrders(col.id);
                 const ColIcon = col.icon;
@@ -752,7 +753,7 @@ export default function KitchenKDS() {
                 return (
                   <div 
                     key={col.id} 
-                    className="bg-[#0c0c0e]/50 border border-white/5 rounded-2xl p-4 flex flex-col h-full min-h-0 relative overflow-hidden transition-all"
+                    className="bg-[#0c0c0e]/50 border border-white/5 rounded-2xl p-4 flex flex-col h-[450px] lg:h-full min-h-0 relative overflow-hidden transition-all"
                   >
                     {/* Colored top line accent for columns */}
                     <div className={`absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r ${

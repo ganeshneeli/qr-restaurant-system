@@ -366,7 +366,7 @@ export default function WaiterDashboard() {
   }, [orders]);
 
   return (
-    <div className="h-screen bg-[#050506] bg-[radial-gradient(#ffffff03_1px,transparent_1px)] [background-size:16px_16px] text-white overflow-hidden flex flex-col font-sans">
+    <div className="min-h-screen lg:h-screen bg-[#050506] bg-[radial-gradient(#ffffff03_1px,transparent_1px)] [background-size:16px_16px] text-white overflow-y-auto lg:overflow-hidden flex flex-col font-sans">
       {/* Toast Alert */}
       <AnimatePresence>
         {newReadyAlert !== null && (
@@ -383,122 +383,62 @@ export default function WaiterDashboard() {
       </AnimatePresence>
 
       {/* Header */}
-      <div className="sticky top-0 z-50 bg-black/60 backdrop-blur-xl border-b border-white/5 px-6 py-4 shadow-xl shrink-0">
-        <div className="flex items-center justify-between max-w-[1800px] mx-auto">
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
-              <UtensilsCrossed className="w-5 h-5 text-blue-400" />
+      <div className="sticky top-0 z-50 bg-black/60 backdrop-blur-xl border-b border-white/5 px-4 md:px-6 py-3 md:py-4 shadow-xl shrink-0">
+        <div className="flex items-center justify-between max-w-[1800px] mx-auto w-full">
+          <div className="flex items-center gap-3 md:gap-4">
+            <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
+              <UtensilsCrossed className="w-4.5 h-4.5 text-blue-400" />
             </div>
-            <div>
-              <h1 className="text-base font-black text-white">Waiter Dashboard</h1>
-              <p className="text-[10px] text-white/40 uppercase tracking-widest">{staffName || "Waiter"} · Temptations Portal</p>
+            <div className="min-w-0">
+              <h1 className="text-sm md:text-base font-black text-white truncate">Waiter Dashboard</h1>
+              <p className="text-[8px] md:text-[10px] text-white/40 uppercase tracking-widest truncate">{staffName || "Waiter"} · Temptations</p>
             </div>
-            <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border text-[9px] font-black uppercase tracking-widest ${
+            <div className={`flex items-center gap-1 px-2 py-0.5 md:py-1 rounded-full border text-[8px] md:text-[9px] font-black uppercase tracking-widest ${
               connected ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400" : "border-red-500/30 bg-red-500/10 text-red-400"
             }`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${connected ? "bg-emerald-500 animate-pulse" : "bg-red-500"}`} />
-              {connected ? "Live" : "Offline"}
+              <span className={`w-1 h-1 md:w-1.5 md:h-1.5 rounded-full ${connected ? "bg-emerald-500 animate-pulse" : "bg-red-500"}`} />
+              <span className="hidden xs:inline">{connected ? "Live" : "Offline"}</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 md:gap-3 shrink-0">
             {readyCount > 0 && (
-              <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 px-4 py-2 rounded-xl">
-                <Package className="w-4 h-4 text-emerald-400" />
-                <span className="text-emerald-400 font-black text-sm">{readyCount} Ready</span>
+              <div className="flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1.5 rounded-lg md:rounded-xl">
+                <Package className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="text-emerald-400 font-black text-xs md:text-sm">{readyCount} <span className="hidden xs:inline">Ready</span></span>
               </div>
             )}
             {pendingCount > 0 && (
-              <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 px-4 py-2 rounded-xl">
-                <AlertTriangle className="w-4 h-4 text-red-400" />
-                <span className="text-red-400 font-black text-sm">{pendingCount} New</span>
+              <div className="flex items-center gap-1.5 bg-red-500/10 border border-red-500/20 px-2.5 py-1.5 rounded-lg md:rounded-xl">
+                <AlertTriangle className="w-3.5 h-3.5 text-red-400" />
+                <span className="text-red-400 font-black text-xs md:text-sm">{pendingCount} <span className="hidden xs:inline">New</span></span>
               </div>
             )}
 
             <button
               onClick={() => setNotifEnabled(!notifEnabled)}
-              className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-white transition-colors"
+              className="w-8 h-8 md:w-9 md:h-9 rounded-lg md:rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-white transition-colors"
             >
-              {notifEnabled ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
+              {notifEnabled ? <Bell className="w-3.5 h-3.5" /> : <BellOff className="w-3.5 h-3.5" />}
             </button>
 
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-bold hover:bg-red-500/20 transition-all"
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg md:rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs md:text-sm font-bold hover:bg-red-500/20 transition-all"
             >
-              <LogOut className="w-3.5 h-3.5" />
-              Exit
+              <LogOut className="w-3 h-3 md:w-3.5 md:h-3.5" />
+              <span className="hidden xs:inline">Exit</span>
             </button>
           </div>
         </div>
       </div>
 
       {/* Main Body */}
-      <div className="p-6 max-w-[1800px] w-full mx-auto flex-1 overflow-hidden flex flex-col min-h-0">
-        <div className="flex gap-6 h-full min-h-0">
+      <div className="p-4 md:p-6 max-w-[1800px] w-full mx-auto flex-1 lg:overflow-hidden flex flex-col min-h-0">
+        <div className="flex flex-col lg:flex-row gap-6 h-auto lg:h-full min-h-0">
           
-          {/* LEFT CONTENT: KANBAN BOARD */}
-          <div className="flex-1 min-h-0 h-full">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 h-full min-h-0">
-              {WAITER_COLUMNS.map((col) => {
-                const colOrders = getColOrders(col.id);
-                const ColIcon = col.icon;
-
-                return (
-                  <div key={col.id} className={`bg-[#0c0c0e]/50 border border-white/5 rounded-2xl p-4 flex flex-col h-full min-h-0 relative overflow-hidden transition-all`}>
-                    
-                    {/* Top colored accent line */}
-                    <div className={`absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r ${
-                      col.id === 'pending' ? 'from-red-500 to-rose-600' :
-                      col.id === 'ready' ? 'from-emerald-500 to-teal-600' :
-                      'from-gray-500 to-gray-600'
-                    }`} />
-
-                    {/* Column Header */}
-                    <div className="flex items-center justify-between pb-3 border-b border-white/5 mt-1 shrink-0">
-                      <div className="flex items-center gap-2">
-                        <ColIcon className={`w-4 h-4 ${col.headerColor}`} />
-                        <h2 className={`text-[11px] font-black uppercase tracking-widest ${col.headerColor}`}>
-                          {col.label}
-                        </h2>
-                      </div>
-                      <span className={`text-xs font-black px-2.5 py-1 rounded-full border ${col.badgeBg} ${col.headerColor}`}>
-                        {colOrders.length}
-                      </span>
-                    </div>
-                    <p className="text-[10px] text-white/25 font-medium mt-2 shrink-0">{col.desc}</p>
-
-                    {/* Cards Scrollable list */}
-                    <div 
-                      data-lenis-prevent 
-                      className="space-y-4 overflow-y-auto flex-1 pr-1 mt-4 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent"
-                    >
-                      <AnimatePresence>
-                        {colOrders.length === 0 ? (
-                          <div className="flex flex-col items-center justify-center py-20 text-white/15">
-                            <Home className="w-6 h-6 mb-2" />
-                            <span className="text-xs font-medium">Clear</span>
-                          </div>
-                        ) : (
-                          colOrders.map(order => (
-                            <WaiterCard
-                              key={order._id}
-                              order={order}
-                              onMarkDelivered={handleMarkDelivered}
-                              delivering={delivering === order._id}
-                            />
-                          ))
-                        )}
-                      </AnimatePresence>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
           {/* RIGHT SIDEBAR: RESTAURANT TABLE FLOOR MAP & LIVE TASKS */}
-          <div className="w-[360px] shrink-0 bg-[#0c0c0e]/40 border border-white/5 rounded-2xl p-5 flex flex-col gap-6 h-full min-h-0">
+          <div className="order-1 lg:order-2 w-full lg:w-[360px] shrink-0 bg-[#0c0c0e]/40 border border-white/5 rounded-2xl p-5 flex flex-col gap-6 h-auto lg:h-full min-h-0">
             
             {/* Restaurant Floor Map */}
             <div className="shrink-0 space-y-3">
@@ -556,7 +496,7 @@ export default function WaiterDashboard() {
             </div>
 
             {/* Active Tasks Checklist */}
-            <div className="flex-1 min-h-0 flex flex-col gap-3">
+            <div className="h-[250px] lg:h-auto lg:flex-1 min-h-0 flex flex-col gap-3">
               <span className="text-[10px] uppercase tracking-[0.2em] font-black text-white/40 flex items-center gap-1.5 shrink-0">
                 <ClipboardList className="w-3.5 h-3.5 text-blue-400" />
                 Active Waiter Tasks
@@ -567,7 +507,7 @@ export default function WaiterDashboard() {
                 className="flex-1 overflow-y-auto pr-1 space-y-2 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent"
               >
                 {activeTasks.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-20 text-white/10 text-center">
+                  <div className="flex flex-col items-center justify-center py-12 text-white/10 text-center">
                     <CheckCircle2 className="w-8 h-8 mb-2 text-emerald-500" />
                     <span className="text-[10px] font-bold uppercase tracking-widest text-white/30">All Tasks Completed</span>
                   </div>
@@ -610,6 +550,66 @@ export default function WaiterDashboard() {
               </div>
             </div>
 
+          </div>
+
+          {/* LEFT CONTENT: KANBAN BOARD */}
+          <div className="order-2 lg:order-1 flex-1 min-h-0 h-auto lg:h-full">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 h-auto lg:h-full min-h-0">
+              {WAITER_COLUMNS.map((col) => {
+                const colOrders = getColOrders(col.id);
+                const ColIcon = col.icon;
+
+                return (
+                  <div key={col.id} className="bg-[#0c0c0e]/50 border border-white/5 rounded-2xl p-4 flex flex-col h-[400px] lg:h-full min-h-0 relative overflow-hidden transition-all">
+                    
+                    {/* Top colored accent line */}
+                    <div className={`absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r ${
+                      col.id === 'pending' ? 'from-red-500 to-rose-600' :
+                      col.id === 'ready' ? 'from-emerald-500 to-teal-600' :
+                      'from-gray-500 to-gray-600'
+                    }`} />
+
+                    {/* Column Header */}
+                    <div className="flex items-center justify-between pb-3 border-b border-white/5 mt-1 shrink-0">
+                      <div className="flex items-center gap-2">
+                        <ColIcon className={`w-4 h-4 ${col.headerColor}`} />
+                        <h2 className={`text-[11px] font-black uppercase tracking-widest ${col.headerColor}`}>
+                          {col.label}
+                        </h2>
+                      </div>
+                      <span className={`text-xs font-black px-2.5 py-1 rounded-full border ${col.badgeBg} ${col.headerColor}`}>
+                        {colOrders.length}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-white/25 font-medium mt-2 shrink-0">{col.desc}</p>
+
+                    {/* Cards Scrollable list */}
+                    <div 
+                      data-lenis-prevent 
+                      className="space-y-4 overflow-y-auto flex-1 pr-1 mt-4 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent"
+                    >
+                      <AnimatePresence>
+                        {colOrders.length === 0 ? (
+                          <div className="flex flex-col items-center justify-center py-20 text-white/15">
+                            <Home className="w-6 h-6 mb-2" />
+                            <span className="text-xs font-medium">Clear</span>
+                          </div>
+                        ) : (
+                          colOrders.map(order => (
+                            <WaiterCard
+                              key={order._id}
+                              order={order}
+                              onMarkDelivered={handleMarkDelivered}
+                              delivering={delivering === order._id}
+                            />
+                          ))
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
         </div>
