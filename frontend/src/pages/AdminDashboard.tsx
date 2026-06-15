@@ -890,7 +890,7 @@ const AdminDashboard = () => {
 
   return (
     <PageTransition>
-      <div className="min-h-screen bg-[#050505] text-white flex pb-20 md:pb-0 relative">
+      <div className="min-h-screen bg-[#050505] text-white flex flex-col md:flex-row pb-28 md:pb-0 relative overflow-x-hidden">
         
         {/* Cinematic Backdrop Glow */}
         <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-red-950/10 blur-[130px] rounded-full pointer-events-none z-0" />
