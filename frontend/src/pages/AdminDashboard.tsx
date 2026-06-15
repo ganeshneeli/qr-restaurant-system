@@ -897,7 +897,7 @@ const AdminDashboard = () => {
         <div className="absolute bottom-1/4 right-1/4 w-[600px] h-[600px] bg-amber-950/5 blur-[130px] rounded-full pointer-events-none z-0" />
 
         {/* Desktop Sidebar */}
-        <aside data-lenis-prevent className="hidden md:flex w-[280px] h-screen glass border-r border-white/10 flex-col sticky top-0 z-40 bg-black/60 backdrop-blur-3xl shrink-0 overflow-y-auto no-scrollbar">
+        <aside className="hidden md:flex w-[280px] h-screen glass border-r border-white/10 flex-col sticky top-0 z-40 bg-black/60 backdrop-blur-3xl shrink-0 overflow-hidden">
           <div className="p-6 border-b border-white/10 space-y-5 shrink-0">
             
             {/* Sidebar Brand Header */}
@@ -923,7 +923,7 @@ const AdminDashboard = () => {
             </div>
           </div>
 
-          <nav className="flex-1 p-4 space-y-1.5">
+          <nav data-lenis-prevent className="flex-1 p-4 space-y-1.5 overflow-y-auto sidebar-scrollbar">
             {sections.map((s) => {
               // Dynamic counters for active feedback, live orders, etc.
               let badge = null;
@@ -1008,7 +1008,7 @@ const AdminDashboard = () => {
         </nav>
 
         {/* Main Content */}
-        <main className="flex-1 p-4 md:p-8 xl:p-12 w-full relative z-10">
+        <main className="flex-1 p-4 md:p-8 xl:p-12 min-w-0 relative z-10">
           <div className="max-w-6xl mx-auto">
             
             {/* Header section with new date capsules */}
