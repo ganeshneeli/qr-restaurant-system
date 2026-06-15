@@ -291,7 +291,7 @@ exports.updateStatus = async (req, res) => {
     }
 
     // Keep kitchen updated on all status changes
-    if (["accepted", "cooking", "plating", "ready"].includes(order.status)) {
+    if (["accepted", "cooking", "plating", "ready", "served", "completed"].includes(order.status)) {
       emitToKitchen("kitchenStatusUpdate", payload)
     }
 
@@ -325,6 +325,7 @@ exports.markAsPaid = async (req, res) => {
     const payload = { orderId: order._id, tableNumber: order.tableNumber, status: "completed" }
     emitToTable(order.tableNumber, "statusUpdated", payload)
     emitToAdmin("statusUpdated", payload)
+    emitToKitchen("kitchenStatusUpdate", payload)
 
     res.json({ success: true, data: order })
   } catch (error) {

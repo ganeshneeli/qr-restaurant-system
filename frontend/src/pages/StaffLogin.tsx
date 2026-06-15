@@ -106,6 +106,23 @@ export default function StaffLogin() {
           <p className="text-xs text-orange-400/70 mt-1 font-medium">Temptations Restaurant</p>
         </div>
 
+        {/* Portal Switch Toggle */}
+        <div className="flex bg-white/5 rounded-xl p-1 mb-4 border border-white/10">
+          <button
+            type="button"
+            onClick={() => navigate("/admin-login")}
+            className="flex-1 py-2.5 rounded-lg text-sm font-bold text-white/40 hover:text-white transition-all duration-300"
+          >
+            Admin Portal
+          </button>
+          <button
+            type="button"
+            className="flex-1 py-2.5 rounded-lg text-sm font-bold bg-orange-500/20 text-orange-400 border border-orange-500/30 transition-all duration-300"
+          >
+            Staff Portal
+          </button>
+        </div>
+
         {/* Mode Toggle */}
         <div className="flex bg-white/5 rounded-xl p-1 mb-6 border border-white/10">
           {[
@@ -249,13 +266,7 @@ export default function StaffLogin() {
           )}
         </div>
 
-        {/* Admin link */}
-        <p className="text-center text-white/25 text-xs mt-5">
-          Owner/Admin?{" "}
-          <button onClick={() => navigate("/admin-login")} className="text-red-400/60 hover:text-red-400 transition-colors font-bold">
-            Admin Login →
-          </button>
-        </p>
+
       </motion.div>
     </div>
   );

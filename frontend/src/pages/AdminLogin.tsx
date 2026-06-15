@@ -304,6 +304,23 @@ const AdminLogin = () => {
                 </div>
               </div>
 
+              {/* Portal Switch Toggle */}
+              <div className="flex bg-white/5 rounded-xl p-1 border border-white/10">
+                <button
+                  type="button"
+                  className="flex-1 py-2.5 rounded-lg text-sm font-bold bg-red-500/20 text-red-400 border border-red-500/30 transition-all duration-300"
+                >
+                  Admin Portal
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate("/staff-login")}
+                  className="flex-1 py-2.5 rounded-lg text-sm font-bold text-white/40 hover:text-white transition-all duration-300"
+                >
+                  Staff Portal
+                </button>
+              </div>
+
               {/* Large styled login form */}
               <form onSubmit={handleLogin} className="space-y-8">
                 <div className="space-y-3">

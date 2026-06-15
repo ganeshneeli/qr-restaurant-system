@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { io as socketIO } from "socket.io-client";
 import { 
@@ -12,7 +12,10 @@ import {
   CheckCircle2, 
   Utensils, 
   Flame,
-  Check
+  Check,
+  Filter,
+  Layers,
+  Sparkles
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -25,6 +28,7 @@ interface OrderItem {
   name?: string;
   quantity: number;
   price?: number;
+  station?: string;
 }
 
 interface Order {
@@ -50,6 +54,78 @@ const STATUS_FLOW: Record<string, string> = {
   pending: "accepted",
   accepted: "cooking",
   cooking: "ready",
+};
+
+const STATIONS = [
+  { id: "all", label: "All Stations", icon: Layers, color: "text-purple-400 bg-purple-500/10 border-purple-500/20" },
+  { id: "grill", label: "Grill Station", icon: Flame, color: "text-red-400 bg-red-500/10 border-red-500/20" },
+  { id: "fry", label: "Fry Station", icon: Utensils, color: "text-amber-400 bg-amber-500/10 border-amber-500/20" },
+  { id: "drinks", label: "Drinks Station", icon: Sparkles, color: "text-blue-400 bg-blue-500/10 border-blue-500/20" },
+  { id: "dessert", label: "Dessert Parlor", icon: ChefHat, color: "text-pink-400 bg-pink-500/10 border-pink-500/20" },
+  { id: "general", label: "General Kitchen", icon: Utensils, color: "text-gray-400 bg-gray-500/10 border-gray-500/20" },
+];
+
+// Inferred station helper based on item name
+export const getStationByItemName = (name: string): string => {
+  const n = name.toLowerCase();
+  if (
+    n.includes("tea") ||
+    n.includes("coffee") ||
+    n.includes("beverage") ||
+    n.includes("mojito") ||
+    n.includes("shake") ||
+    n.includes("drink") ||
+    n.includes("juice") ||
+    n.includes("water") ||
+    n.includes("soda") ||
+    n.includes("lassi")
+  ) {
+    return "drinks";
+  }
+  if (
+    n.includes("ice cream") ||
+    n.includes("cake") ||
+    n.includes("pastry") ||
+    n.includes("dessert") ||
+    n.includes("brownie") ||
+    n.includes("waffle") ||
+    n.includes("pudding") ||
+    n.includes("gulab jamun") ||
+    n.includes("sweet")
+  ) {
+    return "dessert";
+  }
+  if (
+    n.includes("fry") ||
+    n.includes("soup") ||
+    n.includes("manchurian") ||
+    n.includes("crispy") ||
+    n.includes("chilli") ||
+    n.includes("finger") ||
+    n.includes("65") ||
+    n.includes("tikka") ||
+    n.includes("lollipop") ||
+    n.includes("starter")
+  ) {
+    return "fry";
+  }
+  if (
+    n.includes("biryani") ||
+    n.includes("rice") ||
+    n.includes("roti") ||
+    n.includes("bread") ||
+    n.includes("curry") ||
+    n.includes("paneer") ||
+    n.includes("chicken") ||
+    n.includes("mutton") ||
+    n.includes("masala") ||
+    n.includes("tandoori") ||
+    n.includes("naan") ||
+    n.includes("dal")
+  ) {
+    return "grill";
+  }
+  return "general";
 };
 
 // Live Digital Clock for Kitchen Staff
@@ -100,10 +176,11 @@ function TimerBadge({ createdAt }: { createdAt?: string }) {
   );
 }
 
-function OrderCard({ order, onAdvance, advancing }: {
+function OrderCard({ order, onAdvance, advancing, selectedStation }: {
   order: Order;
   onAdvance: (id: string, nextStatus: string) => void;
   advancing: boolean;
+  selectedStation: string;
 }) {
   const minutes = useOrderTimer(order.createdAt);
   const isUrgent = minutes >= 10;
@@ -149,6 +226,22 @@ function OrderCard({ order, onAdvance, advancing }: {
     ready: "from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 shadow-[0_4px_12px_rgba(245,158,11,0.25)]",
   };
 
+  // Filter items in the list to highlight matching station
+  const processedItems = useMemo(() => {
+    return order.items.map((item, idx) => {
+      const station = item.station && item.station !== "general" ? item.station : getStationByItemName(item.name || "");
+      const isMatch = selectedStation === "all" || station === selectedStation;
+      return {
+        ...item,
+        originalIndex: idx,
+        station,
+        isMatch
+      };
+    });
+  }, [order.items, selectedStation]);
+
+  const matchCount = processedItems.filter(i => i.isMatch).length;
+
   return (
     <motion.div
       layout
@@ -187,7 +280,9 @@ function OrderCard({ order, onAdvance, advancing }: {
               )}
             </div>
           </div>
-          <span className="text-[10px] text-white/40 font-bold tracking-wide">{order.items.reduce((sum, item) => sum + item.quantity, 0)} items</span>
+          <span className="text-[10px] text-white/40 font-bold tracking-wide">
+            {selectedStation === "all" ? `${order.items.reduce((sum, item) => sum + item.quantity, 0)} items` : `${matchCount} of ${order.items.reduce((sum, item) => sum + item.quantity, 0)} items`}
+          </span>
         </div>
         
         <div className="flex items-center gap-2.5">
@@ -199,35 +294,53 @@ function OrderCard({ order, onAdvance, advancing }: {
 
       {/* Items list with interactive checklists */}
       <div className="space-y-2 mb-5">
-        {order.items.map((item, idx) => {
-          const isCrossed = !!crossedItems[idx];
+        {processedItems.map((item) => {
+          const isCrossed = !!crossedItems[item.originalIndex];
+          const stationColor = 
+            item.station === "grill" ? "text-red-400 bg-red-500/10 border-red-500/20" :
+            item.station === "fry" ? "text-amber-400 bg-amber-500/10 border-amber-500/20" :
+            item.station === "drinks" ? "text-blue-400 bg-blue-500/10 border-blue-500/20" :
+            item.station === "dessert" ? "text-pink-400 bg-pink-500/10 border-pink-500/20" :
+            "text-gray-400 bg-gray-500/10 border-gray-500/20";
+
           return (
             <div 
-              key={idx} 
-              onClick={() => toggleItem(idx)}
-              className="flex items-center gap-3 cursor-pointer select-none group/item py-1.5 px-2 rounded-xl hover:bg-white/[0.02] transition-colors"
+              key={item.originalIndex} 
+              onClick={() => toggleItem(item.originalIndex)}
+              className={`flex items-center justify-between gap-2 cursor-pointer select-none group/item py-1.5 px-2 rounded-xl transition-all duration-300 ${
+                !item.isMatch ? "opacity-25" : "hover:bg-white/[0.02]"
+              }`}
             >
-              {/* Checkbox box */}
-              <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${
-                isCrossed 
-                  ? "bg-emerald-500 border-emerald-500 text-black" 
-                  : "border-white/20 group-hover/item:border-white/40"
-              }`}>
-                {isCrossed && <Check className="w-2.5 h-2.5 stroke-[4px]" />}
-              </div>
-              
-              <div className="flex items-baseline gap-2 min-w-0">
-                <span className={`text-lg font-black font-mono transition-all duration-300 ${
-                  isCrossed ? "text-emerald-500/30 line-through" : "text-orange-400"
+              <div className="flex items-center gap-3 min-w-0">
+                {/* Checkbox box */}
+                <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${
+                  isCrossed 
+                    ? "bg-emerald-500 border-emerald-500 text-black" 
+                    : "border-white/20 group-hover/item:border-white/40"
                 }`}>
-                  {item.quantity}×
-                </span>
-                <span className={`text-base font-bold transition-all duration-300 truncate ${
-                  isCrossed ? "text-white/25 line-through" : "text-white group-hover/item:text-orange-300"
-                }`}>
-                  {item.name || "Unknown Item"}
-                </span>
+                  {isCrossed && <Check className="w-2.5 h-2.5 stroke-[4px]" />}
+                </div>
+                
+                <div className="flex items-baseline gap-2 min-w-0">
+                  <span className={`text-lg font-black font-mono transition-all duration-300 ${
+                    isCrossed ? "text-emerald-500/30 line-through" : "text-orange-400"
+                  }`}>
+                    {item.quantity}×
+                  </span>
+                  <span className={`text-base font-bold transition-all duration-300 truncate ${
+                    isCrossed ? "text-white/25 line-through" : "text-white group-hover/item:text-orange-300"
+                  }`}>
+                    {item.name || "Unknown Item"}
+                  </span>
+                </div>
               </div>
+
+              {/* Station Tag */}
+              {item.isMatch && (
+                <span className={`text-[8px] uppercase tracking-widest px-2 py-0.5 rounded border shrink-0 ${stationColor}`}>
+                  {item.station}
+                </span>
+              )}
             </div>
           );
         })}
@@ -275,6 +388,7 @@ export default function KitchenKDS() {
   const [advancing, setAdvancing] = useState<string | null>(null);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [connected, setConnected] = useState(false);
+  const [selectedStation, setSelectedStation] = useState<string>("all");
   const socketRef = useRef<any>(null);
   const audioRef = useRef<AudioContext | null>(null);
 
@@ -337,9 +451,12 @@ export default function KitchenKDS() {
     });
 
     socket.on("kitchenStatusUpdate", (payload: { orderId: string; status: string }) => {
-      setOrders(prev =>
-        prev.map(o => o._id === payload.orderId ? { ...o, status: payload.status } : o)
-      );
+      setOrders(prev => {
+        if (["served", "completed"].includes(payload.status)) {
+          return prev.filter(o => o._id !== payload.orderId);
+        }
+        return prev.map(o => o._id === payload.orderId ? { ...o, status: payload.status } : o);
+      });
     });
 
     socket.on("orderCreated", (order: Order) => {
@@ -378,14 +495,52 @@ export default function KitchenKDS() {
     navigate("/staff-login");
   };
 
+  // Filter orders by column status & selected station
   const getColumnOrders = (status: string) =>
-    orders.filter(o => o.status === status).sort((a, b) => {
-      const priorityDiff = (b.priority || 0) - (a.priority || 0);
-      if (priorityDiff !== 0) return priorityDiff;
-      return new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime();
-    });
+    orders
+      .filter(o => o.status === status)
+      .filter(o => {
+        if (selectedStation === "all") return true;
+        // Check if order contains at least one item matching the filtered station
+        return o.items.some(item => {
+          const itemStation = item.station && item.station !== "general" ? item.station : getStationByItemName(item.name || "");
+          return itemStation === selectedStation;
+        });
+      })
+      .sort((a, b) => {
+        const priorityDiff = (b.priority || 0) - (a.priority || 0);
+        if (priorityDiff !== 0) return priorityDiff;
+        return new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime();
+      });
 
   const totalActive = orders.filter(o => ["pending", "accepted", "cooking"].includes(o.status)).length;
+
+  // Aggregate pending/cooking items by name
+  const aggregatedPrepItems = useMemo(() => {
+    const counts: Record<string, { quantity: number; pending: number; cooking: number; station: string }> = {};
+    orders.forEach(order => {
+      if (["pending", "accepted", "cooking"].includes(order.status)) {
+        order.items.forEach(item => {
+          const station = item.station && item.station !== "general" ? item.station : getStationByItemName(item.name || "");
+          if (selectedStation !== "all" && station !== selectedStation) return;
+          
+          const name = item.name || "Unknown Item";
+          if (!counts[name]) {
+            counts[name] = { quantity: 0, pending: 0, cooking: 0, station };
+          }
+          counts[name].quantity += item.quantity;
+          if (order.status === "cooking") {
+            counts[name].cooking += item.quantity;
+          } else {
+            counts[name].pending += item.quantity;
+          }
+        });
+      }
+    });
+    return Object.entries(counts)
+      .map(([name, data]) => ({ name, ...data }))
+      .sort((a, b) => b.quantity - a.quantity);
+  }, [orders, selectedStation]);
 
   return (
     <div className="h-screen bg-[#050506] bg-[radial-gradient(#ffffff03_1px,transparent_1px)] [background-size:16px_16px] text-white overflow-hidden flex flex-col font-sans">
@@ -399,11 +554,11 @@ export default function KitchenKDS() {
             <div>
               <div className="flex items-baseline gap-2">
                 <h1 className="text-lg font-black tracking-wider uppercase bg-gradient-to-r from-white via-white to-gray-400 bg-clip-text text-transparent">Kitchen Display</h1>
-                <span className="text-[10px] text-white/30 font-bold font-mono">v1.2</span>
+                <span className="text-[10px] text-white/30 font-bold font-mono">v1.5</span>
               </div>
               <p className="text-[10px] text-white/40 uppercase tracking-widest font-semibold flex items-center gap-1.5 mt-0.5">
-                <span>{staffName || "Kitchen Staff"}</span>
-                <span className="w-1 h-1 rounded-full bg-white/20" />
+                <span>{staffName || "Kitchen Crew"}</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-white/20" />
                 <span className="text-orange-400/80 font-bold">Temptations KDS</span>
               </p>
             </div>
@@ -468,68 +623,191 @@ export default function KitchenKDS() {
         </div>
       </div>
 
-      {/* Screen Locked Kanban Board */}
+      {/* Main Body */}
       <div className="p-6 max-w-[1800px] w-full mx-auto flex-1 overflow-hidden flex flex-col min-h-0">
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 h-full min-h-0">
-          {COLUMNS.map((col) => {
-            const columnOrders = getColumnOrders(col.id);
-            const ColIcon = col.icon;
+        <div className="flex gap-6 h-full min-h-0">
+          
+          {/* LEFT SIDEBAR - STATION SELECTOR & PREP COUNTERS */}
+          <div className="w-[340px] shrink-0 bg-[#0c0c0e]/40 border border-white/5 rounded-2xl p-5 flex flex-col gap-6 h-full min-h-0">
+            {/* Station Selector */}
+            <div className="shrink-0 space-y-3">
+              <span className="text-[10px] uppercase tracking-[0.2em] font-black text-white/40 flex items-center gap-1.5">
+                <Filter className="w-3.5 h-3.5 text-orange-400" />
+                Filter by Station
+              </span>
+              <div className="space-y-1.5">
+                {STATIONS.map((station) => {
+                  const Icon = station.icon;
+                  const isActive = selectedStation === station.id;
+                  
+                  // Compute active item count for this station
+                  const stationCount = orders
+                    .filter(o => ["pending", "accepted", "cooking"].includes(o.status))
+                    .reduce((total, order) => {
+                      return total + order.items.reduce((sum, item) => {
+                        const itemStation = item.station && item.station !== "general" ? item.station : getStationByItemName(item.name || "");
+                        if (station.id === "all" || itemStation === station.id) {
+                          return sum + item.quantity;
+                        }
+                        return sum;
+                      }, 0);
+                    }, 0);
 
-            return (
-              <div 
-                key={col.id} 
-                className="bg-[#0c0c0e]/50 border border-white/5 rounded-2xl p-4 flex flex-col h-full min-h-0 relative overflow-hidden transition-all"
-              >
-                {/* Colored top line accent for columns */}
-                <div className={`absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r ${
-                  col.id === 'pending' ? 'from-red-500 to-rose-600' :
-                  col.id === 'accepted' ? 'from-amber-500 to-orange-500' :
-                  col.id === 'cooking' ? 'from-blue-500 to-indigo-600' :
-                  'from-emerald-500 to-teal-600'
-                }`} />
-
-                {/* Column Header */}
-                <div className="flex items-center justify-between pb-3 border-b border-white/5 mt-1 shrink-0">
-                  <div className="flex items-center gap-2">
-                    <ColIcon className={`w-4.5 h-4.5 ${col.headerColor}`} />
-                    <h2 className={`text-xs font-black uppercase tracking-wider ${col.headerColor}`}>
-                      {col.label}
-                    </h2>
-                    {col.pulse && columnOrders.length > 0 && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-current animate-ping" style={{ color: "inherit" }} />
-                    )}
-                  </div>
-                  <span className={`text-[10px] font-black px-2.5 py-1 rounded-full bg-white/5 border border-white/10 ${col.headerColor}`}>
-                    {columnOrders.length}
-                  </span>
-                </div>
-
-                {/* Column Cards (Independently Scrollable + Lenis Intercept Bypassed) */}
-                <div 
-                  data-lenis-prevent 
-                  className="space-y-4 overflow-y-auto flex-1 pr-1 mt-4 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent"
-                >
-                  <AnimatePresence>
-                    {columnOrders.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center h-48 text-white/10">
-                        <Utensils className="w-10 h-10 mb-2 stroke-[1.5]" />
-                        <span className="text-[10px] font-black uppercase tracking-widest">No orders</span>
+                  return (
+                    <button
+                      key={station.id}
+                      onClick={() => setSelectedStation(station.id)}
+                      className={`w-full flex items-center justify-between p-3 rounded-xl border text-sm font-bold text-left transition-all duration-200 ${
+                        isActive 
+                          ? "bg-orange-500/20 border-orange-500/40 text-orange-400 shadow-[0_0_15px_rgba(245,158,11,0.05)]" 
+                          : "bg-white/[0.01] border-white/5 text-white/50 hover:text-white hover:bg-white/[0.03] hover:border-white/10"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <Icon className="w-4 h-4" />
+                        <span>{station.label}</span>
                       </div>
-                    ) : (
-                      columnOrders.map(order => (
-                        <OrderCard
-                          key={order._id}
-                          order={order}
-                          onAdvance={handleAdvance}
-                          advancing={advancing === order._id}
-                        />
-                      ))
-                    )}
-                  </AnimatePresence>
-                </div>
+                      {stationCount > 0 && (
+                        <span className={`text-[10px] font-black font-mono px-2 py-0.5 rounded-full border ${
+                          isActive ? "bg-orange-500/20 border-orange-500/40 text-orange-400" : "bg-white/5 border-white/10 text-white/40"
+                        }`}>
+                          {stationCount}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
-            );
-          })}
+            </div>
+
+            {/* Aggregated Cook List */}
+            <div className="flex-1 min-h-0 flex flex-col gap-3">
+              <span className="text-[10px] uppercase tracking-[0.2em] font-black text-white/40 flex items-center gap-1.5 shrink-0">
+                <ChefHat className="w-3.5 h-3.5 text-orange-400" />
+                Aggregated Prep List
+              </span>
+              
+              <div 
+                data-lenis-prevent
+                className="flex-1 overflow-y-auto pr-1 space-y-2 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent"
+              >
+                {aggregatedPrepItems.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-20 text-white/10 text-center">
+                    <Utensils className="w-8 h-8 mb-2" />
+                    <span className="text-[10px] font-bold uppercase tracking-widest">No active prep items</span>
+                  </div>
+                ) : (
+                  aggregatedPrepItems.map((item, idx) => {
+                    const tagColor = 
+                      item.station === "grill" ? "border-red-500/20 text-red-400 bg-red-500/5" :
+                      item.station === "fry" ? "border-amber-500/20 text-amber-400 bg-amber-500/5" :
+                      item.station === "drinks" ? "border-blue-500/20 text-blue-400 bg-blue-500/5" :
+                      item.station === "dessert" ? "border-pink-500/20 text-pink-400 bg-pink-500/5" :
+                      "border-gray-500/20 text-gray-400 bg-gray-500/5";
+
+                    return (
+                      <div 
+                        key={idx}
+                        className="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex items-center justify-between gap-3 group hover:border-white/10 hover:bg-white/[0.03] transition-all"
+                      >
+                        <div className="min-w-0">
+                          <h4 className="text-xs font-bold text-white truncate leading-tight mb-1">{item.name}</h4>
+                          <div className="flex items-center gap-1.5">
+                            <span className={`text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.2 rounded border ${tagColor}`}>
+                              {item.station}
+                            </span>
+                            {item.cooking > 0 && (
+                              <span className="text-[9px] font-black text-blue-400 font-mono">
+                                {item.cooking}c
+                              </span>
+                            )}
+                            {item.pending > 0 && (
+                              <span className="text-[9px] font-black text-red-400 font-mono">
+                                {item.pending}p
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <span className="text-xl font-black text-orange-400 font-mono">
+                            {item.quantity}
+                          </span>
+                          <span className="text-[8px] block text-white/30 uppercase tracking-widest font-black leading-none mt-0.5">QTY</span>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* RIGHT CONTENT - KANBAN BOARD */}
+          <div className="flex-1 min-h-0 h-full">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 h-full min-h-0">
+              {COLUMNS.map((col) => {
+                const columnOrders = getColumnOrders(col.id);
+                const ColIcon = col.icon;
+
+                return (
+                  <div 
+                    key={col.id} 
+                    className="bg-[#0c0c0e]/50 border border-white/5 rounded-2xl p-4 flex flex-col h-full min-h-0 relative overflow-hidden transition-all"
+                  >
+                    {/* Colored top line accent for columns */}
+                    <div className={`absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r ${
+                      col.id === 'pending' ? 'from-red-500 to-rose-600' :
+                      col.id === 'accepted' ? 'from-amber-500 to-orange-500' :
+                      col.id === 'cooking' ? 'from-blue-500 to-indigo-600' :
+                      'from-emerald-500 to-teal-600'
+                    }`} />
+
+                    {/* Column Header */}
+                    <div className="flex items-center justify-between pb-3 border-b border-white/5 mt-1 shrink-0">
+                      <div className="flex items-center gap-2">
+                        <ColIcon className={`w-4.5 h-4.5 ${col.headerColor}`} />
+                        <h2 className={`text-xs font-black uppercase tracking-wider ${col.headerColor}`}>
+                          {col.label}
+                        </h2>
+                        {col.pulse && columnOrders.length > 0 && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-current animate-ping" style={{ color: "inherit" }} />
+                        )}
+                      </div>
+                      <span className={`text-[10px] font-black px-2.5 py-1 rounded-full bg-white/5 border border-white/10 ${col.headerColor}`}>
+                        {columnOrders.length}
+                      </span>
+                    </div>
+
+                    {/* Column Cards */}
+                    <div 
+                      data-lenis-prevent 
+                      className="space-y-4 overflow-y-auto flex-1 pr-1 mt-4 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent"
+                    >
+                      <AnimatePresence>
+                        {columnOrders.length === 0 ? (
+                          <div className="flex flex-col items-center justify-center h-48 text-white/10">
+                            <Utensils className="w-10 h-10 mb-2 stroke-[1.5]" />
+                            <span className="text-[10px] font-black uppercase tracking-widest">No orders</span>
+                          </div>
+                        ) : (
+                          columnOrders.map(order => (
+                            <OrderCard
+                              key={order._id}
+                              order={order}
+                              onAdvance={handleAdvance}
+                              advancing={advancing === order._id}
+                              selectedStation={selectedStation}
+                            />
+                          ))
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
