@@ -986,7 +986,7 @@ const AdminDashboard = () => {
         </aside>
 
         {/* Mobile Bottom Tab Bar */}
-        <nav className="md:hidden fixed bottom-2 inset-x-3 z-50 glass border border-white/10 rounded-2xl flex items-center justify-start gap-1 p-2 bg-black/90 backdrop-blur-2xl shadow-2xl safe-area-bottom overflow-x-auto scrollbar-none">
+        <nav className="md:hidden fixed bottom-2 inset-x-3 z-50 glass border border-white/10 rounded-2xl flex items-center justify-start gap-1 p-2 bg-black/90 backdrop-blur-2xl shadow-2xl safe-area-bottom overflow-x-auto no-scrollbar">
           {sections.map((s) => (
             <button
               key={s.id}
@@ -1598,7 +1598,7 @@ const AdminDashboard = () => {
                         </p>
                       </div>
                       <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
-                        <div className="flex bg-white/5 p-1 rounded-lg border border-white/10 overflow-x-auto whitespace-nowrap scrollbar-none max-w-full">
+                        <div className="flex bg-white/5 p-1 rounded-lg border border-white/10 overflow-x-auto whitespace-nowrap no-scrollbar max-w-full">
                           {["all", "today", "week", "month", "custom"].map((f) => (
                             <Button
                               key={f}
