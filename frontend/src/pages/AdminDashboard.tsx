@@ -897,8 +897,8 @@ const AdminDashboard = () => {
         <div className="absolute bottom-1/4 right-1/4 w-[600px] h-[600px] bg-amber-950/5 blur-[130px] rounded-full pointer-events-none z-0" />
 
         {/* Desktop Sidebar */}
-        <aside className="hidden md:flex w-[280px] h-screen glass border-r border-white/10 flex-col sticky top-0 z-40 bg-black/60 backdrop-blur-3xl shrink-0">
-          <div className="p-6 border-b border-white/10 space-y-5">
+        <aside data-lenis-prevent className="hidden md:flex w-[280px] h-screen glass border-r border-white/10 flex-col sticky top-0 z-40 bg-black/60 backdrop-blur-3xl shrink-0 overflow-y-auto no-scrollbar">
+          <div className="p-6 border-b border-white/10 space-y-5 shrink-0">
             
             {/* Sidebar Brand Header */}
             <div className="flex items-center gap-3 group cursor-pointer" onClick={() => navigate("/")}>
@@ -923,7 +923,7 @@ const AdminDashboard = () => {
             </div>
           </div>
 
-          <nav data-lenis-prevent className="flex-1 p-4 space-y-1.5 overflow-y-auto">
+          <nav className="flex-1 p-4 space-y-1.5">
             {sections.map((s) => {
               // Dynamic counters for active feedback, live orders, etc.
               let badge = null;
