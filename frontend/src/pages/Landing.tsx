@@ -98,7 +98,7 @@ const Landing = () => {
 
   return (
     <PageTransition>
-      <div className="min-h-screen bg-[#050505] text-white selection:bg-white selection:text-black">
+      <div className="min-h-screen bg-[#050505] text-white selection:bg-white selection:text-black overflow-x-hidden">
         {/* Scroll Progress Bar */}
         <motion.div 
           className="fixed top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-red-600 via-red-500 to-amber-500 origin-left z-50"
@@ -127,7 +127,7 @@ const Landing = () => {
               transition={{ duration: 1.2, ease: "circOut" }}
               className="flex flex-col items-center mb-6"
             >
-              <h1 className="font-display text-[4.5rem] sm:text-[7rem] md:text-[9.5rem] font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-b from-white via-white to-red-500 drop-shadow-[0_0_40px_rgba(239,68,68,0.5)] leading-[1.05] mb-2 sm:mb-4">
+              <h1 className="font-display text-[3.5rem] xs:text-[4.5rem] sm:text-[7rem] md:text-[9.5rem] font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-b from-white via-white to-red-500 drop-shadow-[0_0_40px_rgba(239,68,68,0.5)] leading-[1.05] mb-2 sm:mb-4">
                 Temptations
               </h1>
               
