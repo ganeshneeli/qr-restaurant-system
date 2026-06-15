@@ -1,7 +1,19 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { io as socketIO } from "socket.io-client";
-import { ChefHat, Clock, LogOut, Volume2, VolumeX, Maximize, Users, AlertTriangle, CheckCircle2, Utensils, Flame } from "lucide-react";
+import { 
+  ChefHat, 
+  Clock, 
+  LogOut, 
+  Volume2, 
+  VolumeX, 
+  Maximize, 
+  AlertTriangle, 
+  CheckCircle2, 
+  Utensils, 
+  Flame,
+  Check
+} from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -28,10 +40,10 @@ interface Order {
 }
 
 const COLUMNS = [
-  { id: "pending", label: "NEW ORDERS", color: "border-red-500/40", bg: "from-red-950/20", headerColor: "text-red-400", icon: AlertTriangle, pulse: true },
-  { id: "accepted", label: "ACCEPTED", color: "border-amber-500/40", bg: "from-amber-950/20", headerColor: "text-amber-400", icon: CheckCircle2, pulse: false },
-  { id: "cooking", label: "COOKING", color: "border-blue-500/40", bg: "from-blue-950/20", headerColor: "text-blue-400", icon: Flame, pulse: true },
-  { id: "ready", label: "READY TO SERVE", color: "border-emerald-500/40", bg: "from-emerald-950/20", headerColor: "text-emerald-400", icon: CheckCircle2, pulse: false },
+  { id: "pending", label: "NEW ORDERS", color: "border-red-500/40", bg: "from-red-950/10", headerColor: "text-red-400", icon: AlertTriangle, pulse: true },
+  { id: "accepted", label: "ACCEPTED", color: "border-amber-500/40", bg: "from-amber-950/10", headerColor: "text-amber-400", icon: CheckCircle2, pulse: false },
+  { id: "cooking", label: "COOKING", color: "border-blue-500/40", bg: "from-blue-950/10", headerColor: "text-blue-400", icon: Flame, pulse: true },
+  { id: "ready", label: "READY TO SERVE", color: "border-emerald-500/40", bg: "from-emerald-950/10", headerColor: "text-emerald-400", icon: CheckCircle2, pulse: false },
 ];
 
 const STATUS_FLOW: Record<string, string> = {
@@ -39,6 +51,20 @@ const STATUS_FLOW: Record<string, string> = {
   accepted: "cooking",
   cooking: "ready",
 };
+
+// Live Digital Clock for Kitchen Staff
+function LiveClock() {
+  const [time, setTime] = useState("");
+  useEffect(() => {
+    const update = () => {
+      setTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+    };
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, []);
+  return <span className="font-mono text-white/70 tracking-wider text-sm font-bold">{time}</span>;
+}
 
 function useOrderTimer(createdAt?: string) {
   const [minutes, setMinutes] = useState(0);
@@ -69,7 +95,7 @@ function TimerBadge({ createdAt }: { createdAt?: string }) {
   return (
     <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-black ${colorClass}`}>
       <Clock className="w-3 h-3" />
-      {minutes}min
+      {minutes}m
     </span>
   );
 }
@@ -83,12 +109,33 @@ function OrderCard({ order, onAdvance, advancing }: {
   const isUrgent = minutes >= 10;
   const isWarning = minutes >= 5 && minutes < 10;
   const nextStatus = STATUS_FLOW[order.status];
+  
+  // Local checklist state for chefs to mark items off as they prepare them
+  const [crossedItems, setCrossedItems] = useState<Record<number, boolean>>({});
 
-  const cardBorder = isUrgent
-    ? "border-red-500/60 shadow-[0_0_30px_rgba(239,68,68,0.15)]"
-    : isWarning
-    ? "border-amber-500/40"
-    : "border-white/10";
+  const toggleItem = (idx: number) => {
+    setCrossedItems(prev => ({ ...prev, [idx]: !prev[idx] }));
+  };
+
+  const hasPriority = order.priority && order.priority > 0;
+
+  // Visual cues based on urgency/priority
+  let cardBorder = "border-white/5 hover:border-white/10 shadow-lg";
+  if (isUrgent) {
+    cardBorder = "border-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.15)] ring-1 ring-red-500/25";
+  } else if (hasPriority) {
+    cardBorder = "border-amber-500/40 shadow-[0_0_15px_rgba(245,158,11,0.1)] ring-1 ring-amber-500/15";
+  } else if (isWarning) {
+    cardBorder = "border-amber-500/30";
+  }
+
+  // Pulsing LED Status colors matching columns
+  const statusLedColors: Record<string, string> = {
+    pending: "bg-red-500 shadow-[0_0_8px_#ef4444]",
+    accepted: "bg-amber-500 shadow-[0_0_8px_#f59e0b]",
+    cooking: "bg-blue-500 shadow-[0_0_8px_#3b82f6]",
+    ready: "bg-emerald-500 shadow-[0_0_8px_#10b981]",
+  };
 
   const nextLabels: Record<string, string> = {
     accepted: "✓ Accept",
@@ -97,9 +144,9 @@ function OrderCard({ order, onAdvance, advancing }: {
   };
 
   const nextColors: Record<string, string> = {
-    accepted: "from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500",
-    cooking: "from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500",
-    ready: "from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500",
+    accepted: "from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-[0_4px_12px_rgba(16,185,129,0.25)]",
+    cooking: "from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 shadow-[0_4px_12px_rgba(59,130,246,0.25)]",
+    ready: "from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 shadow-[0_4px_12px_rgba(245,158,11,0.25)]",
   };
 
   return (
@@ -109,60 +156,88 @@ function OrderCard({ order, onAdvance, advancing }: {
       animate={{ opacity: 1, scale: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.9, y: -10 }}
       transition={{ type: "spring", stiffness: 300, damping: 30 }}
-      className={`rounded-2xl border-2 bg-white/[0.03] backdrop-blur-sm p-5 relative overflow-hidden ${cardBorder} transition-colors duration-300`}
+      className={`rounded-2xl border bg-[#121214]/60 backdrop-blur-md p-5 relative overflow-hidden ${cardBorder} transition-all duration-300`}
     >
-      {/* Urgent flash overlay */}
+      {/* Urgent background animation overlay */}
       {isUrgent && (
-        <div className="absolute inset-0 bg-red-500/5 animate-pulse rounded-2xl pointer-events-none" />
+        <div className="absolute inset-0 bg-red-500/[0.02] animate-pulse rounded-2xl pointer-events-none" />
       )}
 
-      {/* Top accent */}
-      <div className={`absolute top-0 left-0 right-0 h-[2px] ${
+      {/* Top accent line */}
+      <div className={`absolute top-0 left-0 right-0 h-[2.5px] ${
         isUrgent ? "bg-gradient-to-r from-transparent via-red-500 to-transparent"
-        : isWarning ? "bg-gradient-to-r from-transparent via-amber-500/50 to-transparent"
-        : "bg-gradient-to-r from-transparent via-white/10 to-transparent"
+        : hasPriority ? "bg-gradient-to-r from-transparent via-amber-500 to-transparent"
+        : isWarning ? "bg-gradient-to-r from-transparent via-amber-500/40 to-transparent"
+        : "bg-gradient-to-r from-transparent via-white/5 to-transparent"
       }`} />
 
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-4xl font-black text-white tracking-tight font-mono">
+            <span className="text-4xl font-black text-white tracking-tight font-mono leading-none">
               {order.tableNumber}
             </span>
-            <div>
-              <span className="text-[10px] uppercase tracking-widest text-white/40 block font-bold">TABLE</span>
-              {order.priority && order.priority > 0 && (
-                <span className="text-[9px] text-amber-400 font-black uppercase tracking-wider bg-amber-500/10 px-1.5 py-0.5 rounded-full border border-amber-500/20">
+            <div className="flex flex-col justify-center gap-0.5">
+              <span className="text-[8px] uppercase tracking-widest text-white/35 font-black leading-none">TABLE</span>
+              {hasPriority && (
+                <span className="text-[8px] text-amber-400 font-black uppercase tracking-wider bg-amber-500/10 px-1.5 py-0.5 rounded-full border border-amber-500/20 leading-none">
                   PRIORITY
                 </span>
               )}
             </div>
           </div>
-          <span className="text-xs text-white/30 font-medium">{order.items.length} items</span>
+          <span className="text-[10px] text-white/40 font-bold tracking-wide">{order.items.reduce((sum, item) => sum + item.quantity, 0)} items</span>
         </div>
-        <TimerBadge createdAt={order.createdAt} />
+        
+        <div className="flex items-center gap-2.5">
+          <TimerBadge createdAt={order.createdAt} />
+          {/* LED Status Light */}
+          <span className={`w-2.5 h-2.5 rounded-full ${statusLedColors[order.status] || "bg-white/10"} animate-pulse`} />
+        </div>
       </div>
 
-      {/* Items list */}
-      <div className="space-y-2 mb-4">
-        {order.items.map((item, idx) => (
-          <div key={idx} className="flex items-center gap-3">
-            <span className="text-xl font-black text-white/80 font-mono w-8 shrink-0">
-              {item.quantity}×
-            </span>
-            <span className="text-base font-bold text-white leading-tight">
-              {item.name || "Unknown Item"}
-            </span>
-          </div>
-        ))}
+      {/* Items list with interactive checklists */}
+      <div className="space-y-2 mb-5">
+        {order.items.map((item, idx) => {
+          const isCrossed = !!crossedItems[idx];
+          return (
+            <div 
+              key={idx} 
+              onClick={() => toggleItem(idx)}
+              className="flex items-center gap-3 cursor-pointer select-none group/item py-1.5 px-2 rounded-xl hover:bg-white/[0.02] transition-colors"
+            >
+              {/* Checkbox box */}
+              <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${
+                isCrossed 
+                  ? "bg-emerald-500 border-emerald-500 text-black" 
+                  : "border-white/20 group-hover/item:border-white/40"
+              }`}>
+                {isCrossed && <Check className="w-2.5 h-2.5 stroke-[4px]" />}
+              </div>
+              
+              <div className="flex items-baseline gap-2 min-w-0">
+                <span className={`text-lg font-black font-mono transition-all duration-300 ${
+                  isCrossed ? "text-emerald-500/30 line-through" : "text-orange-400"
+                }`}>
+                  {item.quantity}×
+                </span>
+                <span className={`text-base font-bold transition-all duration-300 truncate ${
+                  isCrossed ? "text-white/25 line-through" : "text-white group-hover/item:text-orange-300"
+                }`}>
+                  {item.name || "Unknown Item"}
+                </span>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {/* Special note */}
       {order.specialNote && (
-        <div className="mb-4 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
-          <span className="text-[9px] text-amber-400 font-black uppercase tracking-widest block mb-1">⚠ Note</span>
-          <span className="text-sm text-amber-200 font-medium">{order.specialNote}</span>
+        <div className="mb-4 p-3 rounded-xl bg-amber-500/[0.05] border border-amber-500/20 relative overflow-hidden">
+          <span className="text-[8px] text-amber-400 font-black uppercase tracking-widest block mb-0.5">⚠ Chef Note</span>
+          <span className="text-sm text-amber-200/90 font-semibold leading-tight">{order.specialNote}</span>
         </div>
       )}
 
@@ -173,13 +248,19 @@ function OrderCard({ order, onAdvance, advancing }: {
           disabled={advancing}
           className={`w-full py-3 rounded-xl text-white font-black text-sm tracking-wider bg-gradient-to-r transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed active:scale-98 ${nextColors[nextStatus] || "from-gray-600 to-gray-700"}`}
         >
-          {advancing ? "Updating..." : (nextLabels[nextStatus] || `→ ${nextStatus}`)}
+          {advancing ? (
+            <span className="flex items-center justify-center gap-1.5">
+              <svg className="w-4 h-4 animate-spin text-white" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+              Updating...
+            </span>
+          ) : (nextLabels[nextStatus] || `→ ${nextStatus}`)}
         </button>
       )}
 
       {order.status === "ready" && (
-        <div className="w-full py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-black text-sm text-center tracking-wider">
-          ✅ Ready — Waiting for Waiter
+        <div className="w-full py-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-black text-xs text-center tracking-widest uppercase flex items-center justify-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+          Ready · Waiting for Waiter
         </div>
       )}
     </motion.div>
@@ -224,7 +305,7 @@ export default function KitchenKDS() {
         setOrders(res.data.orders || []);
       }
     } catch {
-      // fallback to all orders endpoint with admin token
+      // fallback
     }
   }, [activeToken]);
 
@@ -307,94 +388,132 @@ export default function KitchenKDS() {
   const totalActive = orders.filter(o => ["pending", "accepted", "cooking"].includes(o.status)).length;
 
   return (
-    <div className="min-h-screen bg-[#060606] text-white overflow-x-hidden">
-      {/* Top bar */}
-      <div className="sticky top-0 z-50 bg-black/90 backdrop-blur-xl border-b border-white/10 px-6 py-3">
+    <div className="h-screen bg-[#050506] bg-[radial-gradient(#ffffff03_1px,transparent_1px)] [background-size:16px_16px] text-white overflow-hidden flex flex-col font-sans">
+      {/* Top bar control panel */}
+      <div className="sticky top-0 z-50 bg-black/60 backdrop-blur-xl border-b border-white/5 px-6 py-4 shadow-xl shrink-0">
         <div className="flex items-center justify-between max-w-[1800px] mx-auto">
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center">
-              <ChefHat className="w-5 h-5 text-orange-400" />
+          <div className="flex items-center gap-5">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-orange-500/10 to-red-500/10 border border-orange-500/25 flex items-center justify-center shadow-inner group">
+              <ChefHat className="w-6 h-6 text-orange-400 group-hover:scale-110 transition-transform duration-300" />
             </div>
             <div>
-              <h1 className="text-base font-black text-white tracking-tight">Kitchen Display</h1>
-              <p className="text-[10px] text-white/40 uppercase tracking-widest">
-                {staffName || "Kitchen Staff"} · Temptations
+              <div className="flex items-baseline gap-2">
+                <h1 className="text-lg font-black tracking-wider uppercase bg-gradient-to-r from-white via-white to-gray-400 bg-clip-text text-transparent">Kitchen Display</h1>
+                <span className="text-[10px] text-white/30 font-bold font-mono">v1.2</span>
+              </div>
+              <p className="text-[10px] text-white/40 uppercase tracking-widest font-semibold flex items-center gap-1.5 mt-0.5">
+                <span>{staffName || "Kitchen Staff"}</span>
+                <span className="w-1 h-1 rounded-full bg-white/20" />
+                <span className="text-orange-400/80 font-bold">Temptations KDS</span>
               </p>
             </div>
-            <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border text-[9px] font-black uppercase tracking-widest ${
-              connected ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400" : "border-red-500/30 bg-red-500/10 text-red-400"
+            <div className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border text-[9px] font-black uppercase tracking-widest transition-all duration-300 ${
+              connected 
+                ? "border-emerald-500/20 bg-emerald-500/5 text-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.1)]" 
+                : "border-red-500/20 bg-red-500/5 text-red-400 shadow-[0_0_12px_rgba(239,68,68,0.1)] animate-pulse"
             }`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${connected ? "bg-emerald-500 animate-pulse" : "bg-red-500"}`} />
-              {connected ? "Live" : "Offline"}
+              <span className={`w-1.5 h-1.5 rounded-full ${connected ? "bg-emerald-400 shadow-[0_0_6px_#10b981] animate-pulse" : "bg-red-500 shadow-[0_0_6px_#ef4444]"}`} />
+              {connected ? "System Live" : "Offline Connection"}
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
-            {/* Active orders count */}
-            <div className="text-center">
-              <span className="text-2xl font-black text-red-400 font-mono">{totalActive}</span>
-              <p className="text-[9px] text-white/30 uppercase tracking-widest font-bold">Active</p>
+          <div className="flex items-center gap-6">
+            {/* Live Clock */}
+            <div className="hidden md:flex flex-col items-end border-r border-white/10 pr-6">
+              <LiveClock />
+              <span className="text-[8px] uppercase tracking-widest text-white/30 font-black mt-0.5">Kitchen Local Time</span>
             </div>
 
-            <button
-              onClick={() => setSoundEnabled(!soundEnabled)}
-              className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-white transition-colors"
-              title={soundEnabled ? "Mute alerts" : "Unmute alerts"}
-            >
-              {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-            </button>
+            {/* Active orders count */}
+            <div className="flex items-center gap-3 px-4 py-1.5 rounded-2xl bg-white/[0.02] border border-white/5">
+              <div className="text-right">
+                <p className="text-[9px] text-white/30 uppercase tracking-widest font-black leading-none mb-0.5">Queue Status</p>
+                <span className="text-lg font-black text-orange-400 font-mono leading-none">{totalActive} Active</span>
+              </div>
+              <div className="w-8 h-8 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-center justify-center">
+                <Utensils className="w-4 h-4 text-orange-400" />
+              </div>
+            </div>
 
-            <button
-              onClick={() => document.documentElement.requestFullscreen?.()}
-              className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-white transition-colors"
-              title="Fullscreen"
-            >
-              <Maximize className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setSoundEnabled(!soundEnabled)}
+                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 border ${
+                  soundEnabled 
+                    ? "bg-white/[0.03] border-white/10 text-white/60 hover:text-white hover:bg-white/[0.05]" 
+                    : "bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500/20"
+                }`}
+                title={soundEnabled ? "Mute alerts" : "Unmute alerts"}
+              >
+                {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+              </button>
 
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-bold hover:bg-red-500/20 transition-all"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              Exit
-            </button>
+              <button
+                onClick={() => document.documentElement.requestFullscreen?.()}
+                className="w-10 h-10 rounded-xl bg-white/[0.03] border border-white/10 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/[0.05] transition-all duration-300"
+                title="Fullscreen Mode"
+              >
+                <Maximize className="w-4 h-4" />
+              </button>
+
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-2 px-4 h-10 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-bold hover:bg-red-500/20 hover:border-red-500/30 transition-all duration-300 shadow-lg shadow-red-950/10"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Exit KDS</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Kanban Board */}
-      <div className="p-6 max-w-[1800px] mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
+      {/* Screen Locked Kanban Board */}
+      <div className="p-6 max-w-[1800px] w-full mx-auto flex-1 overflow-hidden flex flex-col min-h-0">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 h-full min-h-0">
           {COLUMNS.map((col) => {
             const columnOrders = getColumnOrders(col.id);
             const ColIcon = col.icon;
 
             return (
-              <div key={col.id} className={`bg-gradient-to-b ${col.bg} to-transparent rounded-2xl border ${col.color} p-4`}>
+              <div 
+                key={col.id} 
+                className="bg-[#0c0c0e]/50 border border-white/5 rounded-2xl p-4 flex flex-col h-full min-h-0 relative overflow-hidden transition-all"
+              >
+                {/* Colored top line accent for columns */}
+                <div className={`absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r ${
+                  col.id === 'pending' ? 'from-red-500 to-rose-600' :
+                  col.id === 'accepted' ? 'from-amber-500 to-orange-500' :
+                  col.id === 'cooking' ? 'from-blue-500 to-indigo-600' :
+                  'from-emerald-500 to-teal-600'
+                }`} />
+
                 {/* Column Header */}
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between pb-3 border-b border-white/5 mt-1 shrink-0">
                   <div className="flex items-center gap-2">
-                    <ColIcon className={`w-4 h-4 ${col.headerColor}`} />
-                    <h2 className={`text-[11px] font-black uppercase tracking-widest ${col.headerColor}`}>
+                    <ColIcon className={`w-4.5 h-4.5 ${col.headerColor}`} />
+                    <h2 className={`text-xs font-black uppercase tracking-wider ${col.headerColor}`}>
                       {col.label}
                     </h2>
                     {col.pulse && columnOrders.length > 0 && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" style={{ color: "inherit" }} />
+                      <span className="w-1.5 h-1.5 rounded-full bg-current animate-ping" style={{ color: "inherit" }} />
                     )}
                   </div>
-                  <span className={`text-xs font-black px-2.5 py-1 rounded-full bg-white/5 ${col.headerColor}`}>
+                  <span className={`text-[10px] font-black px-2.5 py-1 rounded-full bg-white/5 border border-white/10 ${col.headerColor}`}>
                     {columnOrders.length}
                   </span>
                 </div>
 
-                {/* Order Cards */}
-                <div className="space-y-3 min-h-[200px]">
+                {/* Column Cards (Independently Scrollable + Lenis Intercept Bypassed) */}
+                <div 
+                  data-lenis-prevent 
+                  className="space-y-4 overflow-y-auto flex-1 pr-1 mt-4 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent"
+                >
                   <AnimatePresence>
                     {columnOrders.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center py-12 text-white/15">
-                        <Utensils className="w-8 h-8 mb-2" />
-                        <span className="text-xs font-medium">No orders</span>
+                      <div className="flex flex-col items-center justify-center h-48 text-white/10">
+                        <Utensils className="w-10 h-10 mb-2 stroke-[1.5]" />
+                        <span className="text-[10px] font-black uppercase tracking-widest">No orders</span>
                       </div>
                     ) : (
                       columnOrders.map(order => (
