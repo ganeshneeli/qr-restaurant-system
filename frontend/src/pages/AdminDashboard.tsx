@@ -948,19 +948,19 @@ const AdminDashboard = () => {
                       : "text-white/60 hover:bg-white/[0.03] hover:text-white border border-transparent"
                   }`}
                 >
-                  <div className="flex items-center gap-3">
-                    <s.icon className={`h-4 w-4 transition-colors duration-300 ${
+                  <div className="flex items-center gap-3 min-w-0">
+                    <s.icon className={`h-4 w-4 transition-colors duration-300 shrink-0 ${
                       activeSection === s.id ? "text-red-500" : "text-white/40 group-hover:text-white/80"
                     }`} />
-                    <span>{s.label}</span>
+                    <span className="truncate whitespace-nowrap">{s.label}</span>
                   </div>
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 shrink-0">
                     {badge && (
                       <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md ${
                         s.id === "orders" 
                           ? "bg-red-500/20 text-red-400 border border-red-500/30 shadow-[0_0_8px_rgba(239,68,68,0.15)]" 
                           : "bg-white/5 text-white/50 border border-white/10"
-                      } border`}>
+                      } border whitespace-nowrap shrink-0`}>
                         {badge}
                       </span>
                     )}
