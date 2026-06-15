@@ -2587,7 +2587,7 @@ const AdminDashboard = () => {
                         )}
 
                         {/* Quick Links / Portals */}
-                        <div className="mt-8 pt-8 border-t border-white/5">
+                        <div className="mt-8 pt-8 border-t border-white/5 pb-16">
                           <h4 className="text-[10px] font-black text-white/35 uppercase tracking-[0.2em] mb-4">👥 Operations Portals</h4>
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             {/* Staff Portal */}
@@ -2606,6 +2606,46 @@ const AdminDashboard = () => {
                               </div>
                               <div className="text-xs font-black text-purple-400 group-hover:text-purple-300 group-hover:translate-x-1 transition-all mt-4 flex items-center gap-1">
                                 <span>/staff-login</span>
+                                <span className="text-base">→</span>
+                              </div>
+                            </a>
+
+                            {/* Kitchen KDS */}
+                            <a
+                              href="#/kitchen"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="glass-strong rounded-[1.5rem] p-5 border border-white/5 bg-white/[0.01] hover:border-amber-500/30 hover:bg-amber-950/[0.05] hover:shadow-[0_0_20px_rgba(245,158,11,0.05)] transition-all duration-300 group flex flex-col justify-between min-h-[140px]"
+                            >
+                              <div>
+                                <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mb-3 group-hover:bg-amber-500 group-hover:text-black transition-colors duration-300">
+                                  <ChefHat className="w-4 h-4 text-amber-400 group-hover:text-black" />
+                                </div>
+                                <span className="text-[10px] text-white/40 uppercase tracking-widest font-black block mb-0.5">Kitchen KDS</span>
+                                <p className="text-[11px] text-white/35 leading-relaxed">Real-time order display and prep checklist for chefs.</p>
+                              </div>
+                              <div className="text-xs font-black text-amber-400 group-hover:text-amber-300 group-hover:translate-x-1 transition-all mt-4 flex items-center gap-1">
+                                <span>/kitchen</span>
+                                <span className="text-base">→</span>
+                              </div>
+                            </a>
+
+                            {/* Waiter Dashboard */}
+                            <a
+                              href="#/waiter"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="glass-strong rounded-[1.5rem] p-5 border border-white/5 bg-white/[0.01] hover:border-blue-500/30 hover:bg-blue-950/[0.05] hover:shadow-[0_0_20px_rgba(59,130,246,0.05)] transition-all duration-300 group flex flex-col justify-between min-h-[140px]"
+                            >
+                              <div>
+                                <div className="w-9 h-9 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center mb-3 group-hover:bg-blue-500 group-hover:text-black transition-colors duration-300">
+                                  <Table2 className="w-4 h-4 text-blue-400 group-hover:text-black" />
+                                </div>
+                                <span className="text-[10px] text-white/40 uppercase tracking-widest font-black block mb-0.5">Waiter Console</span>
+                                <p className="text-[11px] text-white/35 leading-relaxed">Interactive table map and active service checklists.</p>
+                              </div>
+                              <div className="text-xs font-black text-blue-400 group-hover:text-blue-300 group-hover:translate-x-1 transition-all mt-4 flex items-center gap-1">
+                                <span>/waiter</span>
                                 <span className="text-base">→</span>
                               </div>
                             </a>
