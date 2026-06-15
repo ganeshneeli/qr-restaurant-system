@@ -109,7 +109,7 @@ const AdminLogin = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 h-full min-h-screen w-full relative z-10 overflow-y-auto lg:overflow-hidden">
           
           {/* === LEFT COLUMN: CINEMATIC SHOWCASE (6 COLS) === */}
-          <div className="lg:col-span-6 flex flex-col justify-between p-6 sm:p-10 xl:p-12 overflow-hidden h-full min-h-[50vh] lg:min-h-screen lg:max-h-screen">
+          <div className="hidden lg:flex lg:col-span-6 flex-col justify-between p-6 sm:p-10 xl:p-12 overflow-hidden h-full min-h-[50vh] lg:min-h-screen lg:max-h-screen">
             
             {/* Top Brand Logo */}
             <div className="flex items-center justify-between shrink-0">
@@ -267,7 +267,7 @@ const AdminLogin = () => {
           </div>
 
           {/* === RIGHT COLUMN: LOGIN FULL SCREEN PANEL (6 COLS) - MADE LARGE AND STUNNING === */}
-          <div className="lg:col-span-6 flex flex-col justify-center items-center p-8 sm:p-12 lg:p-16 border-t lg:border-t-0 lg:border-l border-white/10 glass bg-white/[0.01] backdrop-blur-2xl min-h-[50vh] lg:min-h-screen lg:max-h-screen relative overflow-hidden">
+          <div className="lg:col-span-6 flex flex-col justify-center items-center p-8 sm:p-12 lg:p-16 border-t lg:border-t-0 lg:border-l border-white/10 glass bg-white/[0.01] backdrop-blur-2xl min-h-screen lg:max-h-screen relative overflow-hidden">
             
             {/* Glowing vertical connector */}
             <div className="absolute top-0 bottom-0 left-0 w-[1px] bg-gradient-to-b from-red-500/20 via-red-500/5 to-transparent hidden lg:block" />
@@ -281,6 +281,16 @@ const AdminLogin = () => {
               transition={{ duration: 0.8, ease: "easeOut" }}
               className="w-full max-w-md space-y-10 relative z-10"
             >
+              {/* Mobile Brand Header */}
+              <div className="lg:hidden flex flex-col items-center gap-2 mb-2 text-center">
+                <div className="w-10 h-10 rounded-xl bg-red-950/40 border border-red-500/30 flex items-center justify-center">
+                  <Utensils className="h-5 w-5 text-red-500" />
+                </div>
+                <div>
+                  <span className="font-display text-sm font-black tracking-widest text-white">Temptations</span>
+                  <span className="text-[8px] block text-white/40 tracking-[0.2em] uppercase leading-none mt-0.5">New Iceberg</span>
+                </div>
+              </div>
               <div className="text-center space-y-4">
                 <motion.div
                   initial={{ scale: 0 }}

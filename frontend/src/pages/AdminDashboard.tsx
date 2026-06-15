@@ -986,19 +986,19 @@ const AdminDashboard = () => {
         </aside>
 
         {/* Mobile Bottom Tab Bar */}
-        <nav className="md:hidden fixed bottom-2 inset-x-3 z-50 glass border border-white/10 rounded-2xl flex items-center justify-around px-2 py-2 bg-black/90 backdrop-blur-2xl shadow-2xl safe-area-bottom">
+        <nav className="md:hidden fixed bottom-2 inset-x-3 z-50 glass border border-white/10 rounded-2xl flex items-center justify-start gap-1 p-1 bg-black/90 backdrop-blur-2xl shadow-2xl safe-area-bottom overflow-x-auto scrollbar-none snap-x">
           {sections.map((s) => (
             <button
               key={s.id}
               onClick={() => setActiveSection(s.id)}
-              className={`flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-xl transition-all duration-300 ${
+              className={`flex-1 min-w-[76px] flex flex-col items-center justify-center gap-0.5 py-1.5 rounded-xl transition-all duration-300 snap-center shrink-0 ${
                 activeSection === s.id
-                  ? "text-red-400"
-                  : "text-white/50 hover:text-white"
+                  ? "text-red-400 bg-red-500/10 border border-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.15)]"
+                  : "text-white/50 hover:text-white border border-transparent"
               }`}
             >
-              <div className={`p-1.5 rounded-full transition-all duration-300 ${activeSection === s.id ? "bg-red-500/20 -translate-y-1 shadow-[0_0_15px_rgba(239,68,68,0.3)]" : ""}`}>
-                <s.icon className="h-5 w-5" />
+              <div className="p-1 rounded-full transition-all duration-300">
+                <s.icon className="h-4 w-4" />
               </div>
               <span className={`text-[9px] font-bold leading-none tracking-wider transition-all ${activeSection === s.id ? "text-white scale-105" : "font-medium"}`}>
                 {s.label.split(" ").pop()}
@@ -1014,10 +1014,10 @@ const AdminDashboard = () => {
             {/* Header section with new date capsules */}
             <div className="flex items-center justify-between mb-6 md:mb-10">
               <div>
-                <h2 className="font-display text-3xl md:text-4.5xl font-black tracking-tight leading-none text-glow-white bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-red-400 flex items-center">
-                  <span className="md:hidden text-red-500 mr-2">Temptations</span>
-                  <span className="md:hidden text-white/20 mr-2">|</span>
-                  {sections.find((s) => s.id === activeSection)?.label}
+                <h2 className="font-display text-2.25xl sm:text-3xl md:text-4.5xl font-black tracking-tight leading-none text-glow-white bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-red-400 flex flex-wrap items-center gap-1.5">
+                  <span className="md:hidden text-red-500">Temptations</span>
+                  <span className="md:hidden text-white/20">|</span>
+                  <span>{sections.find((s) => s.id === activeSection)?.label}</span>
                 </h2>
                 
                 {/* Visual date capsules */}
@@ -2586,32 +2586,68 @@ const AdminDashboard = () => {
                           </div>
                         )}
 
-                        {/* Quick Links / Portals */}
-                        <div className="mt-8 pt-8 border-t border-white/5">
-                          <h4 className="text-[10px] font-black text-white/35 uppercase tracking-[0.2em] mb-4">👥 Operations Portals</h4>
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            {/* Staff Portal */}
-                            <a
-                              href="#/staff-login"
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="glass-strong rounded-[1.5rem] p-5 border border-white/5 bg-white/[0.01] hover:border-purple-500/30 hover:bg-purple-950/[0.05] hover:shadow-[0_0_20px_rgba(168,85,247,0.05)] transition-all duration-300 group flex flex-col justify-between min-h-[140px]"
-                            >
-                              <div>
-                                <div className="w-9 h-9 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center mb-3 group-hover:bg-purple-500 group-hover:text-black transition-colors duration-300">
-                                  <Lock className="w-4 h-4 text-purple-400 group-hover:text-black" />
-                                </div>
-                                <span className="text-[10px] text-white/40 uppercase tracking-widest font-black block mb-0.5">Staff Portal</span>
-                                <p className="text-[11px] text-white/35 leading-relaxed">Secure sign-in for chefs & waiters via PIN pad.</p>
-                              </div>
-                              <div className="text-xs font-black text-purple-400 group-hover:text-purple-300 group-hover:translate-x-1 transition-all mt-4 flex items-center gap-1">
-                                <span>/staff-login</span>
-                                <span className="text-base">→</span>
-                              </div>
-                            </a>
+                      </div>
+                    </div>
+
+                    {/* Quick Links / Portals */}
+                    <div className="mt-12 pt-8 border-t border-white/5">
+                      <h4 className="text-[10px] font-black text-white/35 uppercase tracking-[0.2em] mb-4">👥 Operations Portals</h4>
+                      
+                      <a
+                        href="#/staff-login"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="relative overflow-hidden glass-strong rounded-[2rem] p-8 border border-purple-500/10 bg-gradient-to-r from-purple-950/20 via-indigo-950/30 to-purple-950/20 hover:border-purple-500/45 hover:bg-purple-950/[0.12] hover:shadow-[0_0_40px_rgba(168,85,247,0.12)] transition-all duration-500 group flex flex-col md:flex-row items-start md:items-center justify-between gap-8 w-full"
+                      >
+                        {/* Decorative background glow */}
+                        <div className="absolute top-1/2 left-1/4 -translate-y-1/2 w-64 h-64 bg-purple-500/5 rounded-full blur-[80px] pointer-events-none group-hover:bg-purple-500/10 transition-all duration-500" />
+                        <div className="absolute top-1/2 right-1/4 -translate-y-1/2 w-64 h-64 bg-indigo-500/5 rounded-full blur-[80px] pointer-events-none group-hover:bg-indigo-500/10 transition-all duration-500" />
+
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 relative z-10">
+                          <div className="w-14 h-14 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center group-hover:bg-purple-500 group-hover:border-purple-400 group-hover:text-black transition-all duration-500 shrink-0 shadow-[0_0_20px_rgba(168,85,247,0.1)] group-hover:shadow-[0_0_25px_rgba(168,85,247,0.35)]">
+                            <Lock className="w-6 h-6 text-purple-400 group-hover:text-black transition-colors duration-500" />
+                          </div>
+                          <div>
+                            <div className="flex flex-wrap items-center gap-3">
+                              <h5 className="text-base font-extrabold text-white tracking-wide">
+                                Staff Sign-In Portal
+                              </h5>
+                              <span className="text-[9px] font-black uppercase bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 px-2.5 py-0.5 rounded-full flex items-center gap-1.5 shadow-[0_0_10px_rgba(16,185,129,0.05)]">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                Gateway Active
+                              </span>
+                            </div>
+                            <p className="text-sm text-white/50 mt-2 leading-relaxed max-w-3xl">
+                              Secure, PIN pad-optimized gateway for chefs & waiters. Authenticate instantly to access the live Kitchen Display System (KDS) or the Waiter Floor Map Board.
+                            </p>
+                            
+                            <div className="flex flex-wrap gap-x-6 gap-y-2 mt-4 text-xs text-white/35 font-medium">
+                              <span className="flex items-center gap-1.5">
+                                <span className="w-1 h-1 rounded-full bg-purple-400" />
+                                PIN Pad Fast Login
+                              </span>
+                              <span className="flex items-center gap-1.5">
+                                <span className="w-1 h-1 rounded-full bg-purple-400" />
+                                Interactive KDS Monitor
+                              </span>
+                              <span className="flex items-center gap-1.5">
+                                <span className="w-1 h-1 rounded-full bg-purple-400" />
+                                Live Waiter Task Board
+                              </span>
+                            </div>
                           </div>
                         </div>
-                      </div>
+                        
+                        <div className="w-full md:w-auto shrink-0 flex items-center justify-between md:justify-end gap-5 border-t border-white/5 md:border-0 pt-6 md:pt-0 relative z-10">
+                          <span className="text-sm font-mono text-purple-400 tracking-wider font-bold bg-purple-500/5 border border-purple-500/10 px-3 py-1.5 rounded-xl">
+                            /staff-login
+                          </span>
+                          <div className="px-6 py-3 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-xs font-black text-purple-400 group-hover:bg-purple-500 group-hover:border-purple-400 group-hover:text-black group-hover:scale-105 transition-all duration-300 flex items-center gap-2 shadow-[0_0_20px_rgba(168,85,247,0.1)] group-hover:shadow-[0_0_25px_rgba(168,85,247,0.25)]">
+                            <span>Open Staff Portal</span>
+                            <span className="text-sm leading-none transition-transform duration-300 group-hover:translate-x-1">→</span>
+                          </div>
+                        </div>
+                      </a>
                     </div>
                   </div>
                 )}
