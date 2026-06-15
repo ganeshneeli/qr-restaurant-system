@@ -1,6 +1,7 @@
 const router = require("express").Router()
 const sessionAuth = require("../middleware/sessionAuth")
 const adminAuth = require("../middleware/adminAuth")
+const staffAuth = require("../middleware/staffAuth")
 const { body } = require("express-validator")
 const validate = require("../middleware/validate")
 const {
@@ -12,13 +13,22 @@ const {
     getMyOrder,
     markAsPaid,
     getAnalytics,
-    testMonthlyReport
+    getKitchenOrders,
+    getWaiterOrders,
 } = require("../controllers/orderController")
 
+// Admin routes
 router.get("/", adminAuth, getAllOrders)
 router.get("/analytics", adminAuth, getAnalytics)
 router.get("/summary/today", adminAuth, getDailySummary)
+router.put("/:id/pay", adminAuth, markAsPaid)
 
+// Kitchen & Waiter routes (staff can update order status)
+router.get("/kitchen", staffAuth(["kitchen", "admin"]), getKitchenOrders)
+router.get("/waiter", staffAuth(["waiter", "admin"]), getWaiterOrders)
+router.put("/:id/status", staffAuth(["admin", "kitchen", "waiter"]), updateStatus)
+
+// Customer routes
 router.get("/my", sessionAuth, getMyOrder)
 router.put("/request-bill", sessionAuth, requestBill)
 router.post("/", 
@@ -31,7 +41,5 @@ router.post("/",
     validate,
     createOrder
 )
-router.put("/:id/status", adminAuth, updateStatus)
-router.put("/:id/pay", adminAuth, markAsPaid)
 
 module.exports = router

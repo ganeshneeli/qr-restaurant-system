@@ -8,6 +8,18 @@ export const AdminRoute = ({ children }: { children: ReactNode }) => {
   return <>{children}</>;
 };
 
+export const KitchenRoute = ({ children }: { children: ReactNode }) => {
+  const { isKitchen, isAdmin } = useAuth();
+  if (!isKitchen && !isAdmin) return <Navigate to="/staff-login" replace />;
+  return <>{children}</>;
+};
+
+export const WaiterRoute = ({ children }: { children: ReactNode }) => {
+  const { isWaiter, isAdmin } = useAuth();
+  if (!isWaiter && !isAdmin) return <Navigate to="/staff-login" replace />;
+  return <>{children}</>;
+};
+
 /**
  * CustomerRoute checks if a valid per-table session token exists
  * for the tableId in the current URL before rendering the menu.
@@ -18,7 +30,6 @@ export const CustomerRoute = ({ children }: { children: ReactNode }) => {
 
   const hasSession = tableId ? !!getSessionToken(tableId) : false;
   if (!hasSession) {
-    // Send them back to the activation page for this table
     return <Navigate to={tableId ? `/table/${tableId}` : "/"} replace />;
   }
   return <>{children}</>;

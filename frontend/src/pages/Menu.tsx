@@ -647,7 +647,7 @@ const MenuContent = () => {
         <header className="sticky top-0 z-50 glass border-b border-white/5 backdrop-blur-xl">
           <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <h1 className="font-display text-2xl font-bold text-glow-white text-white">OG</h1>
+              <h1 className="font-display text-2xl font-bold text-glow-white text-white">Temptations</h1>
               {tableId && (
                 <div className="flex items-center gap-2">
                   <Badge className="bg-primary/20 text-primary border-primary/30 border text-xs font-semibold">

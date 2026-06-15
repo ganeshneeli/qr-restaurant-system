@@ -2,14 +2,38 @@ const Order = require("../models/Order")
 const Menu = require("../models/Menu")
 const Table = require("../models/Table")
 const Session = require("../models/Session")
-const { emitToAdmin, emitToTable, emitToAll } = require("../config/socket")
+const { emitToAdmin, emitToTable, emitToAll, emitToKitchen, emitToWaiter } = require("../config/socket")
 
 // Admin: Get all active orders
 exports.getAllOrders = async (req, res) => {
   try {
     const showAll = req.query.status === "all"
     const query = showAll ? {} : { status: { $ne: "completed" } }
-    const orders = await Order.find(query).sort({ createdAt: -1 })
+    const orders = await Order.find(query).sort({ priority: -1, createdAt: -1 })
+    res.json({ success: true, orders })
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message })
+  }
+}
+
+// Kitchen/Admin: Get kitchen orders (pending/accepted/cooking/plating/ready)
+exports.getKitchenOrders = async (req, res) => {
+  try {
+    const orders = await Order.find({
+      status: { $in: ["pending", "accepted", "cooking", "plating", "ready"] }
+    }).sort({ priority: -1, createdAt: 1 })
+    res.json({ success: true, orders })
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message })
+  }
+}
+
+// Waiter: Get orders relevant to waiters (new pending + ready for pickup)
+exports.getWaiterOrders = async (req, res) => {
+  try {
+    const orders = await Order.find({
+      status: { $in: ["pending", "ready", "served"] }
+    }).sort({ priority: -1, createdAt: -1 })
     res.json({ success: true, orders })
   } catch (error) {
     res.status(500).json({ success: false, message: error.message })
@@ -53,6 +77,23 @@ exports.getDailySummary = async (req, res) => {
                 totalMonthlyRevenue: { $sum: "$totalAmount" }
               }
             }
+          ],
+          avgPrepTime: [
+            { 
+              $match: { 
+                createdAt: { $gte: todayStart },
+                kitchenAcceptedAt: { $ne: null },
+                status: { $in: ["served", "completed"] }
+              } 
+            },
+            {
+              $group: {
+                _id: null,
+                avgTime: {
+                  $avg: { $subtract: ["$updatedAt", "$kitchenAcceptedAt"] }
+                }
+              }
+            }
           ]
         }
       }
@@ -60,12 +101,15 @@ exports.getDailySummary = async (req, res) => {
 
     const today = stats[0].todayStats[0] || { totalOrders: 0, totalRevenue: 0 }
     const month = stats[0].monthRevenue[0] || { totalMonthlyRevenue: 0 }
+    const prepData = stats[0].avgPrepTime[0] || { avgTime: 0 }
+    const avgPrepMinutes = prepData.avgTime ? Math.round(prepData.avgTime / 60000) : 0
 
     res.json({
       success: true,
       totalOrders: today.totalOrders,
       totalRevenue: today.totalRevenue,
-      totalMonthlyRevenue: month.totalMonthlyRevenue
+      totalMonthlyRevenue: month.totalMonthlyRevenue,
+      avgPrepTimeMinutes: avgPrepMinutes
     })
   } catch (error) {
     res.status(500).json({ success: false, message: error.message })
@@ -165,12 +209,16 @@ exports.createOrder = async (req, res) => {
       if (bulkOps.length > 0) await Menu.bulkWrite(bulkOps)
     }
 
-    // Notify admins about the new order (both event names for compatibility)
-    console.log("[Socket] Emitting orderCreated to admin room, orderId:", order._id)
+    // Notify admin, kitchen, AND waiter
     emitToAdmin("orderCreated", order)
     emitToAdmin("newOrder", order)
-    // Broadcast tableStatusChanged to ALL clients (table is now occupied)
-    console.log("[Socket] Emitting tableStatusChanged (occupied) to all clients, tableNumber:", order.tableNumber)
+    emitToKitchen("newKitchenOrder", order)
+    emitToWaiter("newWaiterTask", { 
+      tableNumber: order.tableNumber, 
+      orderId: order._id,
+      itemCount: order.items.length,
+      specialNote: order.specialNote 
+    })
     emitToAll("tableStatusChanged", { tableNumber: order.tableNumber, status: "occupied" })
     
     res.json({ success: true, data: order })
@@ -191,9 +239,9 @@ exports.requestBill = async (req, res) => {
 
     if (!order) return res.status(404).json({ success: false })
 
-    // Notify specific table and admin
     emitToTable(tableNumber, "statusUpdated", { tableNumber, orderId: order._id, status: "billRequested" })
     emitToAdmin("billRequested", { tableNumber, orderId: order._id })
+    emitToWaiter("billRequested", { tableNumber, orderId: order._id })
 
     res.json({ success: true, data: order })
   } catch (error) {
@@ -201,28 +249,56 @@ exports.requestBill = async (req, res) => {
   }
 }
 
-// Admin: Update order status
+// Admin/Kitchen/Waiter: Update order status
 exports.updateStatus = async (req, res) => {
   try {
     const order = await Order.findById(req.params.id)
     if (!order) return res.status(404).json({ success: false })
 
+    const previousStatus = order.status
     order.status = req.body.status
+
+    // Record kitchen start time for prep timer tracking
+    if (req.body.status === "accepted" && !order.kitchenAcceptedAt) {
+      order.kitchenAcceptedAt = new Date()
+    }
+
     await order.save()
 
     // Release table if completed
     if (order.status === "completed") {
       await Table.updateOne({ _id: order.tableId }, { status: "available", currentSessionId: null })
       await Session.updateOne({ sessionId: order.sessionId }, { active: false })
-      // Broadcast tableStatusChanged (free) to ALL clients
-      console.log("[Socket] Emitting tableStatusChanged (free) to all clients, tableNumber:", order.tableNumber)
       emitToAll("tableStatusChanged", { tableNumber: order.tableNumber, status: "free" })
     }
 
-    // Notify specific table and admin
     const payload = { orderId: order._id, status: order.status, tableNumber: order.tableNumber }
+
+    // Notify customer table
     emitToTable(order.tableNumber, "statusUpdated", payload)
+    // Notify admin
     emitToAdmin("statusUpdated", payload)
+
+    // When kitchen marks as READY → alert waiters immediately
+    if (order.status === "ready") {
+      emitToWaiter("orderReadyForPickup", {
+        tableNumber: order.tableNumber,
+        orderId: order._id,
+        items: order.items,
+        specialNote: order.specialNote
+      })
+      emitToAdmin("orderReady", { tableNumber: order.tableNumber, orderId: order._id })
+    }
+
+    // Keep kitchen updated on all status changes
+    if (["accepted", "cooking", "plating", "ready"].includes(order.status)) {
+      emitToKitchen("kitchenStatusUpdate", payload)
+    }
+
+    // When served → update admin
+    if (order.status === "served") {
+      emitToAdmin("orderServed", payload)
+    }
 
     res.json({ success: true, data: order })
   } catch (error) {
@@ -244,8 +320,6 @@ exports.markAsPaid = async (req, res) => {
     await Table.updateOne({ _id: order.tableId }, { status: "available", currentSessionId: null, startedAt: null })
     await Session.updateOne({ sessionId: order.sessionId }, { active: false })
 
-    // Broadcast tableStatusChanged (free) to ALL clients
-    console.log("[Socket] Emitting tableStatusChanged (free) via markAsPaid, tableNumber:", order.tableNumber)
     emitToAll("tableStatusChanged", { tableNumber: order.tableNumber, status: "free" })
 
     const payload = { orderId: order._id, tableNumber: order.tableNumber, status: "completed" }

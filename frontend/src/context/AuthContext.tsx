@@ -12,12 +12,24 @@ interface AuthContextType {
   getSessionToken: (tableNumber: string | number) => string | null;
   setSessionToken: (token: string | null, tableNumber: string | number) => void;
 
-  // Admin token -- stored in localStorage (shared, since admin is 1 user)
+  // Admin token -- stored in localStorage
   adminToken: string | null;
   setAdminToken: (token: string | null) => void;
 
+  // Staff token (waiter/kitchen)
+  staffToken: string | null;
+  staffRole: "kitchen" | "waiter" | null;
+  staffName: string | null;
+  setStaffToken: (token: string | null) => void;
+
   logout: () => void;
+  staffLogout: () => void;
+
+  // Role flags
   isAdmin: boolean;
+  isKitchen: boolean;
+  isWaiter: boolean;
+  isStaff: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -43,6 +55,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     () => localStorage.getItem("adminToken")
   );
 
+  const [staffToken, setStaffTokenState] = useState<string | null>(
+    () => localStorage.getItem("staffToken")
+  );
+
+  // Decode staff token for role + name
+  const staffPayload = useMemo(() => {
+    if (!staffToken) return null;
+    return decodeJwtPayload(staffToken);
+  }, [staffToken]);
+
+  const staffRole = (staffPayload?.role as "kitchen" | "waiter" | null) ?? null;
+  const staffName = (staffPayload?.name as string | null) ?? null;
+
   // Per-table token helpers
   const getSessionToken = useCallback((tableNumber: string | number) => {
     return localStorage.getItem(sessionTokenKey(tableNumber));
@@ -60,13 +85,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setAdminTokenState(token);
   }, []);
 
+  const setStaffToken = useCallback((token: string | null) => {
+    if (token) localStorage.setItem("staffToken", token);
+    else localStorage.removeItem("staffToken");
+    setStaffTokenState(token);
+  }, []);
+
   const logout = useCallback(() => {
-    // Remove all table session tokens from localStorage
     Object.keys(localStorage)
       .filter(k => k.startsWith("sessionToken-table-"))
       .forEach(k => localStorage.removeItem(k));
     localStorage.removeItem("adminToken");
     setAdminTokenState(null);
+  }, []);
+
+  const staffLogout = useCallback(() => {
+    localStorage.removeItem("staffToken");
+    setStaffTokenState(null);
   }, []);
 
   return (
@@ -75,8 +110,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setSessionToken,
       adminToken,
       setAdminToken,
+      staffToken,
+      staffRole,
+      staffName,
+      setStaffToken,
       logout,
+      staffLogout,
       isAdmin: !!adminToken,
+      isKitchen: staffRole === "kitchen",
+      isWaiter: staffRole === "waiter",
+      isStaff: staffRole === "kitchen" || staffRole === "waiter",
     }}>
       {children}
     </AuthContext.Provider>

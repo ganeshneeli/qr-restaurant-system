@@ -50,15 +50,7 @@ const metricsMiddleware = promBundle({ includeMethod: true, includePath: true })
 app.use(metricsMiddleware);
 
 app.use("/api/health", require("./routes/healthRoutes"))
-const authLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 10, // Limit each IP to 10 login requests per windowMs
-  message: "Too many login attempts, please try again after an hour",
-  standardHeaders: true,
-  legacyHeaders: false,
-})
-
-app.use("/api/auth", authLimiter, require("./routes/authRoutes"))
+app.use("/api/auth", require("./routes/authRoutes"))
 app.use("/api/table", require("./routes/tableRoutes"))
 app.use("/api/orders", require("./routes/orderRoutes"))
 app.use("/api/menu", require("./routes/menuRoutes"))

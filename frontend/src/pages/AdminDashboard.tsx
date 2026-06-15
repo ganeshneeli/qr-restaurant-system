@@ -27,6 +27,10 @@ import {
   TrendingUp,
   Minus,
   Zap,
+  Users,
+  UserPlus,
+  ShieldCheck,
+  X,
 } from "lucide-react";
 
 
@@ -162,6 +166,7 @@ const sections = [
   { id: "history", label: "Order History", icon: Clock },
   { id: "summary", label: "Daily Summary", icon: BarChart3 },
   { id: "reviews", label: "Customer Reviews", icon: MessageSquare },
+  { id: "staff", label: "Staff Management", icon: Users },
 ];
 
 const PAGE_SIZE = 5;
@@ -222,6 +227,23 @@ const AdminDashboard = () => {
   const [menuPage, setMenuPage] = useState(1);
   const [menuPagination, setMenuPagination] = useState({ totalPages: 1, totalCount: 0 });
   const [menuLoading, setMenuLoading] = useState(false);
+
+  // Staff Management State
+  interface StaffMember {
+    _id: string;
+    name: string;
+    email: string;
+    role: "kitchen" | "waiter";
+    lastLogin?: string;
+    createdAt?: string;
+  }
+  const [staffList, setStaffList] = useState<StaffMember[]>([]);
+  const [staffLoading, setStaffLoading] = useState(false);
+  const [staffForm, setStaffForm] = useState({ name: "", email: "", password: "", role: "waiter" as "kitchen" | "waiter", pin: "" });
+  const [staffFormError, setStaffFormError] = useState("");
+  const [staffFormLoading, setStaffFormLoading] = useState(false);
+  const [showStaffPassword, setShowStaffPassword] = useState(false);
+  const [deletingStaffId, setDeletingStaffId] = useState<string | null>(null);
 
   const resolveImagePath = (imagePath?: string) => {
     if (!imagePath) return "";
@@ -335,6 +357,17 @@ const AdminDashboard = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeSection, fetchHistory, feedbackPage, feedbackFilter, menuPage, menuSearchQuery]);
+
+  // Load staff list when switching to the staff tab
+  useEffect(() => {
+    if (activeSection === "staff") {
+      setStaffLoading(true);
+      api.get("/auth/staff")
+        .then(res => setStaffList(res.data?.data || []))
+        .catch(() => {})
+        .finally(() => setStaffLoading(false));
+    }
+  }, [activeSection]);
 
 
   const fetchAnalytics = async () => {
@@ -720,7 +753,7 @@ const AdminDashboard = () => {
         </head>
         <body>
           <div class="header">
-            <h1 style="margin: 0;">OG RESTAURANT</h1>
+            <h1 style="margin: 0;">Temptations RESTAURANT</h1>
             <p style="margin: 5px 0;">Fine Dining Experience</p>
           </div>
           <div class="order-info">
@@ -855,65 +888,117 @@ const AdminDashboard = () => {
 
   return (
     <PageTransition>
-      <div className="min-h-screen bg-cinematic flex pb-20 md:pb-0">
+      <div className="min-h-screen bg-[#050505] text-white flex pb-20 md:pb-0 relative">
+        
+        {/* Cinematic Backdrop Glow */}
+        <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-red-950/10 blur-[130px] rounded-full pointer-events-none z-0" />
+        <div className="absolute bottom-1/4 right-1/4 w-[600px] h-[600px] bg-amber-950/5 blur-[130px] rounded-full pointer-events-none z-0" />
+
         {/* Desktop Sidebar */}
-        <aside className="hidden md:flex w-[260px] min-h-screen glass-strong border-r border-white/5 flex-col sticky top-0 z-40 h-screen overflow-y-auto">
-          <div className="p-6 border-b border-white/5 space-y-4">
-            <div className="flex items-center justify-between">
+        <aside className="hidden md:flex w-[280px] h-screen glass border-r border-white/10 flex-col sticky top-0 z-40 bg-black/60 backdrop-blur-3xl shrink-0">
+          <div className="p-6 border-b border-white/10 space-y-5">
+            
+            {/* Sidebar Brand Header */}
+            <div className="flex items-center gap-3 group cursor-pointer" onClick={() => navigate("/")}>
+              <div className="w-10 h-10 rounded-xl bg-red-950/40 border border-red-500/30 flex items-center justify-center group-hover:bg-red-500 group-hover:text-black transition-colors duration-500 shrink-0">
+                <UtensilsCrossed className="h-5 w-5 text-red-500 group-hover:text-black" />
+              </div>
               <div>
-                <h1 className="font-display text-2xl font-bold text-glow-subtle">OG</h1>
-                <p className="text-xs text-muted-foreground mt-1">Admin Dashboard</p>
+                <h1 className="font-display text-xl font-black tracking-widest text-white group-hover:text-red-400 transition-colors">Temptations</h1>
+                <p className="text-[9px] text-white/40 tracking-[0.2em] uppercase leading-none mt-1">Admin Portal</p>
               </div>
             </div>
 
-            {/* Background Video */}
-            <div className="relative w-full aspect-video rounded-xl overflow-hidden border border-white/10 shadow-lg">
+            {/* Background Video CCTV Monitor */}
+            <div className="relative w-full aspect-video rounded-xl overflow-hidden border border-white/10 shadow-lg group">
               <VideoBackground />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
+              {/* CCTV blinking indicator */}
+              <div className="absolute top-2 left-2 z-10 flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded-md border border-white/10">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                <span className="text-[8px] font-black tracking-widest text-white/85 uppercase">Live CCTV</span>
+              </div>
             </div>
           </div>
-          <nav className="flex-1 p-4 space-y-1">
-            {sections.map((s) => (
-              <button
-                key={s.id}
-                onClick={() => setActiveSection(s.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 text-sm font-medium ${activeSection === s.id
-                  ? "bg-primary/20 text-primary-foreground border border-primary/30 neon-glow"
-                  : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
+
+          <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto">
+            {sections.map((s) => {
+              // Dynamic counters for active feedback, live orders, etc.
+              let badge = null;
+              if (s.id === "orders") {
+                const count = orders.filter(o => o.status !== 'completed').length;
+                if (count > 0) badge = `${count} Live`;
+              } else if (s.id === "tables") {
+                const occupiedCount = tables.filter(t => t.status === 'occupied' || t.status === 'active').length;
+                if (occupiedCount > 0) badge = `${occupiedCount} Occ`;
+              } else if (s.id === "reviews") {
+                const reviewCount = feedbacks.length;
+                if (reviewCount > 0) badge = `${reviewCount} New`;
+              }
+              
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => setActiveSection(s.id)}
+                  className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl transition-all duration-300 text-sm font-bold tracking-wide relative group ${
+                    activeSection === s.id
+                      ? "bg-red-500/10 text-red-400 border border-red-500/25 shadow-[0_0_20px_rgba(239,68,68,0.12)]"
+                      : "text-white/60 hover:bg-white/[0.03] hover:text-white border border-transparent"
                   }`}
-              >
-                <s.icon className="h-4 w-4" />
-                {s.label}
-              </button>
-            ))}
+                >
+                  <div className="flex items-center gap-3">
+                    <s.icon className={`h-4 w-4 transition-colors duration-300 ${
+                      activeSection === s.id ? "text-red-500" : "text-white/40 group-hover:text-white/80"
+                    }`} />
+                    <span>{s.label}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    {badge && (
+                      <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md ${
+                        s.id === "orders" 
+                          ? "bg-red-500/20 text-red-400 border border-red-500/30 shadow-[0_0_8px_rgba(239,68,68,0.15)]" 
+                          : "bg-white/5 text-white/50 border border-white/10"
+                      } border`}>
+                        {badge}
+                      </span>
+                    )}
+                    {activeSection === s.id && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
+                    )}
+                  </div>
+                </button>
+              );
+            })}
           </nav>
 
-          <div className="p-4 border-t border-white/5">
+
+          <div className="p-4 border-t border-white/10 shrink-0">
             <Button
               onClick={handleLogout}
               variant="ghost"
-              className="w-full justify-start text-muted-foreground hover:text-destructive"
+              className="w-full justify-start text-white/40 hover:text-red-400 hover:bg-red-500/10 rounded-xl py-5 font-bold transition-all duration-300"
             >
-              <LogOut className="h-4 w-4 mr-2" /> Logout
+              <LogOut className="h-4 w-4 mr-2 text-red-500/60" /> Logout
             </Button>
           </div>
         </aside>
 
         {/* Mobile Bottom Tab Bar */}
-        <nav className="md:hidden fixed bottom-1 inset-x-2 z-50 glass-strong border border-white/10 rounded-2xl flex items-center justify-around px-2 py-2 bg-background/95 backdrop-blur-xl shadow-2xl safe-area-bottom">
+        <nav className="md:hidden fixed bottom-2 inset-x-3 z-50 glass border border-white/10 rounded-2xl flex items-center justify-around px-2 py-2 bg-black/90 backdrop-blur-2xl shadow-2xl safe-area-bottom">
           {sections.map((s) => (
             <button
               key={s.id}
               onClick={() => setActiveSection(s.id)}
-              className={`flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-xl transition-all duration-300 ${activeSection === s.id
-                ? "text-primary"
-                : "text-muted-foreground hover:text-foreground"
-                }`}
+              className={`flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-xl transition-all duration-300 ${
+                activeSection === s.id
+                  ? "text-red-400"
+                  : "text-white/50 hover:text-white"
+              }`}
             >
-              <div className={`p-1.5 rounded-full transition-all duration-300 ${activeSection === s.id ? "bg-primary/20 neon-glow -translate-y-1" : ""}`}>
+              <div className={`p-1.5 rounded-full transition-all duration-300 ${activeSection === s.id ? "bg-red-500/20 -translate-y-1 shadow-[0_0_15px_rgba(239,68,68,0.3)]" : ""}`}>
                 <s.icon className="h-5 w-5" />
               </div>
-              <span className={`text-[10px] font-bold leading-none transition-all ${activeSection === s.id ? "text-primary-foreground scale-110" : "font-medium"}`}>
+              <span className={`text-[9px] font-bold leading-none tracking-wider transition-all ${activeSection === s.id ? "text-white scale-105" : "font-medium"}`}>
                 {s.label.split(" ").pop()}
               </span>
             </button>
@@ -921,26 +1006,37 @@ const AdminDashboard = () => {
         </nav>
 
         {/* Main Content */}
-        <main className="flex-1 p-4 md:p-8 overflow-y-auto w-full">
+        <main className="flex-1 p-4 md:p-8 xl:p-12 w-full relative z-10">
           <div className="max-w-6xl mx-auto">
-            <div className="flex items-center justify-between mb-6 md:mb-8">
+            
+            {/* Header section with new date capsules */}
+            <div className="flex items-center justify-between mb-6 md:mb-10">
               <div>
-                <h2 className="font-display text-2xl md:text-3xl font-bold text-glow-subtle flex items-center">
-                  <span className="md:hidden text-primary mr-2">OG</span>
+                <h2 className="font-display text-3xl md:text-4.5xl font-black tracking-tight leading-none text-glow-white bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-red-400 flex items-center">
+                  <span className="md:hidden text-red-500 mr-2">Temptations</span>
                   <span className="md:hidden text-white/20 mr-2">|</span>
                   {sections.find((s) => s.id === activeSection)?.label}
                 </h2>
-                <p className="text-muted-foreground text-xs md:text-sm mt-1">
-                  {new Date().toLocaleDateString("en-IN", {
-                    weekday: "long", year: "numeric", month: "long", day: "numeric"
-                  })}
-                </p>
+                
+                {/* Visual date capsules */}
+                <div className="flex flex-wrap items-center gap-3 mt-3">
+                  <span className="text-[10px] uppercase tracking-[0.25em] text-red-500 font-extrabold flex items-center gap-1.5 bg-red-500/10 px-3 py-1 rounded-full border border-red-500/20">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                    Live Feed
+                  </span>
+                  <span className="text-xs text-white/40 font-medium bg-white/[0.02] border border-white/5 px-3 py-1 rounded-full flex items-center gap-2">
+                    <Clock className="w-3.5 h-3.5 text-red-500" />
+                    {new Date().toLocaleDateString("en-IN", {
+                      weekday: "long", year: "numeric", month: "long", day: "numeric"
+                    })}
+                  </span>
+                </div>
               </div>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleLogout}
-                className="md:hidden text-muted-foreground hover:text-destructive glass border-white/5"
+                className="md:hidden text-white/50 hover:text-red-400 hover:bg-red-500/10 glass border-white/5"
               >
                 <LogOut className="h-4 w-4" />
               </Button>
@@ -949,12 +1045,65 @@ const AdminDashboard = () => {
             {/* Mobile Video Header */}
             <div className="md:hidden mb-6 relative w-full aspect-[21/9] rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
               <VideoBackground />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
               <div className="absolute bottom-3 left-4">
-                <p className="text-[10px] uppercase tracking-[0.2em] text-white/60 font-medium">Fine Dining</p>
-                <p className="text-sm font-bold text-white tracking-tight">OG Dashboard</p>
+                <p className="text-[9px] uppercase tracking-[0.2em] text-white/60 font-medium">Fine Dining</p>
+                <p className="text-sm font-bold text-white tracking-tight">Temptations Dashboard</p>
               </div>
             </div>
+
+            {/* Live Metrics Command Bar Overview Addon */}
+            {!loading && activeSection === "orders" && (
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                {[
+                  { 
+                    label: "Active Tables", 
+                    value: `${tables.filter(t => t.status === 'occupied').length} Occupied`, 
+                    sub: `Out of ${tables.length || 12} tables`, 
+                    color: "text-red-400", 
+                    pulse: tables.filter(t => t.status === 'occupied').length > 0,
+                    borderColor: "hover:border-red-500/20 hover:shadow-[0_10px_20px_rgba(239,68,68,0.08)]",
+                    accentLine: "via-red-500/30"
+                  },
+                  { 
+                    label: "Pending Orders", 
+                    value: `${orders.filter(o => o.status === 'pending').length} Orders`, 
+                    sub: orders.filter(o => o.status === 'pending').length > 0 ? "Requires kitchen attention!" : "All clear, no pending", 
+                    color: "text-amber-400", 
+                    alert: orders.filter(o => o.status === 'pending').length > 0,
+                    borderColor: "hover:border-amber-500/20 hover:shadow-[0_10px_20px_rgba(245,158,11,0.08)]",
+                    accentLine: "via-amber-500/30"
+                  },
+                  { 
+                    label: "Preparing in Kitchen", 
+                    value: `${orders.filter(o => ['accepted','cooking','plating'].includes(o.status)).length} Cooking`, 
+                    sub: orders.filter(o => ['accepted','cooking','plating'].includes(o.status)).length > 0 ? "Chef crew active" : "Kitchen waiting", 
+                    color: "text-blue-400",
+                    borderColor: "hover:border-blue-500/20 hover:shadow-[0_10px_20px_rgba(59,130,246,0.08)]",
+                    accentLine: "via-blue-500/30"
+                  },
+                  { 
+                    label: "Today's Orders", 
+                    value: `${summary.totalOrders || 0} Total`, 
+                    sub: `Revenue: ₹${(summary.totalRevenue || 0).toLocaleString("en-IN")}`, 
+                    color: "text-emerald-400",
+                    borderColor: "hover:border-emerald-500/20 hover:shadow-[0_10px_20px_rgba(16,185,129,0.08)]",
+                    accentLine: "via-emerald-500/30"
+                  }
+                ].map((stat, i) => (
+                  <div key={i} className={`glass border-white/10 p-5 rounded-2xl relative overflow-hidden group transition-all duration-500 hover:-translate-y-1 bg-white/[0.02] ${stat.borderColor}`}>
+                    <div className={`absolute top-0 left-0 right-0 h-[1.5px] bg-gradient-to-r from-transparent ${stat.accentLine} to-transparent`} />
+                    <span className="text-[9px] block text-white/40 uppercase tracking-widest font-black mb-1.5">{stat.label}</span>
+                    <div className="flex items-center gap-2">
+                      {stat.pulse && <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping shrink-0" />}
+                      {stat.alert && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping shrink-0" />}
+                      <span className={`text-xl font-black ${stat.color} tracking-tight font-display`}>{stat.value}</span>
+                    </div>
+                    <span className="text-[10px] text-white/30 block mt-1.5 font-medium">{stat.sub}</span>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {loading ? (
               <LoadingSkeleton />
@@ -962,7 +1111,7 @@ const AdminDashboard = () => {
               <>
                 {/* === LIVE ORDERS === */}
                 {activeSection === "orders" && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                     <AnimatePresence>
                       {orders.map((order) => (
                         <motion.div
@@ -972,83 +1121,93 @@ const AdminDashboard = () => {
                           exit={{ opacity: 0, scale: 0.9, y: -20 }}
                           layout
                         >
-                          <Card className="glass border-white/5 p-5 hover:neon-glow transition-all duration-300">
+                          <Card className="glass border-white/10 p-6 rounded-3xl hover:border-red-500/25 hover:shadow-[0_15px_30px_rgba(239,68,68,0.08)] transition-all duration-500 relative group">
+                            
+                            {/* Card Hover Top Accent line */}
+                            <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-red-500/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
                             {/* Card Header */}
-                            <div className="flex justify-between items-start mb-3">
-                              <div>
-                                <h3 className="font-display text-lg font-bold">
+                            <div className="flex justify-between items-start mb-4">
+                              <div className="space-y-1">
+                                <h3 className="font-display text-xl font-black text-white tracking-tight flex items-center gap-2">
+                                  <Table2 className="h-4 w-4 text-red-500" />
                                   Table {order.tableNumber ?? "—"}
                                 </h3>
-                                <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                                  <Clock className="h-3 w-3" />
+                                <p className="text-[11px] text-white/40 flex items-center gap-1.5 font-medium">
+                                  <Clock className="h-3 w-3 text-red-500/70" />
                                   {getTimeSince(order.createdAt)}
                                 </p>
                               </div>
-                              <div className="flex flex-col items-end gap-1">
-                                <Badge className={`${statusColors[order.status] || statusColors.pending} border text-xs`}>
+                              <div className="flex flex-col items-end gap-1.5">
+                                <Badge className={`${statusColors[order.status] || statusColors.pending} border text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md`}>
                                   {order.status}
                                 </Badge>
                                 {order.paymentStatus === "paid" ? (
-                                  <Badge className="bg-green-500/20 text-green-400 border-green-500/30 border text-xs">
+                                  <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 border text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md">
                                     Paid ✓
                                   </Badge>
                                 ) : (
-                                  <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30 border text-xs">
+                                  <Badge className="bg-orange-500/10 text-orange-400 border-orange-500/20 border text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md">
                                     Unpaid
                                   </Badge>
                                 )}
                               </div>
                             </div>
 
-                            {/* Items */}
-                            <div className="space-y-1.5 mb-3">
+                            {/* Items styled into premium capsules */}
+                            <div className="space-y-2 py-2 mb-4">
                               {order.items?.map((item, i) => (
-                                <div key={i} className="flex justify-between text-sm">
-                                  <span className="text-muted-foreground">
-                                    {item.name || item.foodId} × {item.quantity}
-                                  </span>
+                                <div key={i} className="flex justify-between items-center text-xs bg-white/[0.01] hover:bg-white/[0.03] p-2.5 rounded-xl border border-white/5 transition-colors">
+                                  <div className="flex items-center gap-2.5">
+                                    <span className="text-[10px] font-black text-red-400 bg-red-500/10 w-5.5 h-5.5 rounded-md flex items-center justify-center border border-red-500/20">
+                                      {item.quantity}
+                                    </span>
+                                    <span className="font-bold text-white/90">
+                                      {item.name || item.foodId}
+                                    </span>
+                                  </div>
                                   {item.price && (
-                                    <span>₹{item.price * item.quantity}</span>
+                                    <span className="font-mono text-white/50">₹{item.price * item.quantity}</span>
                                   )}
                                 </div>
                               ))}
                             </div>
 
+                            {/* Special Note / Chef Note styled with soft amber colors */}
                             {order.specialNote && (
-                              <div className="mb-3 p-2 rounded-lg bg-primary/5 border border-primary/20 flex gap-2 items-start">
-                                <ChefHat className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+                              <div className="mb-4 p-3 rounded-xl bg-amber-500/5 border border-amber-500/15 flex gap-2.5 items-start">
+                                <ChefHat className="h-4.5 w-4.5 text-amber-500 shrink-0 mt-0.5" />
                                 <div className="space-y-0.5">
-                                  <p className="text-[10px] font-black uppercase tracking-widest text-primary/70">Chef Note</p>
-                                  <p className="text-xs italic text-white/90">"{order.specialNote}"</p>
+                                  <p className="text-[9px] font-black uppercase tracking-widest text-amber-500/80">Chef Note</p>
+                                  <p className="text-xs italic text-white/80 leading-relaxed">"{order.specialNote}"</p>
                                 </div>
                               </div>
                             )}
 
                             {order.billRequested && (
-                              <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 border mb-3 w-full justify-center">
+                              <Badge className="bg-yellow-500/10 text-yellow-400 border-yellow-500/20 border mb-4 w-full py-1.5 rounded-xl justify-center font-bold text-xs uppercase tracking-wider">
                                 🧾 Bill Requested
                               </Badge>
                             )}
 
-                            <Separator className="bg-white/5 mb-3" />
+                            <Separator className="bg-white/10 mb-4" />
 
-                            {/* Total */}
-                            <div className="flex justify-between font-semibold mb-4">
-                              <span>Grand Total</span>
-                              <span className="text-glow-subtle flex items-center gap-0.5">
-                                <IndianRupee className="h-3.5 w-3.5" />
-                                {order.totalAmount ?? "—"}
+                            {/* Total Amount display */}
+                            <div className="flex justify-between items-center font-semibold mb-5">
+                              <span className="text-xs text-white/40 uppercase tracking-widest font-black">Grand Total</span>
+                              <span className="text-xl font-black text-red-400 text-glow flex items-center font-display">
+                                ₹{order.totalAmount ?? "—"}
                               </span>
                             </div>
 
                             {/* Action Buttons */}
-                            <div className="flex flex-col gap-2">
+                            <div className="flex flex-col gap-2 relative z-20">
                               <div className="flex gap-2">
                                 {order.status === "pending" && (
                                   <Button
                                     size="sm"
                                     onClick={() => updateOrderStatus(order._id, "preparing")}
-                                    className="flex-1 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 text-blue-400"
+                                    className="flex-1 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-blue-400 font-bold tracking-wider rounded-xl transition-all duration-300"
                                     variant="outline"
                                   >
                                     Preparing
@@ -1058,7 +1217,7 @@ const AdminDashboard = () => {
                                   <Button
                                     size="sm"
                                     onClick={() => updateOrderStatus(order._id, "served")}
-                                    className="flex-1 bg-green-500/20 hover:bg-green-500/30 border border-green-500/30 text-green-400"
+                                    className="flex-1 bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 text-green-400 font-bold tracking-wider rounded-xl transition-all duration-300"
                                     variant="outline"
                                   >
                                     Served
@@ -1071,7 +1230,7 @@ const AdminDashboard = () => {
                                 <Button
                                   size="sm"
                                   onClick={() => markAsPaid(order._id)}
-                                  className="w-full bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-400"
+                                  className="w-full bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 font-bold tracking-wider rounded-xl transition-all duration-300"
                                   variant="outline"
                                 >
                                   <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
@@ -1084,7 +1243,7 @@ const AdminDashboard = () => {
                                 <Button
                                   size="sm"
                                   onClick={() => updateOrderStatus(order._id, "completed")}
-                                  className="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-muted-foreground"
+                                  className="w-full bg-red-500/10 hover:bg-red-500 border border-red-500/30 hover:border-red-500 hover:text-black hover:shadow-[0_0_15px_rgba(239,68,68,0.3)] text-red-400 font-bold tracking-wider rounded-xl transition-all duration-300"
                                   variant="outline"
                                 >
                                   Complete Order
@@ -1094,7 +1253,7 @@ const AdminDashboard = () => {
                               <Button
                                 size="sm"
                                 onClick={() => handlePrint(order)}
-                                className="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-muted-foreground"
+                                className="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-white/50 font-bold tracking-wider rounded-xl transition-all duration-300"
                                 variant="outline"
                               >
                                 <Printer className="h-3.5 w-3.5 mr-1.5" />
@@ -1410,7 +1569,7 @@ const AdminDashboard = () => {
                                   className="w-24 h-24"
                                 />
                               </div>
-                              <p className="text-xs font-bold text-primary mb-3">OG Restaurant / Table {qr.tableNumber}</p>
+                              <p className="text-xs font-bold text-primary mb-3">Temptations Restaurant / Table {qr.tableNumber}</p>
                               <Button
                                 size="sm"
                                 variant="outline"
@@ -2150,6 +2309,306 @@ const AdminDashboard = () => {
                       </div>
                     )}
 
+                  </div>
+                )}
+
+                {/* === STAFF MANAGEMENT === */}
+                {activeSection === "staff" && (
+                  <div>
+                    <div className="flex items-center gap-3 mb-8">
+                      <div className="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
+                        <Users className="w-6 h-6 text-purple-400" />
+                      </div>
+                      <div>
+                        <h2 className="text-2xl font-black text-white">Staff Management</h2>
+                        <p className="text-white/40 text-sm">Manage kitchen crew and waiters</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+                      {/* === Add Staff Form === */}
+                      <div className="xl:col-span-1">
+                        <div className="glass-strong rounded-2xl p-6 border border-white/10 sticky top-8">
+                          <div className="flex items-center gap-2 mb-6">
+                            <UserPlus className="w-4 h-4 text-purple-400" />
+                            <h3 className="font-black text-white text-sm uppercase tracking-widest">Add Staff Member</h3>
+                          </div>
+
+                          {staffFormError && (
+                            <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-medium">
+                              {staffFormError}
+                            </div>
+                          )}
+
+                          <div className="space-y-4">
+                            <div>
+                              <label className="text-[10px] uppercase tracking-widest text-white/40 font-black block mb-2">Full Name</label>
+                              <input
+                                type="text"
+                                value={staffForm.name}
+                                onChange={e => setStaffForm(f => ({ ...f, name: e.target.value }))}
+                                placeholder="e.g. Ravi Kumar"
+                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 text-sm focus:outline-none focus:border-purple-500/50 focus:bg-white/[0.07] transition-all"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="text-[10px] uppercase tracking-widest text-white/40 font-black block mb-2">Email</label>
+                              <input
+                                type="email"
+                                value={staffForm.email}
+                                onChange={e => setStaffForm(f => ({ ...f, email: e.target.value }))}
+                                placeholder="staff@restaurant.com"
+                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 text-sm focus:outline-none focus:border-purple-500/50 focus:bg-white/[0.07] transition-all"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="text-[10px] uppercase tracking-widest text-white/40 font-black block mb-2">Role</label>
+                              <div className="flex gap-2">
+                                {(["waiter", "kitchen"] as const).map(r => (
+                                  <button
+                                    key={r}
+                                    onClick={() => setStaffForm(f => ({ ...f, role: r }))}
+                                    className={`flex-1 py-2.5 rounded-xl text-sm font-black border transition-all duration-200 ${
+                                      staffForm.role === r
+                                        ? r === "kitchen"
+                                          ? "bg-orange-500/20 border-orange-500/40 text-orange-400"
+                                          : "bg-blue-500/20 border-blue-500/40 text-blue-400"
+                                        : "bg-white/5 border-white/10 text-white/40 hover:text-white"
+                                    }`}
+                                  >
+                                    {r === "kitchen" ? "🍳 Kitchen" : "🍽️ Waiter"}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+
+                            <div>
+                              <label className="text-[10px] uppercase tracking-widest text-white/40 font-black block mb-2">Password</label>
+                              <div className="relative">
+                                <input
+                                  type={showStaffPassword ? "text" : "password"}
+                                  value={staffForm.password}
+                                  onChange={e => setStaffForm(f => ({ ...f, password: e.target.value }))}
+                                  placeholder="Min 6 characters"
+                                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 text-sm focus:outline-none focus:border-purple-500/50 focus:bg-white/[0.07] transition-all pr-12"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => setShowStaffPassword(v => !v)}
+                                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
+                                >
+                                  {showStaffPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                </button>
+                              </div>
+                            </div>
+
+                            <div>
+                              <label className="text-[10px] uppercase tracking-widest text-white/40 font-black block mb-2">4-Digit PIN <span className="text-white/20 font-normal">(optional, for fast login)</span></label>
+                              <input
+                                type="text"
+                                maxLength={4}
+                                value={staffForm.pin}
+                                onChange={e => setStaffForm(f => ({ ...f, pin: e.target.value.replace(/\D/g, "") }))}
+                                placeholder="e.g. 1234"
+                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 text-sm focus:outline-none focus:border-purple-500/50 focus:bg-white/[0.07] transition-all font-mono tracking-[0.5em]"
+                              />
+                            </div>
+
+                            <button
+                              onClick={async () => {
+                                setStaffFormError("");
+                                if (!staffForm.name || !staffForm.email || !staffForm.password) {
+                                  setStaffFormError("Name, email, and password are required.");
+                                  return;
+                                }
+                                if (staffForm.password.length < 6) {
+                                  setStaffFormError("Password must be at least 6 characters.");
+                                  return;
+                                }
+                                if (staffForm.pin && staffForm.pin.length !== 4) {
+                                  setStaffFormError("PIN must be exactly 4 digits.");
+                                  return;
+                                }
+                                setStaffFormLoading(true);
+                                try {
+                                  const payload: Record<string, string> = {
+                                    name: staffForm.name,
+                                    email: staffForm.email,
+                                    password: staffForm.password,
+                                    role: staffForm.role,
+                                  };
+                                  if (staffForm.pin) payload.pin = staffForm.pin;
+                                  await api.post("/auth/staff", payload);
+                                  setStaffForm({ name: "", email: "", password: "", role: "waiter", pin: "" });
+                                  toast({ title: "✅ Staff Added", description: `${staffForm.name} (${staffForm.role}) created successfully.` });
+                                  // Refresh list
+                                  const res = await api.get("/auth/staff");
+                                  setStaffList(res.data?.data || []);
+                                } catch (err: any) {
+                                  setStaffFormError(err?.response?.data?.message || "Failed to create staff.");
+                                } finally {
+                                  setStaffFormLoading(false);
+                                }
+                              }}
+                              disabled={staffFormLoading}
+                              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-500 hover:to-violet-500 text-white font-black text-sm tracking-wider transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            >
+                              {staffFormLoading ? (
+                                <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+                              ) : (
+                                <UserPlus className="w-4 h-4" />
+                              )}
+                              Create Staff Account
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* === Staff List === */}
+                      <div className="xl:col-span-2">
+                        <div className="flex items-center justify-between mb-4">
+                          <h3 className="font-black text-white text-sm uppercase tracking-widest">Current Staff</h3>
+                          <button
+                            onClick={async () => {
+                              setStaffLoading(true);
+                              try {
+                                const res = await api.get("/auth/staff");
+                                setStaffList(res.data?.data || []);
+                              } catch {}
+                              finally { setStaffLoading(false); }
+                            }}
+                            className="text-[10px] text-white/40 hover:text-white uppercase tracking-widest font-bold transition-colors"
+                          >
+                            ↻ Refresh
+                          </button>
+                        </div>
+
+
+
+                        {staffLoading ? (
+                          <div className="flex items-center justify-center py-20 text-white/30">
+                            <svg className="w-6 h-6 animate-spin" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+                          </div>
+                        ) : staffList.length === 0 ? (
+                          <div className="glass-strong rounded-2xl p-16 text-center border border-white/5">
+                            <Users className="w-12 h-12 text-white/10 mx-auto mb-4" />
+                            <p className="text-white/30 text-sm font-medium">No staff members yet.</p>
+                            <p className="text-white/20 text-xs mt-1">Add your first kitchen or waiter staff using the form.</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            {/* Summary Badges */}
+                            <div className="flex gap-3 mb-6">
+                              <div className="flex items-center gap-2 bg-orange-500/10 border border-orange-500/20 px-4 py-2 rounded-xl">
+                                <ChefHat className="w-4 h-4 text-orange-400" />
+                                <span className="text-orange-400 font-black text-sm">{staffList.filter(s => s.role === "kitchen").length} Kitchen</span>
+                              </div>
+                              <div className="flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 px-4 py-2 rounded-xl">
+                                <UtensilsCrossed className="w-4 h-4 text-blue-400" />
+                                <span className="text-blue-400 font-black text-sm">{staffList.filter(s => s.role === "waiter").length} Waiters</span>
+                              </div>
+                            </div>
+
+                            {staffList.map(member => (
+                              <motion.div
+                                key={member._id}
+                                layout
+                                initial={{ opacity: 0, y: 8 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, x: -20 }}
+                                className="glass-strong rounded-2xl p-4 border border-white/10 flex items-center justify-between gap-4 hover:border-white/20 transition-all duration-200"
+                              >
+                                <div className="flex items-center gap-4">
+                                  <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 border ${
+                                    member.role === "kitchen"
+                                      ? "bg-orange-500/10 border-orange-500/20"
+                                      : "bg-blue-500/10 border-blue-500/20"
+                                  }`}>
+                                    {member.role === "kitchen"
+                                      ? <ChefHat className="w-5 h-5 text-orange-400" />
+                                      : <UtensilsCrossed className="w-5 h-5 text-blue-400" />
+                                    }
+                                  </div>
+                                  <div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-white font-black text-sm">{member.name}</span>
+                                      <span className={`text-[9px] font-black px-2 py-0.5 rounded-full border uppercase tracking-wider ${
+                                        member.role === "kitchen"
+                                          ? "bg-orange-500/10 border-orange-500/20 text-orange-400"
+                                          : "bg-blue-500/10 border-blue-500/20 text-blue-400"
+                                      }`}>
+                                        {member.role}
+                                      </span>
+                                    </div>
+                                    <span className="text-white/40 text-xs">{member.email}</span>
+                                    {member.lastLogin && (
+                                      <span className="block text-white/25 text-[10px] mt-0.5">
+                                        Last login: {new Date(member.lastLogin).toLocaleDateString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-2 shrink-0">
+                                  <div className="flex items-center gap-1 text-[9px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 rounded-full">
+                                    <ShieldCheck className="w-3 h-3" />
+                                    Active
+                                  </div>
+                                  <button
+                                    onClick={async () => {
+                                      if (!confirm(`Remove ${member.name} from staff?`)) return;
+                                      setDeletingStaffId(member._id);
+                                      try {
+                                        await api.delete(`/auth/staff/${member._id}`);
+                                        setStaffList(prev => prev.filter(s => s._id !== member._id));
+                                        toast({ title: "Staff Removed", description: `${member.name} has been removed.` });
+                                      } catch (err: any) {
+                                        toast({ title: "Error", description: err?.response?.data?.message || "Failed to remove staff.", variant: "destructive" });
+                                      } finally {
+                                        setDeletingStaffId(null);
+                                      }
+                                    }}
+                                    disabled={deletingStaffId === member._id}
+                                    className="w-8 h-8 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400 hover:bg-red-500/20 transition-all disabled:opacity-40"
+                                  >
+                                    {deletingStaffId === member._id
+                                      ? <svg className="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+                                      : <Trash2 className="w-3.5 h-3.5" />
+                                    }
+                                  </button>
+                                </div>
+                              </motion.div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Quick Links */}
+                        <div className="mt-8 grid grid-cols-2 gap-4">
+                          <a
+                            href="#/staff-login"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="glass-strong rounded-2xl p-4 border border-white/10 hover:border-purple-500/30 transition-all duration-200 group"
+                          >
+                            <div className="text-[9px] text-white/30 uppercase tracking-widest font-bold mb-1">Staff Portal</div>
+                            <div className="text-sm font-black text-white group-hover:text-purple-300 transition-colors">/staff-login →</div>
+                            <div className="text-[10px] text-white/30 mt-1">Share this link with your staff</div>
+                          </a>
+                          <a
+                            href="#/kitchen"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="glass-strong rounded-2xl p-4 border border-white/10 hover:border-orange-500/30 transition-all duration-200 group"
+                          >
+                            <div className="text-[9px] text-white/30 uppercase tracking-widest font-bold mb-1">Kitchen KDS</div>
+                            <div className="text-sm font-black text-white group-hover:text-orange-300 transition-colors">/kitchen →</div>
+                            <div className="text-[10px] text-white/30 mt-1">Full-screen kitchen display</div>
+                          </a>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
               </>

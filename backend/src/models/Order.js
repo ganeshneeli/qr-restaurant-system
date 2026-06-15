@@ -8,12 +8,13 @@ const orderSchema = new mongoose.Schema({
     foodId: mongoose.Schema.Types.ObjectId,
     name: String,
     price: Number,
-    quantity: Number
+    quantity: Number,
+    station: { type: String, enum: ["grill", "fry", "drinks", "dessert", "general"], default: "general" }
   }],
   totalAmount: { type: Number, default: 0 },
   status: {
     type: String,
-    enum: ["pending", "preparing", "served", "completed"],
+    enum: ["pending", "accepted", "cooking", "plating", "ready", "served", "completed"],
     default: "pending"
   },
   paymentStatus: {
@@ -22,7 +23,10 @@ const orderSchema = new mongoose.Schema({
     default: "pending"
   },
   billRequested: { type: Boolean, default: false },
-  specialNote: { type: String, default: "" }
+  specialNote: { type: String, default: "" },
+  priority: { type: Number, default: 0 }, // higher = more urgent
+  kitchenAcceptedAt: { type: Date, default: null }, // for accurate timer tracking
+  tableSize: { type: Number, default: 1 }, // for priority scoring
 }, { timestamps: true })
 
 orderSchema.index({ "items.foodId": 1 });
