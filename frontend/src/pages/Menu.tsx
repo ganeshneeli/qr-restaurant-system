@@ -118,7 +118,7 @@ interface Order { _id: string; items: OrderItem[]; totalAmount: number; status: 
 const CATEGORIES = ["All", "Soups", "Starters Veg", "Starters Non-Veg", "Rice & Biryani", "Rotis & Bread", "Curries", "Tea & Beverages", "Other"];
 const STATUS_COLORS: Record<string, string> = {
   pending: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
-  preparing: "bg-blue-500/20   text-blue-400   border-blue-500/30",
+  cooking: "bg-blue-500/20   text-blue-400   border-blue-500/30",
   served: "bg-green-500/20  text-green-400  border-green-500/30",
   completed: "bg-white/10      text-white/50   border-white/10",
 };
@@ -435,7 +435,7 @@ const MenuContent = () => {
       // Always fetch latest order to keep UI synced
       fetchOrder();
 
-      if (data.status === "preparing" || data.status === "served") {
+      if (["accepted", "cooking", "plating", "ready"].includes(data.status) || data.status === "served") {
         setPopupStatus(data.status);
         setShowTopPopup(true);
         setTimeout(() => setShowTopPopup(false), 7000);
@@ -462,11 +462,14 @@ const MenuContent = () => {
       if (data.tableNumber && data.tableNumber !== tableNumber) return;
       if (data.sessionId && data.sessionId !== sessionId) return;
 
-      console.log(`[Table-${tableNumber}] Session expired — idle timeout triggered`);
+      console.log(`[Table-${tableNumber}] Session expired or force deleted`);
       setSessionExpired(true);
       // Clear local storage so re-scan works cleanly
       setSessionToken(null, tableId || "");
       localStorage.removeItem(cartKey);
+      
+      // Auto-redirect to landing page
+      navigate("/", { replace: true });
     };
 
     socket.on("connect", onConnect);
@@ -710,7 +713,7 @@ const MenuContent = () => {
         <header className="sticky top-0 z-50 glass border-b border-white/5 backdrop-blur-xl">
           <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <h1 className="font-display text-2xl md:text-3xl font-black uppercase tracking-[0.15em] bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-white/60 drop-shadow-[0_0_15px_rgba(255,255,255,0.5)]">OG RESTAURANT</h1>
+              <h1 className="font-display text-2xl md:text-3xl font-black uppercase tracking-[0.15em] bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-white/60 drop-shadow-[0_0_15px_rgba(255,255,255,0.5)]">OG</h1>
               <p className="text-[10px] uppercase tracking-widest text-white/50 mt-0.5">Dine-in Menu</p>
               {tableId && (
                 <div className="flex items-center gap-2">

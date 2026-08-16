@@ -368,3 +368,36 @@ exports.getAnalytics = async (req, res) => {
     res.status(500).json({ success: false, message: error.message })
   }
 }
+// Admin: Hard delete order
+exports.deleteOrder = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id)
+    if (!order) return res.status(404).json({ success: false, message: "Order not found" })
+
+    // Release table and invalidate session
+    await Table.updateOne(
+      { _id: order.tableId },
+      { status: "available", currentSessionId: null, startedAt: null }
+    )
+    
+    if (order.sessionId) {
+      await Session.updateOne(
+        { sessionId: order.sessionId },
+        { active: false }
+      )
+    }
+
+    // Tell the specific table to log out / redirect to landing page
+    emitToTable(order.tableNumber, "sessionExpired", { tableNumber: order.tableNumber, sessionId: order.sessionId })
+    
+    // Notify everyone that the table is free
+    emitToAll("tableStatusChanged", { tableNumber: order.tableNumber, status: "free" })
+
+    // Delete the order completely
+    await Order.findByIdAndDelete(req.params.id)
+
+    res.json({ success: true, message: "Order hard deleted and user logged out" })
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message })
+  }
+}

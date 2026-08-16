@@ -417,6 +417,9 @@ const AdminDashboard = () => {
   const activeSectionRef = useRef(activeSection);
   const fetchMenuRef = useRef(fetchMenu);
   const toastRef = useRef(toast);
+  const fetchFeedbackRef = useRef(fetchFeedback);
+  const feedbackFilterRef = useRef(feedbackFilter);
+  const feedbackPageRef = useRef(feedbackPage);
 
   // Keep refs up-to-date on every render (no deps needed)
   useEffect(() => { fetchDataRef.current = fetchData; });
@@ -424,6 +427,9 @@ const AdminDashboard = () => {
   useEffect(() => { activeSectionRef.current = activeSection; });
   useEffect(() => { fetchMenuRef.current = fetchMenu; });
   useEffect(() => { toastRef.current = toast; });
+  useEffect(() => { fetchFeedbackRef.current = fetchFeedback; });
+  useEffect(() => { feedbackFilterRef.current = feedbackFilter; });
+  useEffect(() => { feedbackPageRef.current = feedbackPage; });
 
   useEffect(() => {
     const token = localStorage.getItem("adminToken");
@@ -494,6 +500,17 @@ const AdminDashboard = () => {
       else lastMenuFetchRef.current = "";
     };
 
+    const onNewReview = (review: any) => {
+      console.log("[Admin Socket] ⭐️ newReview received", review);
+      if (activeSectionRef.current === "reviews") {
+        fetchFeedbackRef.current(feedbackFilterRef.current, feedbackPageRef.current, true);
+      }
+      toastRef.current({
+        title: "⭐️ New Review!",
+        description: `A new ${review.customer_rating}-star review was submitted for Table ${review.table_number}.`
+      });
+    };
+
     s.on("connect", onConnect);
     s.on("joinAdminSuccess", onJoinAdminSuccess);
     s.on("connect_error", onConnectError);
@@ -503,6 +520,7 @@ const AdminDashboard = () => {
     s.on("statusUpdated", onStatusUpdated);
     s.on("tableStatusChanged", onTableStatusChanged);
     s.on("menuUpdate", onMenuUpdate);
+    s.on("newReview", onNewReview);
 
     // If already connected on second Strict-Mode mount, emit joinAdmin immediately
     if (s.connected) s.emit("joinAdmin");
@@ -547,6 +565,18 @@ const AdminDashboard = () => {
       toast({ title: "✅ Payment Confirmed", description: "Order marked as paid & table freed" });
     } catch {
       toast({ title: "Error", variant: "destructive" });
+    }
+  };
+
+  const hardDeleteOrder = async (orderId: string) => {
+    if (!window.confirm("Are you sure you want to HARD DELETE this order? This will also log out the table.")) return;
+    try {
+      await api.delete(`/orders/${orderId}`);
+      setOrders((prev) => prev.filter((o) => o._id !== orderId));
+      fetchData(); // Refresh tables and summary
+      toast({ title: "🗑️ Order Deleted", description: "Order hard deleted & user logged out" });
+    } catch {
+      toast({ title: "Error", description: "Failed to hard delete order", variant: "destructive" });
     }
   };
 
@@ -758,7 +788,7 @@ const AdminDashboard = () => {
         </head>
         <body>
           <div class="header">
-            <h1 style="margin: 0;">OG RESTAURANT</h1>
+            <h1 style="margin: 0;">OG</h1>
             <p style="margin: 5px 0 0 0; color: #666;">Smart Dine-In System</p>
           </div>
           <div class="order-info">
@@ -909,7 +939,7 @@ const AdminDashboard = () => {
                 <UtensilsCrossed className="h-5 w-5 text-red-500 group-hover:text-black" />
               </div>
               <div>
-                <h1 className="font-display text-xl font-black uppercase tracking-[0.2em] bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70 group-hover:from-red-400 group-hover:to-red-600 transition-all duration-300 drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">OG RESTAURANT</h1>
+                <h1 className="font-display text-xl font-black uppercase tracking-[0.2em] bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70 group-hover:from-red-400 group-hover:to-red-600 transition-all duration-300 drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">OG</h1>
                 <span className="text-[7px] font-black text-red-500 uppercase tracking-[0.3em] block mt-0.5">Admin Portal</span>
               </div>
             </div>
@@ -1018,7 +1048,7 @@ const AdminDashboard = () => {
             <div className="flex items-center justify-between mb-6 md:mb-10">
               <div>
                 <h2 className="font-display text-3xl md:text-4.5xl font-black tracking-tight leading-none text-glow-white bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-red-400 flex items-center">
-                  <span className="md:hidden text-red-500 mr-2 uppercase tracking-widest">OG RESTAURANT</span>
+                  <span className="md:hidden text-red-500 mr-2 uppercase tracking-widest">OG</span>
                   <span className="md:hidden text-white/20 mr-2">|</span>
                   {sections.find((s) => s.id === activeSection)?.label}
                 </h2>
@@ -1052,7 +1082,7 @@ const AdminDashboard = () => {
               <VideoBackground />
               <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
               <div className="absolute bottom-3 left-4">
-                <p className="text-sm font-bold text-white tracking-tight uppercase">OG RESTAURANT Dashboard</p>
+                <p className="text-sm font-bold text-white tracking-tight uppercase">OG Dashboard</p>
                 <p className="text-[9px] uppercase tracking-widest text-white/40 mt-0.5">Signed in as Admin</p>
               </div>
             </div>
@@ -1242,6 +1272,17 @@ const AdminDashboard = () => {
                                   Mark as Paid
                                 </Button>
                               )}
+
+                              {/* Hard Delete */}
+                              <Button
+                                size="sm"
+                                onClick={() => hardDeleteOrder(order._id)}
+                                className="w-full bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 font-bold tracking-wider rounded-xl transition-all duration-300"
+                                variant="outline"
+                              >
+                                <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                                Hard Delete
+                              </Button>
 
                               {/* Complete Order */}
                               {order.paymentStatus === "paid" && order.status !== "completed" && (
@@ -1574,7 +1615,7 @@ const AdminDashboard = () => {
                                   className="w-24 h-24"
                                 />
                               </div>
-                              <p className="text-xs font-bold text-primary mb-3 uppercase tracking-wider">OG RESTAURANT / Table {qr.tableNumber}</p>
+                              <p className="text-xs font-bold text-primary mb-3 uppercase tracking-wider">OG / Table {qr.tableNumber}</p>
                               <Button
                                 size="sm"
                                 variant="outline"

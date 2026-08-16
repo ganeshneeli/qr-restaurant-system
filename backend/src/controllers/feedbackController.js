@@ -1,5 +1,6 @@
 const Feedback = require('../models/Feedback');
 const NodeCache = require('node-cache');
+const { emitToAdmin } = require('../config/socket');
 
 // Cache for 30 minutes, check every 5 minutes
 const feedbackCache = new NodeCache({ stdTTL: 1800, checkperiod: 300 });
@@ -32,6 +33,9 @@ const submitFeedback = async (req, res) => {
         
         // Invalidate cache when new feedback is submitted
         clearFeedbackCache();
+
+        // Notify Admin of new review
+        emitToAdmin("newReview", newFeedback);
 
         return res.status(201).json({ success: true, data: newFeedback });
     } catch (error) {
