@@ -706,12 +706,12 @@ const MenuContent = () => {
 
         {/* Cinematic Particles/Glow - matching landing page */}
         <div className="fixed top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full bg-white/5 blur-[120px] pointer-events-none z-0 animate-pulse-slow" />
-
         {/* Header */}
         <header className="sticky top-0 z-50 glass border-b border-white/5 backdrop-blur-xl">
           <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <h1 className="font-display text-2xl font-bold text-glow-white text-white">Temptations</h1>
+              <h1 className="font-display text-2xl md:text-3xl font-black uppercase tracking-[0.15em] bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-white/60 drop-shadow-[0_0_15px_rgba(255,255,255,0.5)]">OG RESTAURANT</h1>
+              <p className="text-[10px] uppercase tracking-widest text-white/50 mt-0.5">Dine-in Menu</p>
               {tableId && (
                 <div className="flex items-center gap-2">
                   <Badge className="bg-primary/20 text-primary border-primary/30 border text-xs font-semibold">

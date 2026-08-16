@@ -559,7 +559,7 @@ export default function KitchenKDS() {
               <p className="text-[8px] md:text-[10px] text-white/40 uppercase tracking-widest font-semibold flex items-center gap-1 mt-0.5 truncate">
                 <span>{staffName || "Kitchen Crew"}</span>
                 <span className="w-1 h-1 rounded-full bg-white/20" />
-                <span className="text-orange-400/80 font-bold">Temptations</span>
+                <span className="text-orange-400/80 font-bold uppercase tracking-widest">OG RESTAURANT</span>
               </p>
             </div>
             <div className={`flex items-center gap-1 px-2 py-1 md:px-3.5 md:py-1.5 rounded-full border text-[8px] md:text-[9px] font-black uppercase tracking-widest transition-all duration-300 ${

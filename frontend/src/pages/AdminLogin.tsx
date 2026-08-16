@@ -131,8 +131,7 @@ const AdminLogin = () => {
                   <Utensils className="h-4.5 w-4.5 text-red-500 group-hover:text-black" />
                 </div>
                 <div>
-                  <span className="font-display text-base font-black tracking-widest text-white group-hover:text-red-400 transition-colors">Temptations</span>
-                  <span className="text-[9px] block text-white/40 tracking-[0.2em] uppercase leading-none mt-0.5">New Iceberg</span>
+                  <span className="font-display text-base font-black uppercase tracking-[0.2em] bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70 group-hover:from-red-400 group-hover:to-red-600 transition-all duration-300 drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">OG RESTAURANT</span>
                 </div>
               </div>
               <Badge className="bg-red-950/40 hover:bg-red-950/40 text-red-400 border border-red-900/50 uppercase tracking-[0.2em] px-2 py-0.5 text-[8px]">
@@ -143,7 +142,7 @@ const AdminLogin = () => {
             {/* Middle Main Content Showcase - compacted layout to fit without scrolling */}
             <div className="my-auto py-6 space-y-6 flex-grow flex flex-col justify-center overflow-hidden">
               <div className="space-y-2 shrink-0">
-                <span className="text-[9px] font-black text-red-500 uppercase tracking-[0.3em] block">Welcome to Temptations</span>
+                <span className="text-[9px] font-black text-red-500 uppercase tracking-[0.3em] block">Welcome to OG RESTAURANT</span>
                 <h2 className="font-display text-3xl xl:text-4xl font-black tracking-tight leading-none text-glow-white">
                   Chirala's Ultimate <br className="hidden xl:inline" />
                   <span className="bg-clip-text text-transparent bg-gradient-to-r from-red-500 to-amber-500 text-glow">Culinary Destination</span>
@@ -297,8 +296,7 @@ const AdminLogin = () => {
                   <Utensils className="h-5 w-5 text-red-500" />
                 </div>
                 <div>
-                  <span className="font-display text-sm font-black tracking-widest text-white">Temptations</span>
-                  <span className="text-[8px] block text-white/40 tracking-[0.2em] uppercase leading-none mt-0.5">New Iceberg</span>
+                  <span className="font-display text-sm font-black uppercase tracking-[0.2em] bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70 drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]">OG RESTAURANT</span>
                 </div>
               </div>
               <div className="text-center space-y-4">
@@ -319,7 +317,7 @@ const AdminLogin = () => {
                     Admin Portal
                   </h1>
                   <p className="text-white/40 text-xs sm:text-sm uppercase tracking-widest font-bold">
-                    Sign in to manage temptations
+                    Sign in to manage OG RESTAURANT
                   </p>
                 </div>
               </div>
@@ -334,10 +332,10 @@ const AdminLogin = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => navigate("/staff-login")}
-                  className="flex-1 py-2.5 rounded-lg text-sm font-bold text-white/40 hover:text-white transition-all duration-300"
+                  onClick={() => alert("Staff Login implementation is locked for now. Coming soon!")}
+                  className="flex-1 py-2.5 rounded-lg text-sm font-bold text-white/20 cursor-not-allowed flex items-center justify-center gap-1.5"
                 >
-                  Staff Portal
+                  <Lock className="w-3.5 h-3.5" /> Staff Portal
                 </button>
               </div>
 
@@ -353,7 +351,7 @@ const AdminLogin = () => {
                     onChange={(e) => setEmail(e.target.value)}
                     required
                     className="glass border-white/10 focus:border-red-500/70 focus:ring-2 focus:ring-red-500/20 focus:shadow-[0_0_20px_rgba(239,68,68,0.2)] transition-all duration-300 rounded-2xl h-14 text-base text-white placeholder:text-white/25 bg-black/30 px-5"
-                    placeholder="admin@temptations.com"
+                    placeholder="admin@ogrestaurant.com"
                   />
                 </div>
 

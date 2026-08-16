@@ -103,7 +103,7 @@ export default function StaffLogin() {
           </div>
           <h1 className="text-2xl font-black text-white tracking-tight">Staff Login</h1>
           <p className="text-white/40 text-sm mt-1">Kitchen • Waiter Portal</p>
-          <p className="text-xs text-orange-400/70 mt-1 font-medium">Temptations Restaurant</p>
+          <p className="text-xs text-orange-400/70 mt-1 font-bold uppercase tracking-[0.15em]">OG RESTAURANT</p>
         </div>
 
         {/* Portal Switch Toggle */}

@@ -16,7 +16,10 @@ import {
   Phone,
   Mail,
   Linkedin,
-  Instagram 
+  Instagram,
+  Sparkles,
+  Coffee,
+  ShoppingBag
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -125,25 +128,26 @@ const Landing = () => {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ duration: 1.2, ease: "circOut" }}
-              className="flex flex-col items-center mb-6"
+              className="flex flex-col items-center mb-6 w-full"
             >
-              <h1 className="font-display text-[3.5rem] xs:text-[4.5rem] sm:text-[7rem] md:text-[9.5rem] font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-b from-white via-white to-red-500 drop-shadow-[0_0_40px_rgba(239,68,68,0.5)] leading-[1.05] mb-2 sm:mb-4">
-                Temptations
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-red-400 text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] mb-8 backdrop-blur-md shadow-[0_0_15px_rgba(239,68,68,0.2)]">
+                <Sparkles className="w-3.5 h-3.5" /> 
+                OG RESTAURANT
+                <Sparkles className="w-3.5 h-3.5" /> 
+              </div>
+
+              <h1 className="font-display text-[2.8rem] xs:text-[3.5rem] sm:text-[5.5rem] md:text-[7rem] font-black uppercase tracking-[0.02em] bg-clip-text text-transparent bg-gradient-to-b from-white via-white to-red-500 drop-shadow-[0_0_40px_rgba(239,68,68,0.5)] leading-[1.1] mb-2 sm:mb-4 text-center">
+                OG RESTAURANT
               </h1>
               
-              {/* Elegant luxury line separator */}
-              <div className="w-32 h-[1px] bg-gradient-to-r from-transparent via-red-500/70 to-transparent shadow-[0_0_8px_rgba(239,68,68,0.6)] my-4" />
-              
-              <p className="text-red-500 font-display font-bold text-base sm:text-xl md:text-2xl tracking-[0.25em] uppercase">
-                New Iceberg Temptations
-              </p>
+              <div className="w-48 h-[1px] bg-gradient-to-r from-transparent via-red-500/70 to-transparent shadow-[0_0_8px_rgba(239,68,68,0.6)] my-6" />
             </motion.div>
 
             <motion.p
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5, duration: 0.8 }}
-              className="text-white/70 text-sm sm:text-base md:text-lg mb-8 max-w-2xl leading-relaxed px-4"
+              className="text-white/90 font-medium text-sm sm:text-base md:text-lg mb-10 max-w-3xl leading-relaxed px-4 drop-shadow-md"
             >
               Gourmet multi-cuisine dining, fresh bakery delights, premium cakes, thick shakes, and ice creams, all set in a cozy, photo-friendly space for family gatherings.
             </motion.p>
@@ -153,16 +157,19 @@ const Landing = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.7, duration: 0.8 }}
-              className="flex flex-wrap items-center justify-center gap-3 mb-12"
+              className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 mb-12"
             >
-              <span className="glass border-white/5 px-4 py-2 rounded-full text-xs font-semibold tracking-wider text-white/80 flex items-center gap-2">
-                <Utensils className="w-3.5 h-3.5 text-red-500" /> Dine-In
+              <span className="glass border-white/10 px-5 py-2.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider text-white/90 flex items-center gap-2 hover:bg-white/10 transition-colors cursor-default shadow-[0_0_10px_rgba(255,255,255,0.05)]">
+                <Coffee className="w-4 h-4 text-amber-500" /> Cafe & Dining
               </span>
-              <span className="glass border-white/5 px-4 py-2 rounded-full text-xs font-semibold tracking-wider text-white/80 flex items-center gap-2">
-                <Truck className="w-3.5 h-3.5 text-red-500" /> Local Delivery
+              <span className="glass border-white/10 px-5 py-2.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider text-white/90 flex items-center gap-2 hover:bg-white/10 transition-colors cursor-default shadow-[0_0_10px_rgba(255,255,255,0.05)]">
+                <Utensils className="w-4 h-4 text-red-500" /> Dine-In
               </span>
-              <span className="glass border-white/5 px-4 py-2 rounded-full text-xs font-semibold tracking-wider text-white/80 flex items-center gap-2">
-                <Badge className="bg-red-500 hover:bg-red-600 text-white font-medium p-0 px-2 py-0.5 rounded">Takeaway</Badge>
+              <span className="glass border-white/10 px-5 py-2.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider text-white/90 flex items-center gap-2 hover:bg-white/10 transition-colors cursor-default shadow-[0_0_10px_rgba(255,255,255,0.05)]">
+                <Truck className="w-4 h-4 text-emerald-500" /> Local Delivery
+              </span>
+              <span className="glass border-white/10 px-5 py-2.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider text-white/90 flex items-center gap-2 hover:bg-white/10 transition-colors cursor-default shadow-[0_0_10px_rgba(255,255,255,0.05)]">
+                <ShoppingBag className="w-4 h-4 text-orange-500" /> Takeaway
               </span>
             </motion.div>
 
@@ -226,7 +233,7 @@ const Landing = () => {
               viewport={{ once: true }}
               className="text-center mb-20 space-y-4"
             >
-              <Badge className="bg-red-950/40 hover:bg-red-950/40 text-red-400 border border-red-900/50 uppercase tracking-[0.2em] px-3 py-1 text-[10px]">The Temptations Vibe</Badge>
+              <Badge className="bg-red-950/40 hover:bg-red-950/40 text-red-400 border border-red-900/50 uppercase tracking-[0.2em] px-3 py-1 text-[10px]">The OG RESTAURANT Vibe</Badge>
               <h2 className="font-display text-5xl md:text-7xl font-black tracking-tight leading-none">Experience Culinary Art</h2>
               <p className="text-white/40 tracking-[0.2em] uppercase text-xs">A harmonious blend of fine tastes and photogenic spaces</p>
             </motion.div>
@@ -376,7 +383,7 @@ const Landing = () => {
                 <div className="w-full md:w-1/2 relative overflow-hidden aspect-[16/10] md:aspect-auto min-h-[300px]">
                   <img 
                     src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=600&q=80" 
-                    alt="Temptations Vibe & Ambiance" 
+                    alt="OG RESTAURANT Vibe & Ambiance" 
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t md:bg-gradient-to-l from-[#050505] via-transparent to-transparent" />
@@ -584,7 +591,7 @@ const Landing = () => {
                 variant="outline"
               >
                 <ShieldCheck className="mr-3 h-4 w-4 text-red-400 group-hover:text-black" />
-                Staff Portal
+                Admin Portal
               </Button>
             </motion.div>
           </div>

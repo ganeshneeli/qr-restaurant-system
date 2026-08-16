@@ -154,7 +154,10 @@ interface Feedback {
 
 const statusColors: Record<string, string> = {
   pending: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
-  preparing: "bg-blue-500/20 text-blue-400 border-blue-500/30",
+  cooking: "bg-blue-500/20 text-blue-400 border-blue-500/30",
+  accepted: "bg-purple-500/20 text-purple-400 border-purple-500/30",
+  plating: "bg-orange-500/20 text-orange-400 border-orange-500/30",
+  ready: "bg-cyan-500/20 text-cyan-400 border-cyan-500/30",
   served: "bg-green-500/20 text-green-400 border-green-500/30",
   completed: "bg-white/10 text-white/50 border-white/10",
 };
@@ -167,7 +170,7 @@ const sections = [
   { id: "history", label: "Order History", icon: Clock },
   { id: "summary", label: "Daily Summary", icon: BarChart3 },
   { id: "reviews", label: "Customer Reviews", icon: MessageSquare },
-  { id: "staff", label: "Staff Management", icon: Users },
+  // { id: "staff", label: "Staff Management", icon: Users }, // Locked for now
 ];
 
 const PAGE_SIZE = 5;
@@ -755,8 +758,8 @@ const AdminDashboard = () => {
         </head>
         <body>
           <div class="header">
-            <h1 style="margin: 0;">Temptations RESTAURANT</h1>
-            <p style="margin: 5px 0;">Fine Dining Experience</p>
+            <h1 style="margin: 0;">OG RESTAURANT</h1>
+            <p style="margin: 5px 0 0 0; color: #666;">Smart Dine-In System</p>
           </div>
           <div class="order-info">
             <p><strong>Table:</strong> ${order.tableNumber || order.table?.number}</p>
@@ -906,8 +909,8 @@ const AdminDashboard = () => {
                 <UtensilsCrossed className="h-5 w-5 text-red-500 group-hover:text-black" />
               </div>
               <div>
-                <h1 className="font-display text-xl font-black tracking-widest text-white group-hover:text-red-400 transition-colors">Temptations</h1>
-                <p className="text-[9px] text-white/40 tracking-[0.2em] uppercase leading-none mt-1">Admin Portal</p>
+                <h1 className="font-display text-xl font-black uppercase tracking-[0.2em] bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70 group-hover:from-red-400 group-hover:to-red-600 transition-all duration-300 drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">OG RESTAURANT</h1>
+                <span className="text-[7px] font-black text-red-500 uppercase tracking-[0.3em] block mt-0.5">Admin Portal</span>
               </div>
             </div>
 
@@ -1015,7 +1018,7 @@ const AdminDashboard = () => {
             <div className="flex items-center justify-between mb-6 md:mb-10">
               <div>
                 <h2 className="font-display text-3xl md:text-4.5xl font-black tracking-tight leading-none text-glow-white bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-red-400 flex items-center">
-                  <span className="md:hidden text-red-500 mr-2">Temptations</span>
+                  <span className="md:hidden text-red-500 mr-2 uppercase tracking-widest">OG RESTAURANT</span>
                   <span className="md:hidden text-white/20 mr-2">|</span>
                   {sections.find((s) => s.id === activeSection)?.label}
                 </h2>
@@ -1049,8 +1052,8 @@ const AdminDashboard = () => {
               <VideoBackground />
               <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
               <div className="absolute bottom-3 left-4">
-                <p className="text-[9px] uppercase tracking-[0.2em] text-white/60 font-medium">Fine Dining</p>
-                <p className="text-sm font-bold text-white tracking-tight">Temptations Dashboard</p>
+                <p className="text-sm font-bold text-white tracking-tight uppercase">OG RESTAURANT Dashboard</p>
+                <p className="text-[9px] uppercase tracking-widest text-white/40 mt-0.5">Signed in as Admin</p>
               </div>
             </div>
 
@@ -1077,7 +1080,7 @@ const AdminDashboard = () => {
                     accentLine: "via-amber-500/30"
                   },
                   { 
-                    label: "Preparing in Kitchen", 
+                    label: "Cooking in Kitchen", 
                     value: `${orders.filter(o => ['accepted','cooking','plating'].includes(o.status)).length} Cooking`, 
                     sub: orders.filter(o => ['accepted','cooking','plating'].includes(o.status)).length > 0 ? "Chef crew active" : "Kitchen waiting", 
                     color: "text-blue-400",
@@ -1208,14 +1211,14 @@ const AdminDashboard = () => {
                                 {order.status === "pending" && (
                                   <Button
                                     size="sm"
-                                    onClick={() => updateOrderStatus(order._id, "preparing")}
+                                    onClick={() => updateOrderStatus(order._id, "cooking")}
                                     className="flex-1 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-blue-400 font-bold tracking-wider rounded-xl transition-all duration-300"
                                     variant="outline"
                                   >
-                                    Preparing
+                                    Cooking
                                   </Button>
                                 )}
-                                {order.status === "preparing" && (
+                                {["accepted", "cooking", "plating", "ready"].includes(order.status) && (
                                   <Button
                                     size="sm"
                                     onClick={() => updateOrderStatus(order._id, "served")}
@@ -1571,7 +1574,7 @@ const AdminDashboard = () => {
                                   className="w-24 h-24"
                                 />
                               </div>
-                              <p className="text-xs font-bold text-primary mb-3">Temptations Restaurant / Table {qr.tableNumber}</p>
+                              <p className="text-xs font-bold text-primary mb-3 uppercase tracking-wider">OG RESTAURANT / Table {qr.tableNumber}</p>
                               <Button
                                 size="sm"
                                 variant="outline"

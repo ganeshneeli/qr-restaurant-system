@@ -26,7 +26,7 @@ const RestaurantInfo = ({ className = "" }: { className?: string }) => {
                             <h4 className="text-[10px] font-black text-red-400 uppercase tracking-[0.3em]">Location</h4>
                             <div className="space-y-1">
                                 <p className="text-base font-black text-white tracking-wide">
-                                    Temptations Restaurant
+                                    OG RESTAURANT
                                 </p>
                                 <p className="text-xs text-white/50 font-medium leading-relaxed max-w-[240px] mx-auto">
                                     Opposite to Sri Chaitanya School, Muntha Vari Centre, Chirala
@@ -35,7 +35,7 @@ const RestaurantInfo = ({ className = "" }: { className?: string }) => {
                             
                             <div className="pt-4 flex justify-center">
                                 <a 
-                                    href="https://maps.google.com/?q=Temptations+Restaurant+Chirala"
+                                    href="https://maps.google.com/?q=OG+Restaurant+Chirala"
                                     target="_blank"
                                     rel="noreferrer"
                                     className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-[9px] text-white/50 uppercase tracking-widest hover:bg-red-500 hover:text-black hover:border-red-500 hover:shadow-[0_0_15px_rgba(239,68,68,0.3)] transition-all duration-300"

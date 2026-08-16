@@ -391,7 +391,7 @@ export default function WaiterDashboard() {
             </div>
             <div className="min-w-0">
               <h1 className="text-sm md:text-base font-black text-white truncate">Waiter Dashboard</h1>
-              <p className="text-[8px] md:text-[10px] text-white/40 uppercase tracking-widest truncate">{staffName || "Waiter"} · Temptations</p>
+              <p className="text-[8px] md:text-[10px] text-white/40 uppercase tracking-widest truncate">{staffName || "Waiter"} · OG RESTAURANT</p>
             </div>
             <div className={`flex items-center gap-1 px-2 py-0.5 md:py-1 rounded-full border text-[8px] md:text-[9px] font-black uppercase tracking-widest ${
               connected ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400" : "border-red-500/30 bg-red-500/10 text-red-400"
