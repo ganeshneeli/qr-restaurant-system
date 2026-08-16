@@ -456,6 +456,22 @@ const MenuContent = () => {
       fetchMenu();
     };
 
+    // ── Per-item status update from kitchen/admin ──────────────────────────
+    const onItemStatusUpdated = (data: { tableNumber?: number; itemStatus: string; allServed: boolean }) => {
+      if (data.tableNumber && data.tableNumber !== tableNumber) return;
+
+      fetchOrder(); // Always keep My Orders panel synced
+
+      if (data.itemStatus === "cooking") {
+        setPopupStatus("cooking");
+        setShowTopPopup(true);
+      } else if (data.allServed) {
+        // Only show "Bon Appétit" cinematic popup once every item is served
+        setPopupStatus("served");
+        setShowTopPopup(true);
+      }
+    };
+
     // ── Session expired (server auto-released the idle table) ─────────────
     const onSessionExpired = (data: { tableNumber?: number; sessionId?: string }) => {
       // Only act if this event is for our table/session
@@ -475,6 +491,7 @@ const MenuContent = () => {
     socket.on("connect", onConnect);
     socket.on("disconnect", onDisconnect);
     socket.on("statusUpdated", onStatusUpdate);
+    socket.on("itemStatusUpdated", onItemStatusUpdated);
     socket.on("menuUpdate", onMenuUpdate);
     socket.on("sessionExpired", onSessionExpired);
 
@@ -488,6 +505,7 @@ const MenuContent = () => {
       socket.off("connect", onConnect);
       socket.off("disconnect", onDisconnect);
       socket.off("statusUpdated", onStatusUpdate);
+      socket.off("itemStatusUpdated", onItemStatusUpdated);
       socket.off("menuUpdate", onMenuUpdate);
       socket.off("sessionExpired", onSessionExpired);
       socket.disconnect();

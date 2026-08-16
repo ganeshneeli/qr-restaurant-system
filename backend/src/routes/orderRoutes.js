@@ -15,7 +15,8 @@ const {
     getAnalytics,
     getKitchenOrders,
     getWaiterOrders,
-    deleteOrder
+    deleteOrder,
+    updateItemStatus
 } = require("../controllers/orderController")
 
 // Admin routes
@@ -24,6 +25,7 @@ router.get("/analytics", adminAuth, getAnalytics)
 router.get("/summary/today", adminAuth, getDailySummary)
 router.put("/:id/pay", adminAuth, markAsPaid)
 router.delete("/:id", adminAuth, deleteOrder)
+router.put("/:id/items/:itemId/status", adminAuth, updateItemStatus)
 
 // Kitchen & Waiter routes (staff can update order status)
 router.get("/kitchen", staffAuth(["kitchen", "admin"]), getKitchenOrders)

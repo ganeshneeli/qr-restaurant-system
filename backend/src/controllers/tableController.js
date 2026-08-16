@@ -28,6 +28,23 @@ exports.activateTable = async (req, res) => {
     })
   }
 
+  // LAYER 2: Check for existing valid session from header
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    const existingToken = authHeader.split(" ")[1];
+    try {
+      const decoded = jwt.verify(existingToken, process.env.JWT_SECRET);
+      const table = await Table.findOne({ tableNumber: tableNumber });
+      
+      // If table is occupied by THIS exact session, just resume it.
+      if (table && table.status === "occupied" && table.currentSessionId === decoded.sessionId) {
+        return res.json({ success: true, token: existingToken, resumed: true });
+      }
+    } catch (err) {
+      // Token invalid or expired, ignore and proceed to create new session
+    }
+  }
+
   const sessionId = uuidv4()
   const table = await Table.findOneAndUpdate(
     { tableNumber: tableNumber, status: "available" },
@@ -57,7 +74,7 @@ exports.activateTable = async (req, res) => {
   console.log("[Socket] Emitting tableStatusChanged (occupied) for table:", table.tableNumber)
   emitToAll("tableStatusChanged", { tableNumber: table.tableNumber, status: "occupied" })
 
-  res.json({ success: true, token })
+  res.json({ success: true, token, resumed: false })
 }
 
 exports.getActiveTables = async (req, res) => {

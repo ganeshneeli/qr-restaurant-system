@@ -4,6 +4,14 @@ const Table = require("../models/Table")
 const Session = require("../models/Session")
 const { emitToAdmin, emitToTable, emitToAll, emitToKitchen, emitToWaiter } = require("../config/socket")
 
+// Helper: derive order-level status from item statuses
+const computeOrderStatus = (items) => {
+  const statuses = items.map(i => i.itemStatus || "pending")
+  if (statuses.every(s => s === "served"))  return "served"
+  if (statuses.some(s => s === "cooking"))  return "cooking"
+  return "pending"
+}
+
 // Admin: Get all active orders
 exports.getAllOrders = async (req, res) => {
   try {
@@ -162,7 +170,7 @@ exports.createOrder = async (req, res) => {
 
       const currentPrice = isSaleActive ? menu.discountPrice : menu.price
       total += currentPrice * item.quantity
-      validated.push({ foodId: menu._id, name: menu.name, price: currentPrice, quantity: item.quantity })
+      validated.push({ foodId: menu._id, name: menu.name, price: currentPrice, quantity: item.quantity, itemStatus: "pending" })
     }
 
     let order = await Order.findOne({ sessionId, tableNumber, status: { $ne: "completed" } })
@@ -171,8 +179,17 @@ exports.createOrder = async (req, res) => {
       const bulkOps = []
       for (let newItem of validated) {
         const existing = order.items.find(i => i.foodId?.toString() === newItem.foodId.toString())
-        if (existing) existing.quantity += newItem.quantity
-        else order.items.push(newItem)
+        if (existing) {
+          // Only add quantity if item hasn't been served yet; otherwise add as a fresh row
+          if (existing.itemStatus !== "served") {
+            existing.quantity += newItem.quantity
+          } else {
+            // Served item re-ordered → add fresh entry with pending status
+            order.items.push({ ...newItem, itemStatus: "pending" })
+          }
+        } else {
+          order.items.push(newItem)
+        }
 
         bulkOps.push({
           updateOne: {
@@ -184,7 +201,7 @@ exports.createOrder = async (req, res) => {
       if (bulkOps.length > 0) await Menu.bulkWrite(bulkOps)
       
       order.totalAmount += total
-      order.status = "pending"
+      order.status = computeOrderStatus(order.items)
       order.billRequested = false
       if (req.body.specialNote) {
         order.specialNote = req.body.specialNote
@@ -299,6 +316,50 @@ exports.updateStatus = async (req, res) => {
     if (order.status === "served") {
       emitToAdmin("orderServed", payload)
     }
+
+    res.json({ success: true, data: order })
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message })
+  }
+}
+
+// Admin/Kitchen: Update a single item's status within an order
+exports.updateItemStatus = async (req, res) => {
+  try {
+    const { id, itemId } = req.params
+    const { itemStatus } = req.body
+
+    const validStatuses = ["pending", "cooking", "served"]
+    if (!validStatuses.includes(itemStatus)) {
+      return res.status(400).json({ success: false, message: "Invalid itemStatus" })
+    }
+
+    const order = await Order.findById(id)
+    if (!order) return res.status(404).json({ success: false, message: "Order not found" })
+
+    const item = order.items.id(itemId)
+    if (!item) return res.status(404).json({ success: false, message: "Item not found" })
+
+    item.itemStatus = itemStatus
+
+    // Auto-recompute the order-level status from all items
+    order.status = computeOrderStatus(order.items)
+
+    await order.save()
+
+    const allServed = order.items.every(i => i.itemStatus === "served")
+    const payload = {
+      orderId: order._id,
+      itemId,
+      itemStatus,
+      orderStatus: order.status,
+      tableNumber: order.tableNumber,
+      allServed
+    }
+
+    emitToTable(order.tableNumber, "itemStatusUpdated", payload)
+    emitToAdmin("statusUpdated", { orderId: order._id, status: order.status, tableNumber: order.tableNumber })
+    emitToKitchen("kitchenStatusUpdate", { orderId: order._id, status: order.status, tableNumber: order.tableNumber })
 
     res.json({ success: true, data: order })
   } catch (error) {

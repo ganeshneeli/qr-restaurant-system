@@ -29,18 +29,28 @@ const TableActivation = () => {
   useEffect(() => {
     if (!tableId || activationStarted.current) return;
 
-    if (getSessionToken(tableId)) {
-      navigate(`/table/${tableId}/menu`, { replace: true });
-      return;
-    }
-
     activationStarted.current = true;
 
     const activate = async () => {
       try {
-        const res = await api.post(`/table/${tableId}/activate`, { signature });
+        const existingToken = getSessionToken(tableId);
+        
+        const res = await api.post(
+          `/table/${tableId}/activate`, 
+          { signature },
+          {
+            headers: existingToken ? { Authorization: `Bearer ${existingToken}` } : {}
+          }
+        );
+        
         const token = res.data?.token || res.data?.sessionToken;
+        const resumed = res.data?.resumed;
+
         if (token) {
+          if (!resumed) {
+            // New session, clear old cart
+            localStorage.removeItem(`cart-${tableId}`);
+          }
           setSessionToken(token, tableId);
           setTimeout(() => navigate(`/table/${tableId}/menu`, { replace: true }), 600);
         }

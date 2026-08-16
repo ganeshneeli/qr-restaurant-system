@@ -9,7 +9,8 @@ const orderSchema = new mongoose.Schema({
     name: String,
     price: Number,
     quantity: Number,
-    station: { type: String, enum: ["grill", "fry", "drinks", "dessert", "general"], default: "general" }
+    station: { type: String, enum: ["grill", "fry", "drinks", "dessert", "general"], default: "general" },
+    itemStatus: { type: String, enum: ["pending", "cooking", "served"], default: "pending" }
   }],
   totalAmount: { type: Number, default: 0 },
   status: {

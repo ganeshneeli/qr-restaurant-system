@@ -580,6 +580,15 @@ const AdminDashboard = () => {
     }
   };
 
+  const updateItemStatus = async (orderId: string, itemId: string, itemStatus: "cooking" | "served") => {
+    try {
+      const res = await api.put(`/orders/${orderId}/items/${itemId}/status`, { itemStatus });
+      setOrders((prev) => prev.map((o) => o._id === orderId ? res.data.data : o));
+    } catch {
+      toast({ title: "Error", description: "Failed to update item status", variant: "destructive" });
+    }
+  };
+
 
   useEffect(() => {
     if (activeSection === "qrcodes") loadQrCodes();
@@ -1189,23 +1198,53 @@ const AdminDashboard = () => {
                               </div>
                             </div>
 
-                            {/* Items styled into premium capsules */}
+                            {/* Items with per-item status pills */}
                             <div className="space-y-2 py-2 mb-4">
-                              {order.items?.map((item, i) => (
-                                <div key={i} className="flex justify-between items-center text-xs bg-white/[0.01] hover:bg-white/[0.03] p-2.5 rounded-xl border border-white/5 transition-colors">
-                                  <div className="flex items-center gap-2.5">
-                                    <span className="text-[10px] font-black text-red-400 bg-red-500/10 w-5.5 h-5.5 rounded-md flex items-center justify-center border border-red-500/20">
-                                      {item.quantity}
-                                    </span>
-                                    <span className="font-bold text-white/90">
-                                      {item.name || item.foodId}
-                                    </span>
+                              {order.items?.map((item: any, i: number) => {
+                                const iStatus: string = item.itemStatus || "pending";
+                                const nextStatus = iStatus === "pending" ? "cooking" : iStatus === "cooking" ? "served" : null;
+                                const pillStyles: Record<string, string> = {
+                                  pending: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30 hover:bg-yellow-500/25",
+                                  cooking: "bg-blue-500/15 text-blue-400 border-blue-500/30 hover:bg-blue-500/25",
+                                  served:  "bg-green-500/15 text-green-400 border-green-500/30 cursor-default opacity-70",
+                                };
+                                const pillLabel: Record<string, string> = {
+                                  pending: "🟡 Pending",
+                                  cooking: "🔵 Cooking",
+                                  served:  "🟢 Served",
+                                };
+                                return (
+                                  <div key={i} className={`flex justify-between items-center text-xs p-2.5 rounded-xl border border-white/5 transition-colors ${
+                                    iStatus === "served" ? "bg-white/[0.01] opacity-60" : "bg-white/[0.03]"
+                                  }`}>
+                                    <div className="flex items-center gap-2.5">
+                                      <span className="text-[10px] font-black text-red-400 bg-red-500/10 w-5.5 h-5.5 rounded-md flex items-center justify-center border border-red-500/20">
+                                        {item.quantity}
+                                      </span>
+                                      <span className={`font-bold ${iStatus === "served" ? "line-through text-white/40" : "text-white/90"}`}>
+                                        {item.name || item.foodId}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      {item.price && (
+                                        <span className="font-mono text-white/40 text-[10px]">₹{item.price * item.quantity}</span>
+                                      )}
+                                      {nextStatus ? (
+                                        <button
+                                          onClick={() => updateItemStatus(order._id, item._id, nextStatus as "cooking" | "served")}
+                                          className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border transition-all duration-200 ${pillStyles[iStatus]}`}
+                                        >
+                                          {pillLabel[iStatus]} →
+                                        </button>
+                                      ) : (
+                                        <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border ${pillStyles[iStatus]}`}>
+                                          {pillLabel[iStatus]}
+                                        </span>
+                                      )}
+                                    </div>
                                   </div>
-                                  {item.price && (
-                                    <span className="font-mono text-white/50">₹{item.price * item.quantity}</span>
-                                  )}
-                                </div>
-                              ))}
+                                );
+                              })}
                             </div>
 
                             {/* Special Note / Chef Note styled with soft amber colors */}
@@ -1238,24 +1277,32 @@ const AdminDashboard = () => {
                             {/* Action Buttons */}
                             <div className="flex flex-col gap-2 relative z-20">
                               <div className="flex gap-2">
-                                {order.status === "pending" && (
+                                {/* Quick Mark All Cooking (if any pending) */}
+                                {order.items?.some((i: any) => (i.itemStatus || "pending") === "pending") && (
                                   <Button
                                     size="sm"
-                                    onClick={() => updateOrderStatus(order._id, "cooking")}
+                                    onClick={() => {
+                                      const pendingItems = order.items.filter((i: any) => (i.itemStatus || "pending") === "pending");
+                                      pendingItems.forEach((i: any) => updateItemStatus(order._id, i._id, "cooking"));
+                                    }}
                                     className="flex-1 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-blue-400 font-bold tracking-wider rounded-xl transition-all duration-300"
                                     variant="outline"
                                   >
-                                    Cooking
+                                    All Cooking
                                   </Button>
                                 )}
-                                {["accepted", "cooking", "plating", "ready"].includes(order.status) && (
+                                {/* Quick Mark All Served (if any cooking) */}
+                                {order.items?.some((i: any) => (i.itemStatus || "pending") === "cooking") && (
                                   <Button
                                     size="sm"
-                                    onClick={() => updateOrderStatus(order._id, "served")}
+                                    onClick={() => {
+                                      const cookingItems = order.items.filter((i: any) => (i.itemStatus || "pending") === "cooking");
+                                      cookingItems.forEach((i: any) => updateItemStatus(order._id, i._id, "served"));
+                                    }}
                                     className="flex-1 bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 text-green-400 font-bold tracking-wider rounded-xl transition-all duration-300"
                                     variant="outline"
                                   >
-                                    Served
+                                    All Served
                                   </Button>
                                 )}
                               </div>
