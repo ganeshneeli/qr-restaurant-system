@@ -953,12 +953,14 @@ const AdminDashboard = () => {
             
             {/* Sidebar Brand Header */}
             <div className="flex items-center gap-3 group cursor-pointer" onClick={() => navigate("/")}>
-              <div className="w-10 h-10 rounded-xl bg-red-950/40 border border-red-500/30 flex items-center justify-center group-hover:bg-red-500 group-hover:text-black transition-colors duration-500 shrink-0">
-                <UtensilsCrossed className="h-5 w-5 text-red-500 group-hover:text-black" />
-              </div>
+              <img 
+                src="/og-logo.png" 
+                alt="OG Logo" 
+                className="w-10 h-10 rounded-xl object-cover border border-red-500/30 group-hover:scale-105 transition-transform duration-300 shrink-0" 
+              />
               <div>
-                <h1 className="font-display text-xl font-black uppercase tracking-[0.2em] bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70 group-hover:from-red-400 group-hover:to-red-600 transition-all duration-300 drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">OG</h1>
-                <span className="text-[7px] font-black text-red-500 uppercase tracking-[0.3em] block mt-0.5">Admin Portal</span>
+                <h1 className="font-display text-base font-black uppercase tracking-[0.1em] bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70 group-hover:from-red-400 group-hover:to-red-600 transition-all duration-300">OG CAFE</h1>
+                <span className="text-[7px] font-black text-red-500 uppercase tracking-[0.25em] block mt-0.5">& RESTAURANT</span>
               </div>
             </div>
 

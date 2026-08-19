@@ -93,17 +93,16 @@ export default function StaffLogin() {
       >
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="w-14 h-14 rounded-2xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center">
-              <ChefHat className="w-7 h-7 text-orange-400" />
-            </div>
-            <div className="w-14 h-14 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center">
-              <UtensilsCrossed className="w-7 h-7 text-red-400" />
-            </div>
+          <div className="flex items-center justify-center mb-4">
+            <img 
+              src="/og-logo.png" 
+              alt="OG Logo" 
+              className="w-16 h-16 rounded-2xl object-cover border border-white/10 shadow-lg"
+            />
           </div>
           <h1 className="text-2xl font-black text-white tracking-tight">Staff Login</h1>
           <p className="text-white/40 text-sm mt-1">Kitchen • Waiter Portal</p>
-          <p className="text-xs text-orange-400/70 mt-1 font-bold uppercase tracking-[0.15em]">OG RESTAURANT</p>
+          <p className="text-xs text-orange-400/80 mt-1 font-bold uppercase tracking-[0.15em]">OG CAFE & RESTAURANT</p>
         </div>
 
         {/* Portal Switch Toggle */}

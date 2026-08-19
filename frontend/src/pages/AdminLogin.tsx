@@ -125,13 +125,17 @@ const AdminLogin = () => {
             <div className="flex items-center justify-between shrink-0">
               <div 
                 onClick={() => navigate("/")} 
-                className="flex items-center gap-2 cursor-pointer group"
+                className="flex items-center gap-2.5 cursor-pointer group"
               >
-                <div className="w-9 h-9 rounded-xl bg-red-950/40 border border-red-500/30 flex items-center justify-center group-hover:bg-red-500 group-hover:text-black transition-colors duration-500">
-                  <Utensils className="h-4.5 w-4.5 text-red-500 group-hover:text-black" />
-                </div>
+                <img 
+                  src="/og-logo.png" 
+                  alt="OG Logo" 
+                  className="w-9 h-9 rounded-xl object-cover border border-red-500/30 group-hover:scale-105 transition-transform duration-300 shadow-sm"
+                />
                 <div>
-                  <span className="font-display text-base font-black uppercase tracking-[0.2em] bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70 group-hover:from-red-400 group-hover:to-red-600 transition-all duration-300 drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">OG RESTAURANT</span>
+                  <span className="font-display text-base font-black uppercase tracking-[0.1em] bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70 group-hover:from-red-400 group-hover:to-red-600 transition-all duration-300">
+                    OG CAFE & RESTAURANT
+                  </span>
                 </div>
               </div>
               <Badge className="bg-red-950/40 hover:bg-red-950/40 text-red-400 border border-red-900/50 uppercase tracking-[0.2em] px-2 py-0.5 text-[8px]">
