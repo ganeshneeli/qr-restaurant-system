@@ -142,9 +142,9 @@ const AdminLogin = () => {
             {/* Middle Main Content Showcase - compacted layout to fit without scrolling */}
             <div className="my-auto py-6 space-y-6 flex-grow flex flex-col justify-center overflow-hidden">
               <div className="space-y-2 shrink-0">
-                <span className="text-[9px] font-black text-red-500 uppercase tracking-[0.3em] block">Welcome to OG RESTAURANT</span>
+                <span className="text-[9px] font-black text-red-500 uppercase tracking-[0.3em] block">Welcome to OG CAFE & RESTAURANT</span>
                 <h2 className="font-display text-3xl xl:text-4xl font-black tracking-tight leading-none text-glow-white">
-                  Chirala's Ultimate <br className="hidden xl:inline" />
+                  Puttur's Ultimate <br className="hidden xl:inline" />
                   <span className="bg-clip-text text-transparent bg-gradient-to-r from-red-500 to-amber-500 text-glow">Culinary Destination</span>
                 </h2>
                 <p className="text-white/60 text-xs max-w-xl leading-relaxed">

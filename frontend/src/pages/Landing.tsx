@@ -195,10 +195,10 @@ const Landing = () => {
         <section className="relative py-16 px-4 border-y border-white/5 bg-black/40">
           <div className="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
-              { icon: MapPin, title: "Find Us At", detail: "Opp. Sri Chaitanya School, Muntha Vari Centre, Chirala" },
+              { icon: MapPin, title: "Find Us At", detail: "Tirupathi Highway, Church Compound Rd, Govinda Palayam, Puttur - 517 583" },
               { icon: Clock, title: "We Are Open", detail: "Open Daily: 11:00 AM - 11:00 PM" },
               { icon: Coins, title: "Price Range", detail: "Moderately Priced: ₹200 - ₹400 per person" },
-              { icon: ShieldCheck, title: "Our Services", detail: "Dine-in, Takeaway & Swift Local Delivery" }
+              { icon: ShieldCheck, title: "Our Services", detail: "Dine-in, Takeaway & Free Home Delivery" }
             ].map((info, i) => (
               <motion.div
                 key={i}
@@ -223,59 +223,63 @@ const Landing = () => {
         {/* === THE BENTO EXPERIENCE SHOWCASE === */}
         <section className="relative py-32 px-4 bg-[#050505] overflow-hidden">
           {/* Subtle background gradients */}
-          <div className="absolute top-1/3 left-1/4 w-[400px] h-[400px] bg-red-950/5 blur-[120px] rounded-full pointer-events-none" />
-          <div className="absolute bottom-1/3 right-1/4 w-[400px] h-[400px] bg-amber-950/5 blur-[120px] rounded-full pointer-events-none" />
+          <div className="absolute top-1/2 left-0 w-96 h-96 bg-red-600/5 blur-[120px] rounded-full pointer-events-none" />
+          <div className="absolute bottom-0 right-0 w-96 h-96 bg-red-600/5 blur-[120px] rounded-full pointer-events-none" />
 
-          <div className="max-w-7xl mx-auto">
-            <motion.div
-              initial={{ opacity: 0, y: 40 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="text-center mb-20 space-y-4"
-            >
-              <Badge className="bg-red-950/40 hover:bg-red-950/40 text-red-400 border border-red-900/50 uppercase tracking-[0.2em] px-3 py-1 text-[10px]">The OG RESTAURANT Vibe</Badge>
-              <h2 className="font-display text-5xl md:text-7xl font-black tracking-tight leading-none">Experience Culinary Art</h2>
-              <p className="text-white/40 tracking-[0.2em] uppercase text-xs">A harmonious blend of fine tastes and photogenic spaces</p>
-            </motion.div>
-
-            {/* Bento Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              
-              {/* Card 1: Biryanis & North Indian (Wide: spans 2 columns on large screens) */}
-              <motion.div
-                initial={{ opacity: 0, y: 30 }}
+          <div className="max-w-6xl mx-auto space-y-16 relative z-10">
+            <div className="text-center space-y-4 max-w-2xl mx-auto">
+              <motion.span 
+                initial={{ opacity: 0, y: 10 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                className="lg:col-span-2 flex flex-col md:flex-row glass border-white/5 rounded-[2.5rem] overflow-hidden group hover:border-red-500/30 hover:shadow-[0_25px_50px_rgba(239,68,68,0.12)] hover:-translate-y-2 transition-all duration-700 relative"
+                className="text-[10px] font-black text-red-500 tracking-[0.3em] uppercase block"
               >
-                <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-red-500 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-                
-                {/* Left: Image */}
-                <div className="w-full md:w-1/2 relative overflow-hidden aspect-[16/10] md:aspect-auto min-h-[300px]">
-                  <img 
-                    src="https://images.unsplash.com/photo-1633945274405-b6c8069047b0?auto=format&fit=crop&w=600&q=80" 
-                    alt="Biryani and Curries" 
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t md:bg-gradient-to-r from-[#050505] via-transparent to-transparent" />
-                  <div className="absolute top-6 left-6 w-12 h-12 rounded-2xl bg-black/60 backdrop-blur-md border border-white/10 flex items-center justify-center">
-                    <Utensils className="w-5 h-5 text-red-400" />
-                  </div>
-                </div>
+                Multi-Cuisine & Bakes
+              </motion.span>
+              <motion.h2 
+                initial={{ opacity: 0, y: 10 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.1 }}
+                className="font-display text-4xl sm:text-5xl font-black text-white text-glow-white tracking-tight"
+              >
+                Crafted For Every Craving
+              </motion.h2>
+              <motion.p 
+                initial={{ opacity: 0, y: 10 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.2 }}
+                className="text-white/40 text-sm leading-relaxed"
+              >
+                From authentic Biryanis and Sizzling Starters to Custom Pastries, Gourmet Burgers, and Thick Shakes.
+              </motion.p>
+            </div>
 
-                {/* Right: Info */}
-                <div className="w-full md:w-1/2 p-8 flex flex-col justify-between relative z-10">
-                  <div className="space-y-4">
-                    <span className="text-[10px] font-black text-red-500 uppercase tracking-widest block">Savor the Heritage</span>
-                    <h3 className="font-display text-3xl font-bold text-white group-hover:text-red-400 group-hover:text-glow transition-colors duration-300">Biryanis & North Indian</h3>
-                    <p className="text-sm text-white/50 leading-relaxed">A rich compilation of traditional North Indian curries and fragrant, slow-cooked Biryanis bursting with authentic spices. Handcrafted with precision by our specialty chefs.</p>
+            {/* Bento Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              
+              {/* Card 1: Restaurant & Multi-Cuisine (Wide: spans 2 columns) */}
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                className="md:col-span-2 glass-strong border-white/5 hover:border-red-500/20 transition-all duration-700 rounded-[2.5rem] p-8 sm:p-12 relative overflow-hidden group flex flex-col justify-between min-h-[380px]"
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-red-950/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                <div className="relative z-10 space-y-6">
+                  <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-red-500 group-hover:text-black transition-colors duration-500">
+                    <UtensilsCrossed className="w-5 h-5 text-red-400 group-hover:text-black" />
                   </div>
-                  <div className="border-t border-white/5 pt-6 mt-6">
+                  <div>
+                    <span className="text-[10px] font-black text-red-500 uppercase tracking-widest block mb-2">Authentic & Sizzling</span>
+                    <h3 className="font-display text-3xl sm:text-4xl font-bold mb-4 text-white group-hover:text-red-400 group-hover:text-glow transition-colors duration-300">Multi-Cuisine Dining</h3>
+                    <p className="text-sm text-white/50 leading-relaxed max-w-lg mb-6">Discover rich North & South Indian flavors, aromatic Biryanis, hot tandoori delicacies, Chinese gravies, and sizzling appetizers crafted by master chefs.</p>
                     <div className="flex flex-wrap gap-2">
-                      {["Hyderabadi Biryani", "Butter Chicken Curry", "Kadhai Paneer", "Fresh Butter Naan"].map((item, idx) => (
+                      {["Dum Biryani", "Tandoori Specials", "Chinese Wok", "Starters"].map((item, idx) => (
                         <span 
                           key={idx} 
-                          className="text-[10px] font-bold tracking-wider text-white/50 bg-white/[0.03] border border-white/5 px-3 py-1.5 rounded-xl hover:bg-red-500 hover:text-black hover:border-red-500 hover:shadow-[0_0_10px_rgba(239,68,68,0.3)] transition-all duration-300 cursor-pointer"
+                          className="text-[10px] font-bold tracking-wider text-white/60 bg-black/50 border border-white/5 px-3 py-1 rounded-full hover:bg-red-500 hover:text-black hover:border-red-500 transition-all duration-300 cursor-pointer"
                         >
                           {item}
                         </span>
@@ -286,33 +290,22 @@ const Landing = () => {
               </motion.div>
 
               {/* Card 2: Bakery & Cafe (Tall: spans 1 column) */}
-              <motion.div
-                initial={{ opacity: 0, y: 30 }}
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: 0.15 }}
-                className="lg:col-span-1 flex flex-col glass border-white/5 rounded-[2.5rem] overflow-hidden group hover:border-red-500/30 hover:shadow-[0_25px_50px_rgba(239,68,68,0.12)] hover:-translate-y-2 transition-all duration-700 relative min-h-[450px]"
+                transition={{ delay: 0.1 }}
+                className="glass-strong border-white/5 hover:border-red-500/20 transition-all duration-700 rounded-[2.5rem] p-8 sm:p-10 relative overflow-hidden group flex flex-col justify-between min-h-[380px]"
               >
-                <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-red-500 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-                
-                {/* Full Background Image with Overlay */}
-                <div className="absolute inset-0 z-0 overflow-hidden">
-                  <img 
-                    src="https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=600&q=80" 
-                    alt="Bakery Cakes" 
-                    className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-[#050505]/65 to-transparent" />
-                </div>
-
-                <div className="p-8 flex flex-col justify-between h-full relative z-10 flex-grow">
-                  <div className="w-12 h-12 rounded-2xl bg-black/60 backdrop-blur-md border border-white/10 flex items-center justify-center mb-6">
+                <div className="absolute inset-0 bg-gradient-to-br from-red-950/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                <div className="relative z-10 space-y-6">
+                  <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-red-500 group-hover:text-black transition-colors duration-500">
                     <Cake className="w-5 h-5 text-red-400" />
                   </div>
                   <div>
                     <span className="text-[10px] font-black text-red-500 uppercase tracking-widest block mb-2">Freshly Baked Every Day</span>
                     <h3 className="font-display text-3xl font-bold mb-4 text-white group-hover:text-red-400 group-hover:text-glow transition-colors duration-300">Bakery & Cafe</h3>
-                    <p className="text-xs text-white/50 leading-relaxed mb-6">Chirala's ultimate cafe hub. Treat yourself to fresh custom celebration cakes, pastries, gourmet pizzas, crispy burgers, and loaded sandwiches.</p>
+                    <p className="text-xs text-white/50 leading-relaxed mb-6">Puttur's ultimate cafe hub. Treat yourself to fresh custom celebration cakes, pastries, gourmet pizzas, crispy burgers, and loaded sandwiches.</p>
                     <div className="flex flex-wrap gap-2">
                       {["Celebration Cakes", "Artisan Pizza", "Burgers"].map((item, idx) => (
                         <span 

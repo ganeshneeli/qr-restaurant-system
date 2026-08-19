@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { MapPin, Phone, Clock, ExternalLink } from "lucide-react";
+import { MapPin, Phone, Clock, ExternalLink, Bike, ShieldCheck } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
 const RestaurantInfo = ({ className = "" }: { className?: string }) => {
@@ -24,18 +24,18 @@ const RestaurantInfo = ({ className = "" }: { className?: string }) => {
                         </div>
                         <div className="space-y-3">
                             <h4 className="text-[10px] font-black text-red-400 uppercase tracking-[0.3em]">Location</h4>
-                            <div className="space-y-1">
+                            <div className="space-y-1.5">
                                 <p className="text-base font-black text-white tracking-wide">
-                                    OG RESTAURANT
+                                    OG CAFE & RESTAURANT
                                 </p>
-                                <p className="text-xs text-white/50 font-medium leading-relaxed max-w-[240px] mx-auto">
-                                    Opposite to Sri Chaitanya School, Muntha Vari Centre, Chirala
+                                <p className="text-xs text-white/70 font-medium leading-relaxed max-w-[260px] mx-auto">
+                                    Tirupathi Highway, Church Compound Road, Govinda Palayam, Puttur - 517 583.
                                 </p>
                             </div>
                             
-                            <div className="pt-4 flex justify-center">
+                            <div className="pt-3 flex justify-center">
                                 <a 
-                                    href="https://maps.google.com/?q=OG+Restaurant+Chirala"
+                                    href="https://maps.google.com/?q=OG+Cafe+%26+Restaurant,+Tirupathi+Highway,+Church+Compound+Road,+Govinda+Palayam,+Puttur+-+517583"
                                     target="_blank"
                                     rel="noreferrer"
                                     className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-[9px] text-white/50 uppercase tracking-widest hover:bg-red-500 hover:text-black hover:border-red-500 hover:shadow-[0_0_15px_rgba(239,68,68,0.3)] transition-all duration-300"
@@ -58,25 +58,34 @@ const RestaurantInfo = ({ className = "" }: { className?: string }) => {
                         <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0 group-hover:bg-red-500 group-hover:text-black group-hover:shadow-[0_0_20px_rgba(239,68,68,0.4)] transition-all duration-500">
                             <Phone className="h-6 w-6 text-red-400 group-hover:text-black" />
                         </div>
-                        <div className="space-y-3">
-                            <h4 className="text-[10px] font-black text-red-400 uppercase tracking-[0.3em]">Contact</h4>
-                            <div className="flex flex-col gap-2">
+                        <div className="space-y-2.5">
+                            <h4 className="text-[10px] font-black text-red-400 uppercase tracking-[0.3em]">Call / WhatsApp</h4>
+                            <div className="flex flex-col gap-1.5">
                                 <a 
-                                    href="tel:+917981986524" 
-                                    className="text-base font-black text-white hover:text-red-400 hover:tracking-wide transition-all duration-300 block"
+                                    href="tel:+918440084473" 
+                                    className="text-sm font-black text-white hover:text-red-400 transition-all duration-200 block tracking-wider"
                                 >
-                                    +91 798198 6524
+                                    +91 84400 84473
                                 </a>
                                 <a 
-                                    href="tel:+918686377266" 
-                                    className="text-base font-black text-white hover:text-red-400 hover:tracking-wide transition-all duration-300 block"
+                                    href="tel:+917416162779" 
+                                    className="text-sm font-black text-white hover:text-red-400 transition-all duration-200 block tracking-wider"
                                 >
-                                    +91 86863 77266
+                                    +91 74161 62779
+                                </a>
+                                <a 
+                                    href="tel:+918897672779" 
+                                    className="text-sm font-black text-white hover:text-red-400 transition-all duration-200 block tracking-wider"
+                                >
+                                    +91 88976 72779
                                 </a>
                             </div>
-                            <div className="pt-2">
-                                <span className="inline-block px-3.5 py-1.5 rounded-full bg-white/5 border border-white/5 text-[9px] text-white/40 uppercase tracking-widest">
-                                    Available for Bookings
+                            <div className="pt-2 flex flex-wrap justify-center gap-1.5">
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-[9px] font-black text-red-400 uppercase tracking-wider">
+                                    <Bike className="w-3 h-3" /> Free Home Delivery
+                                </span>
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[9px] font-black text-emerald-400 uppercase tracking-wider">
+                                    <ShieldCheck className="w-3 h-3" /> 100% Halal
                                 </span>
                             </div>
                         </div>
@@ -105,7 +114,7 @@ const RestaurantInfo = ({ className = "" }: { className?: string }) => {
                                 <p className="text-xl font-display font-black text-red-400 text-glow">11am - 11pm</p>
                             </div>
                             
-                            <p className="text-[9px] text-white/30 uppercase tracking-widest pt-2 italic">Opening Daily</p>
+                            <p className="text-[9px] text-white/30 uppercase tracking-widest pt-2 italic">Open Daily · Dine-in & Delivery</p>
                         </div>
                     </div>
                 </Card>
