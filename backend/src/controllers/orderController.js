@@ -351,6 +351,8 @@ exports.updateItemStatus = async (req, res) => {
     const payload = {
       orderId: order._id,
       itemId,
+      itemName: item.name,
+      itemQuantity: item.quantity,
       itemStatus,
       orderStatus: order.status,
       tableNumber: order.tableNumber,

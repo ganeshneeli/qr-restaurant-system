@@ -168,6 +168,10 @@ const MenuContent = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [showTopPopup, setShowTopPopup] = useState(false);
   const [popupStatus, setPopupStatus] = useState<string | null>(null);
+  const [popupItemName, setPopupItemName] = useState<string | null>(null);
+  const [popupAllServed, setPopupAllServed] = useState(false);
+  const [popupKey, setPopupKey] = useState(0);
+  const popupTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [selectedDish, setSelectedDish] = useState<MenuItem | null>(null);
   const [showExitModal, setShowExitModal] = useState(false);
   const [sessionExpired, setSessionExpired] = useState(false);
@@ -436,9 +440,14 @@ const MenuContent = () => {
       fetchOrder();
 
       if (["accepted", "cooking", "plating", "ready"].includes(data.status) || data.status === "served") {
-        setPopupStatus(data.status);
+        setPopupStatus(data.status === "served" ? "served" : "cooking");
+        setPopupItemName(null);
+        setPopupAllServed(data.status === "served");
+        setPopupKey(k => k + 1);
         setShowTopPopup(true);
-        setTimeout(() => setShowTopPopup(false), 7000);
+
+        if (popupTimerRef.current) clearTimeout(popupTimerRef.current);
+        popupTimerRef.current = setTimeout(() => setShowTopPopup(false), 2200);
       } else if (data.status === "completed") {
         toast({ title: "✅ Payment Confirmed", description: "Please leave your feedback before leaving!" });
         localStorage.removeItem(cartKey);
@@ -457,18 +466,27 @@ const MenuContent = () => {
     };
 
     // ── Per-item status update from kitchen/admin ──────────────────────────
-    const onItemStatusUpdated = (data: { tableNumber?: number; itemStatus: string; allServed: boolean }) => {
+    const onItemStatusUpdated = (data: {
+      tableNumber?: number;
+      itemStatus: string;
+      itemName?: string;
+      allServed: boolean;
+    }) => {
       if (data.tableNumber && data.tableNumber !== tableNumber) return;
 
       fetchOrder(); // Always keep My Orders panel synced
 
-      if (data.itemStatus === "cooking") {
-        setPopupStatus("cooking");
+      if (data.itemStatus === "cooking" || data.itemStatus === "served") {
+        setPopupStatus(data.itemStatus);
+        setPopupItemName(data.itemName || null);
+        setPopupAllServed(!!data.allServed);
+        setPopupKey(k => k + 1);
         setShowTopPopup(true);
-      } else if (data.allServed) {
-        // Only show "Bon Appétit" cinematic popup once every item is served
-        setPopupStatus("served");
-        setShowTopPopup(true);
+
+        if (popupTimerRef.current) clearTimeout(popupTimerRef.current);
+        popupTimerRef.current = setTimeout(() => {
+          setShowTopPopup(false);
+        }, 2200);
       }
     };
 
@@ -501,6 +519,7 @@ const MenuContent = () => {
     }
 
     return () => {
+      if (popupTimerRef.current) clearTimeout(popupTimerRef.current);
       socket.emit("leave-table", tableNumber);
       socket.off("connect", onConnect);
       socket.off("disconnect", onDisconnect);
@@ -1196,59 +1215,121 @@ const MenuContent = () => {
           </AnimatePresence>
 
           {/* Cinematic Top Status Notification */}
-          <AnimatePresence>
+          <AnimatePresence mode="wait">
             {showTopPopup && (
               <motion.div
+                key={`popup-overlay-${popupKey}`}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/40 backdrop-blur-md"
+                className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-md"
               >
                 <motion.div
-                  initial={{ scale: 0.8, y: 40, opacity: 0 }}
+                  key={`popup-card-${popupKey}`}
+                  initial={{ scale: 0.8, y: 30, opacity: 0 }}
                   animate={{ scale: 1, y: 0, opacity: 1 }}
-                  exit={{ scale: 1.1, opacity: 0 }}
-                  className="w-full max-w-lg relative"
+                  exit={{ scale: 0.9, opacity: 0, transition: { duration: 0.2 } }}
+                  transition={{ type: "spring", stiffness: 350, damping: 25 }}
+                  className="w-full max-w-md relative"
                 >
                   {/* Atmospheric Glow */}
-                  <div className={`absolute inset-0 blur-[120px] opacity-40 rounded-full animate-pulse-slow ${
-                    popupStatus === "served" ? "bg-yellow-500" : "bg-blue-500"
-                  }`} />
+                  <div
+                    className={`absolute inset-0 blur-[100px] opacity-40 rounded-full animate-pulse-slow ${
+                      popupStatus === "served" ? "bg-emerald-500" : "bg-amber-500"
+                    }`}
+                  />
 
-                  <div className="glass-strong border-white/10 rounded-[3rem] p-10 text-center relative z-10 overflow-hidden">
-                    <div className="absolute inset-0 bg-white/5 transition-colors pointer-events-none" />
+                  <div className="glass-strong border border-white/15 rounded-3xl sm:rounded-[2.5rem] p-6 sm:p-8 text-center relative z-10 overflow-hidden shadow-2xl bg-gradient-to-b from-white/[0.08] to-black/90">
+                    {/* Top Accent Shimmer Bar */}
+                    <div
+                      className={`absolute top-0 inset-x-0 h-1.5 ${
+                        popupStatus === "served"
+                          ? "bg-gradient-to-r from-transparent via-emerald-400 to-transparent"
+                          : "bg-gradient-to-r from-transparent via-amber-400 to-transparent"
+                      }`}
+                    />
 
+                    {/* Animated Icon */}
                     <motion.div
-                      animate={{
-                        rotate: [0, -10, 10, -10, 0],
-                        scale: [1, 1.2, 1]
+                      animate={
+                        popupStatus === "served"
+                          ? {
+                              y: [0, -6, 0],
+                              rotate: [0, -6, 6, 0],
+                              scale: [1, 1.12, 1],
+                            }
+                          : {
+                              rotate: [0, -12, 12, -8, 0],
+                              scale: [1, 1.15, 1],
+                            }
+                      }
+                      transition={{
+                        duration: 1.8,
+                        repeat: Infinity,
+                        ease: "easeInOut",
                       }}
-                      transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                      className="text-7xl mb-8 flex justify-center filter drop-shadow-[0_0_20px_rgba(255,255,255,0.3)]"
+                      className="text-6xl sm:text-7xl mb-4 flex justify-center filter drop-shadow-[0_0_25px_rgba(255,255,255,0.35)]"
                     >
                       {popupStatus === "served" ? "🎩" : "🔥"}
                     </motion.div>
 
-                    <h3 className="font-display text-4xl font-black text-white text-glow-white mb-4 tracking-tight">
-                      {popupStatus === "served" ? "Bon Appétit!" : "Chef's in Motion"}
+                    {/* Status Title */}
+                    <h3 className="font-display text-2xl sm:text-3xl font-black text-white text-glow-white mb-2 tracking-tight">
+                      {popupStatus === "served"
+                        ? popupAllServed
+                          ? "Bon Appétit!"
+                          : "Dish Served!"
+                        : "Preparing Your Dish!"}
                     </h3>
 
-                    <p className="text-white/60 text-lg font-medium leading-relaxed max-w-xs mx-auto mb-8">
+                    {/* Highlighted Dish Name Badge */}
+                    {popupItemName && (
+                      <motion.div
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        className={`inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full border text-xs sm:text-sm font-bold mb-3 shadow-inner ${
+                          popupStatus === "served"
+                            ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-300"
+                            : "bg-amber-500/15 border-amber-500/30 text-amber-300"
+                        }`}
+                      >
+                        <span>{popupStatus === "served" ? "🟢" : "🍳"}</span>
+                        <span>{popupItemName}</span>
+                      </motion.div>
+                    )}
+
+                    {/* Professional, friendly English description */}
+                    <p className="text-white/80 text-sm sm:text-base font-medium leading-relaxed max-w-xs mx-auto mb-5">
                       {popupStatus === "served"
-                        ? "Your masterpieces have arrived. Indulge in perfection."
-                        : "Your selection is being crafted with precision and passion."}
+                        ? popupItemName
+                          ? `${popupItemName} is freshly prepared and served at your table. Enjoy your meal!`
+                          : popupAllServed
+                          ? "All your ordered dishes have been served. Enjoy your feast!"
+                          : "Your masterpiece has arrived at your table. Indulge in perfection!"
+                        : popupItemName
+                        ? `Our chef is now preparing ${popupItemName} fresh in the kitchen!`
+                        : "Our chefs are crafting your selection with precision and passion."}
                     </p>
 
-                    <div className="flex justify-center gap-2">
-                      {[1, 2, 3].map(i => (
+                    {/* Animated Pulse Dots */}
+                    <div className="flex justify-center items-center gap-2">
+                      {[0, 1, 2].map((i) => (
                         <motion.div
                           key={i}
                           animate={{
                             scale: [1, 1.5, 1],
-                            opacity: [0.2, 0.5, 0.2]
+                            opacity: [0.25, 0.8, 0.25],
                           }}
-                          transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
-                          className={`w-2 h-2 rounded-full ${popupStatus === "served" ? "bg-yellow-500" : "bg-blue-500"}`}
+                          transition={{
+                            duration: 0.8,
+                            repeat: Infinity,
+                            delay: i * 0.2,
+                          }}
+                          className={`w-2 h-2 rounded-full ${
+                            popupStatus === "served"
+                              ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]"
+                              : "bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.8)]"
+                          }`}
                         />
                       ))}
                     </div>
