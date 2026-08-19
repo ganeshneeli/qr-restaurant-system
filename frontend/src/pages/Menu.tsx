@@ -168,7 +168,7 @@ const MenuContent = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [showTopPopup, setShowTopPopup] = useState(false);
   const [popupStatus, setPopupStatus] = useState<string | null>(null);
-  const [popupItemName, setPopupItemName] = useState<string | null>(null);
+  const [popupItemNames, setPopupItemNames] = useState<string[]>([]);
   const [popupAllServed, setPopupAllServed] = useState(false);
   const [popupKey, setPopupKey] = useState(0);
   const popupTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -432,7 +432,7 @@ const MenuContent = () => {
       setIsConnected(false);
     };
 
-    const onStatusUpdate = (data: { status: string; sessionId?: string; tableNumber?: number; orderId?: string }) => {
+    const onStatusUpdate = (data: { status: string; sessionId?: string; tableNumber?: number; orderId?: string; items?: any[] }) => {
       if (data.tableNumber && data.tableNumber !== tableNumber) return;
       if (data.sessionId && data.sessionId !== sessionId) return;
 
@@ -441,7 +441,8 @@ const MenuContent = () => {
 
       if (["accepted", "cooking", "plating", "ready"].includes(data.status) || data.status === "served") {
         setPopupStatus(data.status === "served" ? "served" : "cooking");
-        setPopupItemName(null);
+        const orderNames = myOrder?.items?.map((i: any) => i.name).filter(Boolean) || [];
+        setPopupItemNames(orderNames);
         setPopupAllServed(data.status === "served");
         setPopupKey(k => k + 1);
         setShowTopPopup(true);
@@ -470,6 +471,7 @@ const MenuContent = () => {
       tableNumber?: number;
       itemStatus: string;
       itemName?: string;
+      itemNames?: string[];
       allServed: boolean;
     }) => {
       if (data.tableNumber && data.tableNumber !== tableNumber) return;
@@ -477,8 +479,12 @@ const MenuContent = () => {
       fetchOrder(); // Always keep My Orders panel synced
 
       if (data.itemStatus === "cooking" || data.itemStatus === "served") {
+        const names: string[] = Array.isArray(data.itemNames) && data.itemNames.length > 0
+          ? data.itemNames
+          : (data.itemName ? [data.itemName] : []);
+
         setPopupStatus(data.itemStatus);
-        setPopupItemName(data.itemName || null);
+        setPopupItemNames(names);
         setPopupAllServed(!!data.allServed);
         setPopupKey(k => k + 1);
         setShowTopPopup(true);
@@ -1276,38 +1282,50 @@ const MenuContent = () => {
                     {/* Status Title */}
                     <h3 className="font-display text-2xl sm:text-3xl font-black text-white text-glow-white mb-2 tracking-tight">
                       {popupStatus === "served"
-                        ? popupAllServed
-                          ? "Bon Appétit!"
+                        ? popupAllServed || popupItemNames.length > 1
+                          ? "All Dishes Served!"
                           : "Dish Served!"
+                        : popupItemNames.length > 1
+                        ? "Preparing Your Dishes!"
                         : "Preparing Your Dish!"}
                     </h3>
 
-                    {/* Highlighted Dish Name Badge */}
-                    {popupItemName && (
-                      <motion.div
-                        initial={{ scale: 0.9, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        className={`inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full border text-xs sm:text-sm font-bold mb-3 shadow-inner ${
-                          popupStatus === "served"
-                            ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-300"
-                            : "bg-amber-500/15 border-amber-500/30 text-amber-300"
-                        }`}
-                      >
-                        <span>{popupStatus === "served" ? "🟢" : "🍳"}</span>
-                        <span>{popupItemName}</span>
-                      </motion.div>
+                    {/* Highlighted Dish Name Badges */}
+                    {popupItemNames.length > 0 && (
+                      <div className="flex flex-wrap justify-center gap-1.5 max-h-28 overflow-y-auto mb-3 px-1 py-0.5">
+                        {popupItemNames.map((name, idx) => (
+                          <motion.div
+                            key={idx}
+                            initial={{ scale: 0.85, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            transition={{ delay: idx * 0.04 }}
+                            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs sm:text-sm font-bold shadow-inner ${
+                              popupStatus === "served"
+                                ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-300"
+                                : "bg-amber-500/15 border-amber-500/30 text-amber-300"
+                            }`}
+                          >
+                            <span>{popupStatus === "served" ? "🟢" : "🍳"}</span>
+                            <span>{name}</span>
+                          </motion.div>
+                        ))}
+                      </div>
                     )}
 
                     {/* Professional, friendly English description */}
                     <p className="text-white/80 text-sm sm:text-base font-medium leading-relaxed max-w-xs mx-auto mb-5">
                       {popupStatus === "served"
-                        ? popupItemName
-                          ? `${popupItemName} is freshly prepared and served at your table. Enjoy your meal!`
+                        ? popupItemNames.length > 1
+                          ? `${popupItemNames.slice(0, -1).join(", ")}${popupItemNames.length > 2 ? "," : ""} and ${popupItemNames[popupItemNames.length - 1]} have all been served hot to your table. Enjoy your feast!`
+                          : popupItemNames.length === 1
+                          ? `${popupItemNames[0]} is freshly prepared and served at your table. Enjoy your meal!`
                           : popupAllServed
                           ? "All your ordered dishes have been served. Enjoy your feast!"
                           : "Your masterpiece has arrived at your table. Indulge in perfection!"
-                        : popupItemName
-                        ? `Our chef is now preparing ${popupItemName} fresh in the kitchen!`
+                        : popupItemNames.length > 1
+                        ? `Our chef is now preparing ${popupItemNames.slice(0, -1).join(", ")}${popupItemNames.length > 2 ? "," : ""} and ${popupItemNames[popupItemNames.length - 1]} fresh in the kitchen!`
+                        : popupItemNames.length === 1
+                        ? `Our chef is now preparing ${popupItemNames[0]} fresh in the kitchen!`
                         : "Our chefs are crafting your selection with precision and passion."}
                     </p>
 

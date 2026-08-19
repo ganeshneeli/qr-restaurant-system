@@ -589,6 +589,15 @@ const AdminDashboard = () => {
     }
   };
 
+  const updateAllItemsStatus = async (orderId: string, itemStatus: "cooking" | "served", fromStatus?: "pending" | "cooking") => {
+    try {
+      const res = await api.put(`/orders/${orderId}/items/status/all`, { itemStatus, fromStatus });
+      setOrders((prev) => prev.map((o) => o._id === orderId ? res.data.data : o));
+    } catch {
+      toast({ title: "Error", description: "Failed to update items status", variant: "destructive" });
+    }
+  };
+
 
   useEffect(() => {
     if (activeSection === "qrcodes") loadQrCodes();
@@ -1281,10 +1290,7 @@ const AdminDashboard = () => {
                                 {order.items?.some((i: any) => (i.itemStatus || "pending") === "pending") && (
                                   <Button
                                     size="sm"
-                                    onClick={() => {
-                                      const pendingItems = order.items.filter((i: any) => (i.itemStatus || "pending") === "pending");
-                                      pendingItems.forEach((i: any) => updateItemStatus(order._id, i._id, "cooking"));
-                                    }}
+                                    onClick={() => updateAllItemsStatus(order._id, "cooking", "pending")}
                                     className="flex-1 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-blue-400 font-bold tracking-wider rounded-xl transition-all duration-300"
                                     variant="outline"
                                   >
@@ -1295,10 +1301,7 @@ const AdminDashboard = () => {
                                 {order.items?.some((i: any) => (i.itemStatus || "pending") === "cooking") && (
                                   <Button
                                     size="sm"
-                                    onClick={() => {
-                                      const cookingItems = order.items.filter((i: any) => (i.itemStatus || "pending") === "cooking");
-                                      cookingItems.forEach((i: any) => updateItemStatus(order._id, i._id, "served"));
-                                    }}
+                                    onClick={() => updateAllItemsStatus(order._id, "served", "cooking")}
                                     className="flex-1 bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 text-green-400 font-bold tracking-wider rounded-xl transition-all duration-300"
                                     variant="outline"
                                   >

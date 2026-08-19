@@ -369,6 +369,60 @@ exports.updateItemStatus = async (req, res) => {
   }
 }
 
+// Admin/Staff: Update all items in an order (e.g. All Cooking or All Served)
+exports.updateAllItemsStatus = async (req, res) => {
+  try {
+    const { id } = req.params
+    const { fromStatus, itemStatus } = req.body
+
+    const validStatuses = ["pending", "cooking", "served"]
+    if (!validStatuses.includes(itemStatus)) {
+      return res.status(400).json({ success: false, message: "Invalid itemStatus" })
+    }
+
+    const order = await Order.findById(id)
+    if (!order) return res.status(404).json({ success: false, message: "Order not found" })
+
+    const updatedItems = []
+    order.items.forEach(item => {
+      if (!fromStatus || item.itemStatus === fromStatus) {
+        item.itemStatus = itemStatus
+        updatedItems.push(item)
+      }
+    })
+
+    if (updatedItems.length === 0) {
+      return res.json({ success: true, data: order, updatedCount: 0 })
+    }
+
+    // Auto-recompute the order-level status from all items
+    order.status = computeOrderStatus(order.items)
+    await order.save()
+
+    const allServed = order.items.every(i => i.itemStatus === "served")
+    const itemNames = updatedItems.map(i => i.name).filter(Boolean)
+
+    const payload = {
+      orderId: order._id,
+      itemNames,
+      itemName: itemNames.join(", "),
+      itemStatus,
+      orderStatus: order.status,
+      tableNumber: order.tableNumber,
+      allServed,
+      isBulk: true
+    }
+
+    emitToTable(order.tableNumber, "itemStatusUpdated", payload)
+    emitToAdmin("statusUpdated", { orderId: order._id, status: order.status, tableNumber: order.tableNumber })
+    emitToKitchen("kitchenStatusUpdate", { orderId: order._id, status: order.status, tableNumber: order.tableNumber })
+
+    res.json({ success: true, data: order, updatedCount: updatedItems.length })
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message })
+  }
+}
+
 // Admin: Mark as paid
 exports.markAsPaid = async (req, res) => {
   try {
