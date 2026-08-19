@@ -599,37 +599,39 @@ const Landing = () => {
 
         {/* Footer */}
         <footer className="py-16 border-t border-white/5 text-center flex flex-col items-center gap-8 bg-black">
-          {/* CGI Text Logo */}
+          {/* Fingrow Text Logo */}
           <div className="flex items-center gap-2">
-            <span className="font-display text-xl font-black tracking-widest text-glow-white text-white">CodeGenius</span>
-            <span className="bg-red-500 text-white font-black text-[10px] px-2 py-0.5 rounded">CGI</span>
+            <span className="font-display text-xl font-black tracking-widest text-glow-white text-white">Fingrow</span>
+            <span className="bg-red-500 text-white font-black text-[10px] px-2 py-0.5 rounded">FCS</span>
           </div>
 
-          {/* Copyright */}
+          {/* Copyright & System Details */}
           <div className="text-white/70 text-sm leading-relaxed max-w-xl">
-            <p>© 2026 CodeGenius Innovations (CGI). All rights reserved.</p>
+            <p>© 2026 Fingrow Consulting Services Pvt Ltd. All rights reserved.</p>
             <p className="text-white/40 text-xs mt-1">
-              QR-Based Smart Dine-In Ordering System developed by CodeGenius Innovations (CGI).
+              PG Management System developed by Fingrow Technology Team.
             </p>
           </div>
 
-          {/* Contact */}
-          <div className="flex flex-col sm:flex-row items-center gap-4 text-white/60 text-sm">
+          {/* Contact Information */}
+          <div className="flex flex-col sm:flex-row flex-wrap justify-center items-center gap-4 text-white/60 text-sm max-w-3xl">
             <a 
-              href="tel:+918328437123" 
+              href="tel:+919550756797" 
               className="flex items-center gap-2 hover:text-white transition-all duration-300 bg-white/5 hover:bg-white/10 hover:scale-[1.02] px-4 py-2.5 rounded-full border border-white/10"
             >
               <Phone className="h-4 w-4 text-red-500" />
-              <span className="font-medium">Call / WhatsApp:</span> +91 8328437123
+              <span className="font-medium">Call / WhatsApp:</span> +91 9550756797 / +91 9187135171
             </a>
 
-            <a 
-              href="mailto:hr@codegeniusinnovations.in" 
-              className="flex items-center gap-2 hover:text-white transition-all duration-300 bg-white/5 hover:bg-white/10 hover:scale-[1.02] px-4 py-2.5 rounded-full border border-white/10"
-            >
+            <div className="flex flex-wrap justify-center items-center gap-2 bg-white/5 px-4 py-2.5 rounded-full border border-white/10">
               <Mail className="h-4 w-4 text-red-500" />
-              <span className="font-medium">Email Us:</span> hr@codegeniusinnovations.in
-            </a>
+              <span className="font-medium">Email Us:</span>
+              <a href="mailto:contact@fingrow.in" className="hover:text-white transition-colors underline decoration-white/20">contact@fingrow.in</a>
+              <span>|</span>
+              <a href="mailto:Lokesh.vasu@fingrow.in" className="hover:text-white transition-colors underline decoration-white/20">Lokesh.vasu@fingrow.in</a>
+              <span>|</span>
+              <a href="mailto:harish.m@fingrow.in" className="hover:text-white transition-colors underline decoration-white/20">harish.m@fingrow.in</a>
+            </div>
           </div>
 
           {/* Social Media */}
@@ -641,15 +643,6 @@ const Landing = () => {
               className="flex items-center gap-1.5 hover:text-white transition-colors"
             >
               <Linkedin className="h-4 w-4" /> LinkedIn
-            </a>
-
-            <a
-              href="https://www.instagram.com/codegenius_innovations/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 hover:text-white transition-colors"
-            >
-              <Instagram className="h-4 w-4" /> Instagram
             </a>
           </div>
         </footer>
