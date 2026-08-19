@@ -1207,47 +1207,54 @@ const AdminDashboard = () => {
                               </div>
                             </div>
 
-                            {/* Items with per-item status pills */}
+                            {/* Items with per-item status action buttons */}
                             <div className="space-y-2 py-2 mb-4">
                               {order.items?.map((item: any, i: number) => {
                                 const iStatus: string = item.itemStatus || "pending";
-                                const nextStatus = iStatus === "pending" ? "cooking" : iStatus === "cooking" ? "served" : null;
-                                const pillStyles: Record<string, string> = {
-                                  pending: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30 hover:bg-yellow-500/25",
-                                  cooking: "bg-blue-500/15 text-blue-400 border-blue-500/30 hover:bg-blue-500/25",
-                                  served:  "bg-green-500/15 text-green-400 border-green-500/30 cursor-default opacity-70",
-                                };
-                                const pillLabel: Record<string, string> = {
-                                  pending: "🟡 Pending",
-                                  cooking: "🔵 Cooking",
-                                  served:  "🟢 Served",
-                                };
                                 return (
-                                  <div key={i} className={`flex justify-between items-center text-xs p-2.5 rounded-xl border border-white/5 transition-colors ${
-                                    iStatus === "served" ? "bg-white/[0.01] opacity-60" : "bg-white/[0.03]"
+                                  <div key={i} className={`flex justify-between items-center text-xs p-2.5 rounded-xl border transition-all duration-200 ${
+                                    iStatus === "served"
+                                      ? "bg-white/[0.01] border-white/5 opacity-65"
+                                      : "bg-white/[0.03] border-white/10 hover:border-white/20"
                                   }`}>
                                     <div className="flex items-center gap-2.5">
-                                      <span className="text-[10px] font-black text-red-400 bg-red-500/10 w-5.5 h-5.5 rounded-md flex items-center justify-center border border-red-500/20">
+                                      <span className="text-[10px] font-black text-red-400 bg-red-500/10 w-5.5 h-5.5 rounded-md flex items-center justify-center border border-red-500/20 shadow-sm">
                                         {item.quantity}
                                       </span>
                                       <span className={`font-bold ${iStatus === "served" ? "line-through text-white/40" : "text-white/90"}`}>
                                         {item.name || item.foodId}
                                       </span>
                                     </div>
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-2.5">
                                       {item.price && (
                                         <span className="font-mono text-white/40 text-[10px]">₹{item.price * item.quantity}</span>
                                       )}
-                                      {nextStatus ? (
+                                      {iStatus === "pending" && (
                                         <button
-                                          onClick={() => updateItemStatus(order._id, item._id, nextStatus as "cooking" | "served")}
-                                          className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border transition-all duration-200 ${pillStyles[iStatus]}`}
+                                          onClick={() => updateItemStatus(order._id, item._id, "cooking")}
+                                          title="Click to start cooking"
+                                          className="group relative flex items-center gap-1.5 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 hover:border-amber-400 active:scale-95 shadow-[0_0_10px_rgba(245,158,11,0.2)] hover:shadow-[0_0_14px_rgba(245,158,11,0.4)] transition-all duration-200 cursor-pointer"
                                         >
-                                          {pillLabel[iStatus]} →
+                                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping inline-block" />
+                                          <span>🟡 Pending</span>
+                                          <span className="text-amber-300/70 group-hover:text-amber-200 group-hover:translate-x-0.5 transition-all">→ 🍳</span>
                                         </button>
-                                      ) : (
-                                        <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border ${pillStyles[iStatus]}`}>
-                                          {pillLabel[iStatus]}
+                                      )}
+                                      {iStatus === "cooking" && (
+                                        <button
+                                          onClick={() => updateItemStatus(order._id, item._id, "served")}
+                                          title="Click to mark as served"
+                                          className="group relative flex items-center gap-1.5 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider bg-blue-500/20 text-blue-300 border border-blue-500/40 hover:bg-blue-500/30 hover:border-blue-400 active:scale-95 shadow-[0_0_10px_rgba(59,130,246,0.2)] hover:shadow-[0_0_14px_rgba(59,130,246,0.4)] transition-all duration-200 cursor-pointer"
+                                        >
+                                          <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse inline-block" />
+                                          <span>🔵 Cooking</span>
+                                          <span className="text-blue-300/70 group-hover:text-blue-200 group-hover:translate-x-0.5 transition-all">→ 🟢</span>
+                                        </button>
+                                      )}
+                                      {iStatus === "served" && (
+                                        <span className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider bg-green-500/10 text-green-400 border border-green-500/20 cursor-default opacity-80">
+                                          <span>🟢 Served</span>
+                                          <CheckCircle2 className="w-3 h-3 text-green-400 ml-0.5" />
                                         </span>
                                       )}
                                     </div>
