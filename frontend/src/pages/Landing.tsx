@@ -131,31 +131,17 @@ const Landing = () => {
               transition={{ duration: 1.2, ease: "circOut" }}
               className="flex flex-col items-center mb-6 w-full"
             >
-              {/* Official Brand Logo */}
-              <motion.div 
-                whileHover={{ scale: 1.05, rotate: 1 }}
-                transition={{ type: "spring", stiffness: 300 }}
-                className="relative mb-6 group cursor-pointer"
-              >
-                <div className="absolute inset-0 bg-red-500/20 blur-2xl rounded-full opacity-60 group-hover:opacity-100 transition-opacity" />
-                <img 
-                  src="/og-logo.png" 
-                  alt="OG CAFE & RESTAURANT" 
-                  className="w-36 h-36 sm:w-44 sm:h-44 md:w-52 md:h-52 object-contain rounded-3xl relative z-10 border border-white/15 bg-black/60 backdrop-blur-xl p-2.5 shadow-[0_0_40px_rgba(239,68,68,0.25)]"
-                />
-              </motion.div>
-
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-red-400 text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] mb-4 backdrop-blur-md shadow-[0_0_15px_rgba(239,68,68,0.2)]">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-red-400 text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] mb-8 backdrop-blur-md shadow-[0_0_15px_rgba(239,68,68,0.2)]">
                 <Sparkles className="w-3.5 h-3.5" /> 
                 OG CAFE & RESTAURANT
                 <Sparkles className="w-3.5 h-3.5" /> 
               </div>
 
-              <h1 className="font-display text-[2.4rem] xs:text-[3.2rem] sm:text-[4.5rem] md:text-[5.5rem] font-black uppercase tracking-[0.02em] bg-clip-text text-transparent bg-gradient-to-b from-white via-white to-red-500 drop-shadow-[0_0_40px_rgba(239,68,68,0.5)] leading-[1.1] mb-2 sm:mb-4 text-center">
+              <h1 className="font-display text-[2.8rem] xs:text-[3.5rem] sm:text-[5.5rem] md:text-[7rem] font-black uppercase tracking-[0.02em] bg-clip-text text-transparent bg-gradient-to-b from-white via-white to-red-500 drop-shadow-[0_0_40px_rgba(239,68,68,0.5)] leading-[1.1] mb-2 sm:mb-4 text-center">
                 OG CAFE & RESTAURANT
               </h1>
               
-              <div className="w-48 h-[1px] bg-gradient-to-r from-transparent via-red-500/70 to-transparent shadow-[0_0_8px_rgba(239,68,68,0.6)] my-4" />
+              <div className="w-48 h-[1px] bg-gradient-to-r from-transparent via-red-500/70 to-transparent shadow-[0_0_8px_rgba(239,68,68,0.6)] my-6" />
             </motion.div>
 
             <motion.p
