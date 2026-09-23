@@ -5,8 +5,11 @@
  */
 import axios from "axios";
 
+const socketUrl = import.meta.env.VITE_SOCKET_URL || "https://qr-restaurant-system-1.onrender.com";
+const apiUrl = import.meta.env.VITE_API_URL || `${socketUrl}/api`;
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "https://qr-restaurant-system-1.onrender.com/api",
+  baseURL: apiUrl,
   headers: { "Content-Type": "application/json" },
   withCredentials: true,
 });
