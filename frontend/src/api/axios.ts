@@ -5,7 +5,7 @@
  */
 import axios from "axios";
 
-const socketUrl = import.meta.env.VITE_SOCKET_URL || "https://qr-restaurant-system-1.onrender.com";
+const socketUrl = import.meta.env.VITE_SOCKET_URL || "https://qr-restaurant-system-kb10.onrender.com";
 const apiUrl = import.meta.env.VITE_API_URL || `${socketUrl}/api`;
 
 const api = axios.create({
