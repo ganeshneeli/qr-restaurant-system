@@ -1674,7 +1674,10 @@ const AdminDashboard = () => {
                                   className="w-24 h-24"
                                 />
                               </div>
-                              <p className="text-xs font-bold text-primary mb-3 uppercase tracking-wider">OG / Table {qr.tableNumber}</p>
+                              <p className="text-xs font-bold text-primary mb-1 uppercase tracking-wider">OG / Table {qr.tableNumber}</p>
+                              <a href={qr.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-muted-foreground mb-3 truncate block w-full px-2 hover:text-white transition-colors" title={qr.url}>
+                                {qr.url}
+                              </a>
                               <Button
                                 size="sm"
                                 variant="outline"

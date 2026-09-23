@@ -108,7 +108,7 @@ exports.getAllTables = async (req, res) => {
 exports.getTableQR = async (req, res) => {
   try {
     const { tableNumber } = req.params
-    const frontendBaseUrl = process.env.FRONTEND_URL || "http://localhost:5173"
+    const frontendBaseUrl = (process.env.FRONTEND_URL || "http://localhost:5173").split(',')[0].trim()
     
     // Add signature to the URL
     const signature = generateSignature(tableNumber)
@@ -128,7 +128,7 @@ exports.getTableQR = async (req, res) => {
 exports.getAllTableQRs = async (req, res) => {
   try {
     const tables = await Table.find({}).sort({ tableNumber: 1 })
-    const frontendBaseUrl = process.env.FRONTEND_URL || "http://localhost:5173"
+    const frontendBaseUrl = (process.env.FRONTEND_URL || "http://localhost:5173").split(',')[0].trim()
     
     const qrPromises = tables.map(async (table) => {
       const signature = generateSignature(table.tableNumber)
