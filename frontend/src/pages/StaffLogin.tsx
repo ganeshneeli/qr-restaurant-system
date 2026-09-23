@@ -5,7 +5,7 @@ import { ChefHat, UtensilsCrossed, Eye, EyeOff, ArrowLeft, Delete, Loader2 } fro
 import { useAuth } from "@/context/AuthContext";
 import axios from "axios";
 
-const API_URL = import.meta.env.VITE_API_URL || "https://qr-restaurant-system-kb10.onrender.com/api";
+const API_URL = import.meta.env.VITE_API_URL || "https://qr-restaurant-system-1.onrender.com/api";
 
 export default function StaffLogin() {
   const { setStaffToken, isKitchen, isWaiter, isAdmin } = useAuth();

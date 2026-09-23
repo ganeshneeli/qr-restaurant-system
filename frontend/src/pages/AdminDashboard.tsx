@@ -69,7 +69,7 @@ import {
   endOfDay,
   startOfDay
 } from "date-fns";
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "https://qr-restaurant-system-kb10.onrender.com";
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "https://qr-restaurant-system-1.onrender.com";
 import AnimatedCounter from "@/components/AnimatedCounter";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";

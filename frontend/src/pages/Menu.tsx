@@ -47,8 +47,8 @@ import {
 } from "@/components/ui/alert-dialog";
 
 // ─── Config ──────────────────────────────────────────────────────────────────
-const API_BASE = import.meta.env.VITE_API_URL || "https://qr-restaurant-system-kb10.onrender.com/api";
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "https://qr-restaurant-system-kb10.onrender.com";
+const API_BASE = import.meta.env.VITE_API_URL || "https://qr-restaurant-system-1.onrender.com/api";
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "https://qr-restaurant-system-1.onrender.com";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface MenuItem {

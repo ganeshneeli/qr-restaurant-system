@@ -26,7 +26,7 @@ app.use((req, res, next) => {
 
 app.use(cors({
   origin: (origin, callback) => {
-    const allowedOrigins = (process.env.FRONTEND_URL || "http://localhost:5173").split(",");
+    const allowedOrigins = (process.env.FRONTEND_URL || "http://localhost:5173").split(",").map(url => url.trim().replace(/\/$/, ""));
     if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV !== "production") {
       callback(null, true);
     } else {

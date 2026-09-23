@@ -21,8 +21,8 @@ import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
-const API_URL = import.meta.env.VITE_API_URL || "https://qr-restaurant-system-kb10.onrender.com/api";
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "https://qr-restaurant-system-kb10.onrender.com";
+const API_URL = import.meta.env.VITE_API_URL || "https://qr-restaurant-system-1.onrender.com/api";
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "https://qr-restaurant-system-1.onrender.com";
 
 interface OrderItem {
   name?: string;
