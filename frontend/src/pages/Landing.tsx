@@ -592,52 +592,12 @@ const Landing = () => {
         </section>
 
         {/* Footer */}
-        <footer className="py-16 border-t border-white/5 text-center flex flex-col items-center gap-8 bg-black">
-          {/* Fingrow Text Logo */}
-          <div className="flex items-center gap-2">
-            <span className="font-display text-xl font-black tracking-widest text-glow-white text-white">Fingrow</span>
-            <span className="bg-red-500 text-white font-black text-[10px] px-2 py-0.5 rounded">FCS</span>
-          </div>
-
-          {/* Copyright & System Details */}
+        <footer className="py-16 border-t border-white/5 text-center flex flex-col items-center gap-4 bg-black">
           <div className="text-white/70 text-sm leading-relaxed max-w-xl">
-            <p>© 2026 Fingrow Consulting Services Pvt Ltd. All rights reserved.</p>
+            <p>© {new Date().getFullYear()} codegeniusinnovations</p>
             <p className="text-white/40 text-xs mt-1">
-              PG Management System developed by Fingrow Technology Team.
+              Dharmavaram, Andhra Pradesh
             </p>
-          </div>
-
-          {/* Contact Information */}
-          <div className="flex flex-col sm:flex-row flex-wrap justify-center items-center gap-4 text-white/60 text-sm max-w-3xl">
-            <a 
-              href="tel:+919550756797" 
-              className="flex items-center gap-2 hover:text-white transition-all duration-300 bg-white/5 hover:bg-white/10 hover:scale-[1.02] px-4 py-2.5 rounded-full border border-white/10"
-            >
-              <Phone className="h-4 w-4 text-red-500" />
-              <span className="font-medium">Call / WhatsApp:</span> +91 9550756797 / +91 9187135171
-            </a>
-
-            <div className="flex flex-wrap justify-center items-center gap-2 bg-white/5 px-4 py-2.5 rounded-full border border-white/10">
-              <Mail className="h-4 w-4 text-red-500" />
-              <span className="font-medium">Email Us:</span>
-              <a href="mailto:contact@fingrow.in" className="hover:text-white transition-colors underline decoration-white/20">contact@fingrow.in</a>
-              <span>|</span>
-              <a href="mailto:Lokesh.vasu@fingrow.in" className="hover:text-white transition-colors underline decoration-white/20">Lokesh.vasu@fingrow.in</a>
-              <span>|</span>
-              <a href="mailto:harish.m@fingrow.in" className="hover:text-white transition-colors underline decoration-white/20">harish.m@fingrow.in</a>
-            </div>
-          </div>
-
-          {/* Social Media */}
-          <div className="flex gap-6 text-xs text-white/50">
-            <a
-              href="https://www.linkedin.com/company/fingrowconsulting/posts/?feedView=all"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 hover:text-white transition-colors"
-            >
-              <Linkedin className="h-4 w-4" /> LinkedIn
-            </a>
           </div>
         </footer>
       </div>
